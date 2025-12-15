@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
   :root {
     --background: 210 20% 98%;
@@ -43,15 +41,34 @@
     --radius: 0.75rem;
 
     /* Custom LMS tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(168 80% 32%) 0%, hsl(175 70% 28%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 90% 55%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(168 80% 32%) 0%, hsl(220 60% 35%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
-    
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(168 80% 32%) 0%,
+      hsl(175 70% 28%) 100%
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(38 92% 50%) 0%,
+      hsl(28 90% 55%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(168 80% 32%) 0%,
+      hsl(220 60% 35%) 100%
+    );
+    --gradient-card: linear-gradient(
+      180deg,
+      hsl(0 0% 100%) 0%,
+      hsl(210 20% 98%) 100%
+    );
+
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.1), 0 2px 4px -2px hsl(220 20% 10% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(220 20% 10% / 0.1), 0 4px 6px -4px hsl(220 20% 10% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(220 20% 10% / 0.1), 0 8px 10px -6px hsl(220 20% 10% / 0.1);
+    --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.1),
+      0 2px 4px -2px hsl(220 20% 10% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(220 20% 10% / 0.1),
+      0 4px 6px -4px hsl(220 20% 10% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(220 20% 10% / 0.1),
+      0 8px 10px -6px hsl(220 20% 10% / 0.1);
     --shadow-glow: 0 0 40px hsl(168 80% 32% / 0.15);
     --shadow-accent-glow: 0 0 30px hsl(38 92% 50% / 0.25);
 
@@ -97,10 +114,22 @@
     --input: 220 15% 22%;
     --ring: 168 70% 45%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(168 70% 45%) 0%, hsl(175 60% 38%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(220 25% 12%) 0%, hsl(220 30% 18%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(220 20% 14%) 0%, hsl(220 20% 12%) 100%);
-    
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(168 70% 45%) 0%,
+      hsl(175 60% 38%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(220 25% 12%) 0%,
+      hsl(220 30% 18%) 100%
+    );
+    --gradient-card: linear-gradient(
+      180deg,
+      hsl(220 20% 14%) 0%,
+      hsl(220 20% 12%) 100%
+    );
+
     --sidebar-background: 220 20% 10%;
     --sidebar-foreground: 210 20% 90%;
     --sidebar-primary: 168 70% 45%;
@@ -122,7 +151,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 }
 
@@ -220,7 +249,8 @@
 }
 
 @keyframes pulseSoft {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
