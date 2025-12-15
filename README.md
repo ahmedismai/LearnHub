@@ -119,7 +119,7 @@ learnhub/
 Frontend Developer
 
 * GitHub: [https://github.com/ahmedismai](https://github.com/ahmedismai)
-* LinkedIn: [https://www.linkedin.com/](https://www.linkedin.com/)
+* LinkedIn: [https://www.linkedin.com/in/ahmed-ismail-amer](https://www.linkedin.com/in/ahmed-ismail-amer)
 
 ---
 
