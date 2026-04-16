@@ -75,7 +75,7 @@ http://localhost:5173
 
 ## 🌍 Live Demo
 
-🔗 [https://learnhub.vercel.app/](https://learnhub.vercel.app/)
+🔗 [https://learnhub-seven-ashy.vercel.app/](https://learnhub-seven-ashy.vercel.app/)
 
 ---
 
