@@ -163,9 +163,9 @@ const MyCourses = () => {
               <div className="relative">
                 <img
                   src={
-                    enrollment.course?.thumbnail
+                    course.thumbnail
                   }
-                  alt={enrollment.course?.title}
+                  alt={course.title}
                   className="w-full h-40 object-cover"
                 />
 
@@ -175,7 +175,7 @@ const MyCourses = () => {
               </div>
               <CardContent className="p-5">
                 <h3 className="font-bold text-foreground mb-2 line-clamp-2">
-                  {enrollment.course?.title}
+                  {course.title}
                 </h3>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                   <span>{course.enrolledCount} students</span>
