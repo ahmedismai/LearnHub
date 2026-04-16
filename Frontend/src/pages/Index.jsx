@@ -242,7 +242,7 @@ const Index = () => {
                     <span>{course.duration}</span>
                   </div>
                   <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                    {enrollment.course?.title}
+                    {course.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                     {course.description}
