@@ -77,7 +77,7 @@ http://localhost:5173
 
 ## 🌍 Live Demo
 ### 🎨 Frontend
-🔗 [https:https://learn-hub-psxx.vercel.app/](https:https://learn-hub-psxx.vercel.app/)
+🔗 [https://learn-hub-psxx.vercel.app/](https://learn-hub-psxx.vercel.app/)
 ### ⚙️ Backend API
 🔗 [https://learn-hub-rho-ashen.vercel.app/](https://learn-hub-rho-ashen.vercel.app/)
 
