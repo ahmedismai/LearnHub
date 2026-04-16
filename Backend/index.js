@@ -12,6 +12,7 @@ import quizRoutes from "./routes/quizRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import gradeRoutes from "./routes/gradeRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
+import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
 
@@ -33,7 +34,9 @@ app.use("/api/quizzes", quizRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/grades", gradeRoutes);
 app.use("/api/certificates", certificateRoutes);
-import { v2 as cloudinary } from "cloudinary";
+app.get("/", (req, res) => {
+  res.send("LearnHub Server is Running Successfully! 🚀");
+});
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

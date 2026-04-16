@@ -163,9 +163,7 @@ const MyCourses = () => {
               <div className="relative">
                 <img
                   src={
-                    enrollment.course?.thumbnail?.startsWith("http")
-                      ? enrollment.course?.thumbnail
-                      : `http://localhost:5000${enrollment.course?.thumbnail}`
+                    enrollment.course?.thumbnail
                   }
                   alt={enrollment.course?.title}
                   className="w-full h-40 object-cover"
