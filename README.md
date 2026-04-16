@@ -61,6 +61,7 @@ JWT_SECRET=your_secret_key
 CLOUDINARY_CLOUD_NAME=your_name
 CLOUDINARY_API_KEY=your_key
 CLOUDINARY_API_SECRET=your_secret
+PORT=5000
 Start the server: npm start
 
 3. Frontend Setup
