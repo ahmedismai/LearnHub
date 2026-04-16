@@ -18,7 +18,7 @@ LearnHub is a modern online learning platform designed to help users discover, e
 
 ## 🛠️ Tech Stack
 
-* **Framework:** React 18 + TypeScript
+* **Framework:** React 18 + JavaScript
 * **Routing:** React Router DOM
 * **UI Components:** shadcn/ui, Radix UI
 * **Styling:** Tailwind CSS, tailwindcss-animate
