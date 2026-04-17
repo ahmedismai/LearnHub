@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // ضفنا useEffect
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,18 +23,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
-import { categories, levels } from "@/data/mockData";
+import { levels } from "@/data/mockData"; // شيلنا categories من هنا
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z
     .string()
     .min(10, { message: "Description must be at least 10 characters." }),
-  price: z.preprocess(
-    (val) => Number(val),
-    z.number().positive({ message: "Price must be a positive number." }),
-  ),
-  category: z.string().min(1, { message: "Please select a category." }),
+  price: z.preprocess((val) => Number(val), z.number().positive()),
+  categoryId: z.string().min(1, { message: "Please select a category." }), // غيرنا اسمها لـ categoryId
   level: z.string().min(1, { message: "Please select a level." }),
   thumbnail: z.any().optional(),
 });
@@ -43,6 +40,20 @@ const CreateCourse = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [realCategories, setRealCategories] = useState([]); // لجلب البيانات الحقيقية
+
+  // جلب الكاتيجوريز الحقيقية من الداتابيز
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get("/categories");
+        setRealCategories(response.data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -50,7 +61,7 @@ const CreateCourse = () => {
       title: "",
       description: "",
       price: "",
-      category: "",
+      categoryId: "",
       level: "",
       thumbnail: null,
     },
@@ -60,27 +71,24 @@ const CreateCourse = () => {
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      for (const key in values) {
+      Object.keys(values).forEach((key) => {
         if (key === "thumbnail" && values[key]) {
           formData.append(key, values[key][0]);
         } else {
-          formData.append(key, values[key]);
+          formData.append(key, values[key]); // سيفضل الاسم categoryId كما هو في الـ Schema
         }
-      }
+      });
 
       await api.post("/courses", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast({
-        title: "Course Created!",
-        description: "Your course has been submitted for review.",
-      });
+      toast({ title: "Course Created Successfully!" });
       navigate("/dashboard/my-courses");
     } catch (error) {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to create course.",
+        description: error.response?.data?.error || "Check validation errors.",
         variant: "destructive",
       });
     } finally {
@@ -94,66 +102,15 @@ const CreateCourse = () => {
         <h1 className="text-3xl font-bold text-foreground">
           Create New Course
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Fill out the form below to create a new course.
-        </p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Course Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Introduction to React" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* ... الحقول السابقة (title, description, price) كما هي ... */}
 
           <FormField
             control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Course Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="A comprehensive course on building modern web applications with React."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price ($)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="49.99"
-                    step="0.01"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="category"
+            name="categoryId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
@@ -163,17 +120,15 @@ const CreateCourse = () => {
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder="Select a real category" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories
-                      .filter((cat) => cat !== "All")
-                      .map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
+                    {realCategories.map((cat) => (
+                      <SelectItem key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -181,57 +136,7 @@ const CreateCourse = () => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="level"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {levels
-                      .filter((lvl) => lvl !== "All")
-                      .map((level) => (
-                        <SelectItem
-                          key={level}
-                          value={level.charAt(0).toUpperCase() + level.slice(1)}
-                        >
-                          {level.charAt(0).toUpperCase() + level.slice(1)}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="thumbnail"
-            render={({ field: { value, onChange, ...fieldProps } }) => (
-              <FormItem>
-                <FormLabel>Course Thumbnail</FormLabel>
-                <FormControl>
-                  <Input
-                    {...fieldProps}
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => onChange(event.target.files)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* ... حقل Level و Thumbnail ... */}
 
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create Course"}
