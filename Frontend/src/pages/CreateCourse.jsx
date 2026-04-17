@@ -133,36 +133,52 @@ const CreateCourse = () => {
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
-      // رفع الـ Thumbnail لو تم اختياره
-      let thumbnailUrl = form.getValues("thumbnailUrl") || "";
-      if (values.thumbnail?.[0]) {
+      let thumbnailUrl = "";
+      if (values.thumbnail && values.thumbnail[0]) {
         thumbnailUrl = await uploadToCloudinary(values.thumbnail[0]);
       }
 
-      const payload = {
-        ...values,
-        thumbnail: thumbnailUrl || "",
+      const coursePayload = {
+        title: values.title,
+        description: values.description,
+        price: Number(values.price),
+        categoryId: values.categoryId,
+        level: values.level,
+        ...(thumbnailUrl && { thumbnail: thumbnailUrl }),
       };
 
+      let courseId = id;
       if (isEditMode) {
-        await api.put(`/courses/${id}`, payload);
-        toast({
-          title: "Updated!",
-          description: "Course updated successfully.",
-        });
+        await api.put(`/courses/${id}`, coursePayload);
       } else {
-        await api.post("/courses", payload);
-        toast({
-          title: "Created!",
-          description: "Course published successfully.",
-        });
+        const newCourse = await api.post("/courses", coursePayload);
+        courseId = newCourse.data._id;
       }
+
+      if (values.contents && values.contents.length > 0) {
+        for (const lesson of values.contents) {
+          const lessonPayload = {
+            title: lesson.title,
+            type: "Lesson",
+            videoUrl: lesson.videoUrl,
+          };
+
+          await api.post(`/courses/${courseId}/contents`, lessonPayload);
+        }
+      }
+
+      toast({
+        title: "Success!",
+        description: "Course and content saved successfully.",
+      });
       navigate("/dashboard/my-courses");
     } catch (error) {
+      console.error("Submission error:", error);
       toast({
-        title: "Failed",
-        description: error.message,
         variant: "destructive",
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to save course content.",
       });
     } finally {
       setIsSubmitting(false);
