@@ -126,12 +126,16 @@ const MyCourses = () => {
                 </div>
 
                 <Button
-                  className="w-full mt-4"
+                  className="w-full mt-4 p-0"
                   variant={
                     enrollment.status === "completed" ? "outline" : "gradient"
                   }
+                  asChild
                 >
-                  <Link to={`/dashboard/courses/${enrollment.course?.id}`}>
+                  <Link
+                    to={`/dashboard/courses/${enrollment.course?.id}`}
+                    className="w-full h-full flex items-center justify-center"
+                  >
                     <Play className="w-4 h-4 mr-2" />
                     {enrollment.status === "completed"
                       ? "Review Course"
