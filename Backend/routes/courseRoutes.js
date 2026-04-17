@@ -43,8 +43,15 @@ router.post(
   upload.single("thumbnail"),
   async (req, res) => {
     try {
-      const { title, description, price, level, categoryId } = req.body;
-      const thumbnail = req.file ? req.file.path : thumbnailFromClient || "";
+      const {
+        title,
+        description,
+        price,
+        level,
+        categoryId,
+        thumbnail: thumbnailLink,
+      } = req.body;
+      const thumbnail = req.file ? req.file.path : thumbnailLink || "";
       const course = new Course({
         title,
         description,

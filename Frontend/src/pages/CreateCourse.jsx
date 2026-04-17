@@ -83,7 +83,6 @@ const CreateCourse = () => {
     const cloudName = "duevc5acm";
 
     const resourceType = file.type.startsWith("video") ? "video" : "image";
-
     try {
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
