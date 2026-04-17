@@ -26,6 +26,7 @@ import api from "@/api/axios";
 import { levels } from "@/data/mockData";
 import { Plus, Trash2, Video, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 // تحديث الـ Schema ليشمل الدروس
 const formSchema = z.object({
