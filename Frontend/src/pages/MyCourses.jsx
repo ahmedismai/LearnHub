@@ -190,6 +190,7 @@ const MyCourses = () => {
                   <Button variant="outline" className="flex-1" asChild>
                     <Link to={`/dashboard/edit-course/${course.id}`}>Edit</Link>
                   </Button>
+
                   <Button variant="ghost" className="flex-1" asChild>
                     <Link to={`/dashboard/courses/${course.id}`}>View</Link>
                   </Button>

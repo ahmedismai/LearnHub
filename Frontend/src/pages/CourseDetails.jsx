@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Star,
   Users,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -26,6 +26,7 @@ const CourseDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // جلب بيانات الكورس
   const { data: course, isLoading } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
@@ -34,6 +35,7 @@ const CourseDetails = () => {
     },
   });
 
+  // جلب اشتراكات المستخدم الحالي
   const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
@@ -43,7 +45,12 @@ const CourseDetails = () => {
     enabled: !!user,
   });
 
-  const isEnrolled = enrollments.some((e) => e.courseId?._id === id);
+  // --- منطق الصلاحيات الجديد ---
+  const isInstructor =
+    user?.role === "Instructor" && course?.instructorId?._id === user?.id;
+  const isStudentEnrolled = enrollments.some((e) => e.courseId?._id === id);
+  const hasAccess = isInstructor || isStudentEnrolled;
+  // ---------------------------
 
   const enrollMutation = useMutation({
     mutationFn: async () => {
@@ -63,8 +70,11 @@ const CourseDetails = () => {
   });
 
   if (isLoading)
-    return <div className="p-8 text-center text-lg">Loading course details...</div>;
-  if (!course) return <div className="p-8 text-center text-lg">Course not found</div>;
+    return (
+      <div className="p-8 text-center text-lg">Loading course details...</div>
+    );
+  if (!course)
+    return <div className="p-8 text-center text-lg">Course not found</div>;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -100,7 +110,7 @@ const CourseDetails = () => {
 
           {/* Video Player Section */}
           <div className="aspect-video relative rounded-2xl overflow-hidden bg-black border shadow-sm border-primary/20">
-            {isEnrolled && activeLesson?.videoUrl ? (
+            {hasAccess && activeLesson?.videoUrl ? (
               <video
                 key={activeLesson.videoUrl}
                 src={activeLesson.videoUrl}
@@ -116,16 +126,18 @@ const CourseDetails = () => {
                   alt={course.title}
                   className="w-full h-full object-cover opacity-60"
                 />
-                {!isEnrolled && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                         <Play className="w-16 h-16 text-white/80" />
-                    </div>
+                {!hasAccess && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <Play className="w-16 h-16 text-white/80" />
+                  </div>
                 )}
-                {isEnrolled && !activeLesson && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white space-y-4">
-                         <Play className="w-16 h-16 text-white/80" />
-                         <p className="text-lg font-medium">Select a lesson to start learning</p>
-                    </div>
+                {hasAccess && !activeLesson && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white space-y-4">
+                    <Play className="w-16 h-16 text-white/80" />
+                    <p className="text-lg font-medium">
+                      Select a lesson to start learning
+                    </p>
+                  </div>
                 )}
               </div>
             ) : (
@@ -149,41 +161,58 @@ const CourseDetails = () => {
                   <div
                     key={content._id || content.id}
                     className={`flex items-center justify-between p-5 cursor-pointer transition-all ${
-                      activeLesson?.id === content.id || activeLesson?._id === content._id
+                      activeLesson?.id === content.id ||
+                      activeLesson?._id === content._id
                         ? "bg-primary/5 border-l-4 border-primary"
                         : "hover:bg-accent/5 border-l-4 border-transparent"
                     }`}
                     onClick={() =>
-                      isEnrolled &&
+                      hasAccess &&
                       content.contentType === "Lesson" &&
                       setActiveLesson(content)
                     }
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                        activeLesson?.id === content.id || activeLesson?._id === content._id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-accent/20 text-muted-foreground"
-                      }`}>
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                          activeLesson?.id === content.id ||
+                          activeLesson?._id === content._id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-accent/20 text-muted-foreground"
+                        }`}
+                      >
                         {index + 1}
                       </div>
                       <div>
-                        <p className={`font-semibold ${
-                            (activeLesson?.id === content.id || activeLesson?._id === content._id) ? "text-primary" : ""
-                        }`}>
-                            {content.title}
+                        <p
+                          className={`font-semibold ${
+                            activeLesson?.id === content.id ||
+                            activeLesson?._id === content._id
+                              ? "text-primary"
+                              : ""
+                          }`}
+                        >
+                          {content.title}
                         </p>
                         <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px] uppercase h-5">
-                                {content.contentType}
-                            </Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] uppercase h-5"
+                          >
+                            {content.contentType}
+                          </Badge>
                         </div>
                       </div>
                     </div>
                     {content.contentType === "Lesson" ? (
-                      <Play className={`w-5 h-5 ${
-                        (activeLesson?.id === content.id || activeLesson?._id === content._id) ? "text-primary animate-pulse" : "text-muted-foreground/40"
-                      }`} />
+                      <Play
+                        className={`w-5 h-5 ${
+                          activeLesson?.id === content.id ||
+                          activeLesson?._id === content._id
+                            ? "text-primary animate-pulse"
+                            : "text-muted-foreground/40"
+                        }`}
+                      />
                     ) : (
                       <FileText className="w-5 h-5 text-muted-foreground/40" />
                     )}
@@ -197,7 +226,40 @@ const CourseDetails = () => {
         {/* Right Column: Enrollment / Access Info */}
         <div className="lg:col-span-1">
           <Card className="sticky top-24 border-2 border-primary/10 shadow-xl overflow-hidden">
-            {!isEnrolled ? (
+            {isInstructor ? (
+              <CardContent className="p-8 space-y-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Users className="w-10 h-10 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-primary/20">
+                      Instructor View
+                    </Badge>
+                    <h3 className="text-xl font-bold text-foreground">
+                      Course Management
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      You are the instructor of this course. You have full
+                      access to preview content and manage students.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="w-full py-6 text-lg font-bold shadow-lg"
+                  onClick={() => navigate(`/dashboard/edit-course/${id}`)}
+                >
+                  Edit Course Content
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/dashboard/my-courses")}
+                >
+                  Back to Dashboard
+                </Button>
+              </CardContent>
+            ) : !isStudentEnrolled ? (
               <>
                 <div className="bg-primary/5 p-8 text-center border-b">
                   <span className="text-4xl font-bold text-primary">
@@ -212,7 +274,9 @@ const CourseDetails = () => {
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <BookOpen className="w-5 h-5 text-primary" />
-                      <span>{course.contents?.length || 0} Lessons & Resources</span>
+                      <span>
+                        {course.contents?.length || 0} Lessons & Resources
+                      </span>
                     </div>
                   </div>
 
@@ -233,29 +297,34 @@ const CourseDetails = () => {
                     <CheckCircle2 className="w-10 h-10 text-green-600" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-foreground">You're Enrolled!</h3>
+                    <h3 className="text-xl font-bold text-foreground">
+                      You're Enrolled!
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      You have full access to this course. Pick a lesson from the list to start watching.
+                      You have full access to this course. Pick a lesson from
+                      the list to start watching.
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Overall Progress</span>
-                        <span className="font-bold text-primary">0%</span>
-                    </div>
-                    <div className="w-full bg-accent h-2 rounded-full overflow-hidden">
-                        <div className="bg-primary h-full w-[0%]" />
-                    </div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">
+                      Overall Progress
+                    </span>
+                    <span className="font-bold text-primary">0%</span>
+                  </div>
+                  <div className="w-full bg-accent h-2 rounded-full overflow-hidden">
+                    <div className="bg-primary h-full w-[0%]" />
+                  </div>
                 </div>
 
-                <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => navigate("/dashboard/my-courses")}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/dashboard/my-courses")}
                 >
-                    Back to My Courses
+                  Back to My Courses
                 </Button>
               </CardContent>
             )}
