@@ -44,8 +44,7 @@ router.post(
   async (req, res) => {
     try {
       const { title, description, price, level, categoryId } = req.body;
-      const thumbnail = req.file ? req.file.path : "";
-
+      const thumbnail = req.file ? req.file.path : thumbnailFromClient || "";
       const course = new Course({
         title,
         description,
@@ -149,8 +148,9 @@ router.post(
       let content;
 
       if (type === "Lesson") {
-        // إذا كان هناك ملف مرفوع نأخذ مساره، وإلا نستخدم الرابط النصي لو موجود
-        const videoUrl = req.file ? req.file.path : rest.videoUrl || "";
+        const videoUrl = req.file
+          ? req.file.path
+          : req.body.videoUrl || req.body.video || "";
         content = new Lesson({
           ...rest,
           videoUrl,

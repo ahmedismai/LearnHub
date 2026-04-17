@@ -78,6 +78,7 @@ const CreateCourse = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "ml_default");
+    formData.append("folder", "learnhub_courses");
 
     const cloudName = "duevc5acm";
 
