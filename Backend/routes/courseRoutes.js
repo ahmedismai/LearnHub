@@ -1,8 +1,8 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
 import { Course } from "../models/Course.js";
+import { Category } from "../models/Category.js";
+import { Content, Lesson, Quiz, Assignment } from "../models/Content.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -17,22 +17,21 @@ const storage = new CloudinaryStorage({
 });
 
 const router = express.Router();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const upload = multer({ storage });
 
-// الحصول على كل الكورسات المقبولة (للكل)
+// Get all approved courses
 router.get("/", async (req, res) => {
-  const courses = await Course.find({ status: "Approved" }).populate(
-    "instructorId",
-    "username",
-  );
-  res.json(courses);
+  try {
+    const courses = await Course.find({ status: "Approved" })
+      .populate("instructorId", "name")
+      .populate("categoryId", "name");
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// إنشاء كورس جديد (Instructor فقط)
+// Create new course (Instructor/Admin)
 router.post(
   "/",
   protect,
@@ -40,14 +39,15 @@ router.post(
   upload.single("thumbnail"),
   async (req, res) => {
     try {
-      const { title, description, price, level, category } = req.body;
+      const { title, description, price, level, categoryId } = req.body;
       const thumbnail = req.file ? req.file.path : "";
+      
       const course = new Course({
         title,
         description,
         price,
         level,
-        category,
+        categoryId,
         instructorId: req.user.id,
         status: "Pending",
         thumbnail,
@@ -60,35 +60,40 @@ router.post(
   },
 );
 
-// كورساتي (Instructor) أو كل الكورسات (Administrator)
+// Get my courses or all (Admin)
 router.get(
   "/mine",
   protect,
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
   async (req, res) => {
-    const filter =
-      req.user.role === ROLES.ADMINISTRATOR
-        ? {}
-        : { instructorId: req.user.id };
+    const filter = req.user.role === ROLES.ADMINISTRATOR ? {} : { instructorId: req.user.id };
     const courses = await Course.find(filter)
-      .populate("instructorId", "username email")
+      .populate("instructorId", "name email")
+      .populate("categoryId", "name")
       .sort({ createdAt: -1 });
     res.json(courses);
   },
 );
 
+// Get course details
 router.get("/:id", async (req, res) => {
-  const course = await Course.findById(req.params.id).populate(
-    "instructorId",
-    "username email",
-  );
-  if (!course) {
-    return res.status(404).json({ message: "Course not found" });
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate("instructorId", "name email bio")
+      .populate("categoryId", "name")
+      .populate("contents")
+      .populate("reviews");
+    
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    res.json(course);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  res.json(course);
 });
 
-// تحديث حالة الكورس (Administrator فقط)
+// Update course status (Admin)
 router.patch(
   "/:id/status",
   protect,
@@ -111,6 +116,41 @@ router.patch(
     }
     res.json(course);
   },
+);
+
+// Add Content to Course (Lesson, Quiz, Assignment)
+router.post(
+  "/:id/contents",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+
+      if (req.user.role === ROLES.INSTRUCTOR && String(course.instructorId) !== String(req.user.id)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const { type, ...rest } = req.body;
+      let content;
+
+      if (type === 'Lesson') {
+        content = new Lesson({ ...rest, type, courseId: course._id });
+      } else if (type === 'Quiz') {
+        content = new Quiz({ ...rest, type, courseId: course._id });
+      } else if (type === 'Assignment') {
+        content = new Assignment({ ...rest, type, courseId: course._id });
+      } else {
+        return res.status(400).json({ message: "Invalid content type" });
+      }
+
+      await content.save();
+      res.status(201).json(content);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 );
 
 export default router;

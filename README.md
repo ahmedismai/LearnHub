@@ -1,47 +1,62 @@
 # 🎓 LearnHub – Full-Stack Online Courses Platform
 
-LearnHub is a professional, full-stack online learning platform designed to provide a seamless experience for both instructors and students. It features a modern UI, secure authentication, and dynamic media management.
-
----
-
-## 🚀 Key Features
-
-* **🔐 Secure Authentication:** Complete Login and Registration system using JWT and Bcrypt. Now uses `username` and `passwordHash` for enhanced security.
-* **🛠️ Admin Dashboard:** Comprehensive control panel for platform administrators to manage the entire ecosystem.
-* **👥 User & Permission Management:** Role-based access control (RBAC) allowing admins to promote users to 'Instructor' or 'Administrator' roles.
-* **📚 Advanced Course Management:** Dedicated approval workflow for administrators to review, approve, or reject courses before they go live.
-* **📊 Platform Analytics:** Real-time system statistics and platform-wide analytics, including user growth, course count, and system health metrics (uptime, memory usage).
-* **📤 Dynamic Course Creation:** Instructors can create courses and upload thumbnails directly to **Cloudinary**.
-* **🔍 Advanced Filtering:** Explore courses by category, difficulty level, and price sorting.
-* **🎨 Premium UI/UX:** Built with **shadcn/ui**, **Radix UI**, and **Tailwind CSS** for a sleek, modern look.
-* **📱 Fully Responsive:** Optimized for mobile, tablet, and desktop screens.
+LearnHub is a professional, full-stack online learning platform designed to provide a seamless experience for both instructors and students. This project is strictly aligned with the architectural design specified in its UML Class and Sequence diagrams.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-* **Framework:** React 18 (Vite)
-* **Styling:** Tailwind CSS + Lucide Icons
-* **Components:** shadcn/ui + Radix UI
-* **Data Fetching:** TanStack Query (React Query) + Axios
-* **Routing:** React Router DOM
+- **Framework:** React 18 (Vite)
+- **State Management:** TanStack Query (React Query)
+- **Styling:** Tailwind CSS + shadcn/ui + Lucide Icons
+- **Routing:** React Router DOM
+- **Authentication:** JWT + Context API
 
 ### Backend
-* **Server:** Node.js + Express.js
-* **Database:** MongoDB Atlas (Mongoose)
-* **Storage:** Cloudinary API (via Multer)
-* **Security:** JSON Web Tokens (JWT) + Bcrypt
+- **Runtime:** Node.js + Express.js
+- **Database:** MongoDB Atlas (Mongoose)
+- **Inheritance Pattern:** Mongoose Discriminators (for Users, Content, and Payments)
+- **Media Management:** Cloudinary API
+- **Security:** bcryptjs + JSON Web Tokens
 
 ---
 
-## 🌍 Live Demo
+## 🏗️ System Architecture (Database Schema)
 
-### 🎨 Frontend (Client Side)
-🔗 [https://learn-hub-psxx.vercel.app/](https://learn-hub-psxx.vercel.app/)
+The system utilizes an advanced inheritance-based schema for 100% alignment with the UML design.
 
-### ⚙️ Backend (API Server)
-🔗 [https://learn-hub-rho-ashen.vercel.app/api](https://learn-hub-rho-ashen.vercel.app/api)
+### 👥 User Inheritance System
+- **Base User:** `id`, `name`, `email`, `passwordHash`, `role`.
+- **Admin:** Inherits User, adds `adminId`.
+- **Instructor:** Inherits User, adds `instructorId`, `bio`.
+- **Student:** Inherits User, adds `studentId`, `enrollmentDate`.
+
+### 📚 Course & Content System
+- **Category:** `categoryId`, `name`, `description`.
+- **Course:** `courseId`, `title`, `description`, `price`, `level`. (Linked to Category and Instructor).
+- **Content (Base):** `contentId`, `title`, `description`, `type`, `duration`.
+  - **Lesson:** Inherits Content, adds `contentUrl`.
+  - **Quiz:** Inherits Content, adds `totalMarks`. (Linked to Questions).
+  - **Assignment:** Inherits Content, adds `dueDate`.
+
+### 💳 Enrollment & Payment System
+- **Enrollment:** `enrollmentId`, `date`, `status`, `progress`. (Links Student to Course).
+- **Payment (Base):** `paymentId`, `amount`, `date`, `method`.
+  - **Visa:** Inherits Payment, adds `status`.
+  - **E-Wallet:** Inherits Payment, adds `status`.
+
+---
+
+## 🚀 Key Features
+
+- **🔐 Secure RBAC:** Role-Based Access Control for Students, Instructors, and Administrators.
+- **📚 Content Hierarchy:** Unified content system for lessons, quizzes, and assignments.
+- **📊 Progress Tracking:** Automated progress calculation (40% Lessons, 30% Quizzes, 30% Assignments).
+- **💳 Multi-Method Payments:** Support for Visa and E-Wallet payment simulations.
+- **🎓 Certificate Generation:** Automated certificate issuance upon 100% course completion.
+- **📝 Review System:** Students can rate and review courses they are enrolled in.
+- **🛠️ Admin Control:** Comprehensive management of users, categories, and course approvals.
 
 ---
 
@@ -54,80 +69,27 @@ cd LearnHub
 ```
 
 ### 2. Backend Setup
-Navigate to the Backend directory:
 ```bash
 cd Backend
-```
-Install dependencies:
-```bash
 npm install
-```
-Create a `.env` file and add your credentials:
-```env
-MONGO_URI=your_mongodb_uri
-JWT_SECRET=your_secret_key
-CLOUDINARY_CLOUD_NAME=your_name
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
-PORT=5000
-```
-Start the server:
-```bash
+# Configure .env with MONGO_URI, JWT_SECRET, CLOUDINARY_URL, etc.
 npm start
 ```
 
 ### 3. Frontend Setup
-Navigate to the Frontend directory:
 ```bash
 cd ../Frontend
-```
-Install dependencies:
-```bash
 npm install
-```
-Create a `.env` file:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-Start the app:
-```bash
+# Configure .env with VITE_API_URL
 npm run dev
 ```
 
 ---
 
-## 📄 Project Structure
-
-```plaintext
-LearnHub/
-├── Backend/            # Express.js Backend
-│   ├── models/         # Mongoose Schemas (User, Course, Enrollment, etc.)
-│   ├── routes/         # API Endpoints (Auth, Admin, Courses, etc.)
-│   ├── middleware/     # Auth, Protection & RBAC
-│   └── constants/      # Global constants (Roles, etc.)
-├── Frontend/           # React Frontend
-│   ├── src/
-│   │   ├── components/ # UI Components (shadcn)
-│   │   ├── pages/      # Application Pages (AdminDashboard, Courses, etc.)
-│   │   ├── contexts/   # Auth & Global State
-│   │   ├── api/        # Axios Configuration
-│   │   └── hooks/      # Custom React Hooks
-│   └── vercel.json     # Deployment Configuration
-└── README.md
-```
-
----
-
-## ✨ Roadmap (Current Status)
-
-* [x] **Secure Authentication:** JWT-based login/register with RBAC.
-* [x] **Admin Dashboard:** Full control over users and courses.
-* [x] **Course Approval:** workflow for platform quality control.
-* [x] **Student Enrollment:** Students can join and track courses.
-* [x] **Interactive Quizzes:** Built-in quiz system (Backend models ready).
-* [x] **Certificate Generation:** Backend models and logic in place.
-* [ ] **Payment Gateway:** Integration for Stripe/PayPal.
-* [ ] **Gamification:** Points and badges for student engagement.
+## 📄 UML Alignment
+The codebase has been refactored to achieve **100% parity** with:
+- `Frontend/class.jpeg` (Class Diagram)
+- `Frontend/sequence.jpeg` (Sequence Diagram)
 
 ---
 
@@ -138,8 +100,3 @@ Full-Stack Developer
 
 * **GitHub:** [https://github.com/ahmedismai](https://github.com/ahmedismai)
 * **LinkedIn:** [https://www.linkedin.com/in/ahmed-ismail-amer](https://www.linkedin.com/in/ahmed-ismail-amer)
-
----
-
-## ⭐ Support
-If you find this project helpful, please give it a Star on GitHub!

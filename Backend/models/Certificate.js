@@ -14,11 +14,19 @@ const certificateSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    issuedAt: { type: Date, default: Date.now },
+    issueDate: { type: Date, default: Date.now },
     certificateUrl: { type: String, default: "" },
   },
-  { timestamps: true }
+  { 
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+    timestamps: true 
+  }
 );
+
+certificateSchema.virtual('certificateId').get(function() {
+  return this._id.toHexString();
+});
 
 certificateSchema.index({ studentId: 1, courseId: 1 }, { unique: true });
 

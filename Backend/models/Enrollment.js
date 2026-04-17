@@ -3,14 +3,24 @@ import mongoose from 'mongoose';
 const enrollmentSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
-  enrollmentDate: { type: Date, default: Date.now },
+  date: { type: Date, default: Date.now },
+  status: { type: String, enum: ['Active', 'Completed', 'Cancelled'], default: 'Active' },
+  paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
   progress: { type: Number, default: 0 },
-  completedLessons: [{ type: String }],
-  completedQuizzes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' }],
-  completed: { type: Boolean, default: false },
-  paymentStatus: { type: String, enum: ['Paid', 'Unpaid'], default: 'Unpaid' }
+  completedLessons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
+  completedQuizzes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
+  completedAssignments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
+  completed: { type: Boolean, default: false }
+}, {
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  timestamps: true
+});
+
+enrollmentSchema.virtual('enrollmentId').get(function() {
+  return this._id.toHexString();
 });
 
 enrollmentSchema.index({ studentId: 1, courseId: 1 }, { unique: true });
 
-export const Enrollment= mongoose.model('Enrollment', enrollmentSchema);
+export const Enrollment = mongoose.model('Enrollment', enrollmentSchema);
