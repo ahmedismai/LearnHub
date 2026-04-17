@@ -187,11 +187,11 @@ const MyCourses = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
-                    Edit
+                  <Button variant="outline" className="flex-1" asChild>
+                    <Link to={`/dashboard/edit-course/${course.id}`}>Edit</Link>
                   </Button>
-                  <Button variant="ghost" className="flex-1">
-                    View
+                  <Button variant="ghost" className="flex-1" asChild>
+                    <Link to={`/courses/${course.id}`}>View</Link>
                   </Button>
                 </div>
               </CardContent>
