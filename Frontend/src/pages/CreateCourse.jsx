@@ -77,7 +77,7 @@ const CreateCourse = () => {
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "your_upload_preset");
+    formData.append("upload_preset", "ml_default");
 
     const cloudName = "duevc5acm";
 
