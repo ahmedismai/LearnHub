@@ -141,7 +141,7 @@ const CreateCourse = () => {
 
       const payload = {
         ...values,
-        thumbnail: thumbnailUrl || courseData?.thumbnail,
+        thumbnail: thumbnailUrl || "",
       };
 
       if (isEditMode) {
