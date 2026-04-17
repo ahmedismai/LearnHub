@@ -134,52 +134,52 @@ const CreateCourse = () => {
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
-      let thumbnailUrl = "";
-      if (values.thumbnail && values.thumbnail[0]) {
-        thumbnailUrl = await uploadToCloudinary(values.thumbnail[0]);
-      }
-
       const coursePayload = {
         title: values.title,
         description: values.description,
         price: Number(values.price),
         categoryId: values.categoryId,
         level: values.level,
-        ...(thumbnailUrl && { thumbnail: thumbnailUrl }),
       };
 
-      let courseId = id;
       if (isEditMode) {
         await api.put(`/courses/${id}`, coursePayload);
       } else {
-        const newCourse = await api.post("/courses", coursePayload);
-        courseId = newCourse.data._id;
+        const res = await api.post("/courses", coursePayload);
+        var newCourseId = res.data._id;
       }
+
+      const currentCourseId = id || newCourseId;
 
       if (values.contents && values.contents.length > 0) {
         for (const lesson of values.contents) {
-          const lessonPayload = {
-            title: lesson.title,
-            type: "Lesson",
-            videoUrl: lesson.videoUrl,
-          };
+          if (!lesson._id) {
+            const lessonPayload = {
+              title: lesson.title,
+              description: lesson.description || "No description provided",
+              type: "Lesson",
+              videoUrl: lesson.videoUrl || "",
+              order: 1,
+            };
 
-          await api.post(`/courses/${courseId}/contents`, lessonPayload);
+            await api.post(
+              `/courses/${currentCourseId}/contents`,
+              lessonPayload,
+            );
+          }
         }
       }
 
-      toast({
-        title: "Success!",
-        description: "Course and content saved successfully.",
-      });
+      toast({ title: "Success", description: "All changes saved!" });
       navigate("/dashboard/my-courses");
     } catch (error) {
-      console.error("Submission error:", error);
+      console.error("Submission error:", error.response?.data);
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error 400",
         description:
-          error.response?.data?.message || "Failed to save course content.",
+          error.response?.data?.error ||
+          "Check if all lesson fields are filled",
       });
     } finally {
       setIsSubmitting(false);

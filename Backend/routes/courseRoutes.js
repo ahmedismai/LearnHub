@@ -102,7 +102,6 @@ router.put(
         return res.status(404).json({ message: "Course not found" });
       }
 
-      // منع أي instructor يعدل كورس مش بتاعه
       if (
         req.user.role === ROLES.INSTRUCTOR &&
         String(course.instructorId) !== String(req.user.id)
@@ -189,7 +188,7 @@ router.post(
   "/:id/contents",
   protect,
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
-  upload.single("video"),
+  // upload.single("video"),
   async (req, res) => {
     try {
       const course = await Course.findById(req.params.id);
@@ -208,9 +207,8 @@ router.post(
       let content;
 
       if (type === "Lesson") {
-        const videoUrl = req.file
-          ? req.file.path
-          : req.body.videoUrl || req.body.video || "";
+        const videoUrl = req.body.videoUrl || "";
+
         content = new Lesson({
           ...rest,
           videoUrl,
