@@ -81,18 +81,29 @@ const CreateCourse = () => {
 
     const cloudName = "duevc5acm";
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
-    if (!response.ok) throw new Error("Failed to upload image to Cloudinary");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Cloudinary Error:", errorData);
+        throw new Error(errorData.error?.message || "Upload failed");
+      }
 
-    const data = await response.json();
-    return data.secure_url;
+      const data = await response.json();
+      return data.secure_url;
+    } catch (err) {
+      console.error("Network/CORS Error:", err);
+      throw new Error(
+        "Network error: Please check your internet or disable AdBlock.",
+      );
+    }
   };
 
   const onSubmit = async (values) => {
