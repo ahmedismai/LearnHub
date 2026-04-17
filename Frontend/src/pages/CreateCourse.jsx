@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // ضفنا useEffect
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,15 +23,19 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
-import { levels } from "@/data/mockData"; // شيلنا categories من هنا
+import { levels } from "@/data/mockData";
 
+// تعريف الـ Schema لتتوافق مع متطلبات الباك إند
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z
     .string()
     .min(10, { message: "Description must be at least 10 characters." }),
-  price: z.preprocess((val) => Number(val), z.number().positive()),
-  categoryId: z.string().min(1, { message: "Please select a category." }), // غيرنا اسمها لـ categoryId
+  price: z.preprocess(
+    (val) => Number(val),
+    z.number().positive({ message: "Price must be positive." }),
+  ),
+  categoryId: z.string().min(1, { message: "Please select a category." }),
   level: z.string().min(1, { message: "Please select a level." }),
   thumbnail: z.any().optional(),
 });
@@ -40,9 +44,9 @@ const CreateCourse = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [realCategories, setRealCategories] = useState([]); // لجلب البيانات الحقيقية
+  const [realCategories, setRealCategories] = useState([]);
 
-  // جلب الكاتيجوريز الحقيقية من الداتابيز
+  // جلب الكاتيجوريز الحقيقية من الداتابيز عند تحميل الصفحة
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -50,10 +54,15 @@ const CreateCourse = () => {
         setRealCategories(response.data);
       } catch (error) {
         console.error("Error fetching categories:", error);
+        toast({
+          title: "Warning",
+          description: "Could not load categories from server.",
+          variant: "destructive",
+        });
       }
     };
     fetchCategories();
-  }, []);
+  }, [toast]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -71,24 +80,34 @@ const CreateCourse = () => {
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      Object.keys(values).forEach((key) => {
-        if (key === "thumbnail" && values[key]) {
-          formData.append(key, values[key][0]);
-        } else {
-          formData.append(key, values[key]); // سيفضل الاسم categoryId كما هو في الـ Schema
-        }
-      });
+
+      // إضافة الحقول للـ FormData
+      formData.append("title", values.title);
+      formData.append("description", values.description);
+      formData.append("price", values.price);
+      formData.append("categoryId", values.categoryId); // الاسم الصحيح للباك إند
+      formData.append("level", values.level);
+
+      if (values.thumbnail && values.thumbnail[0]) {
+        formData.append("thumbnail", values.thumbnail[0]);
+      }
 
       await api.post("/courses", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast({ title: "Course Created Successfully!" });
+      toast({
+        title: "Success!",
+        description: "Course created successfully and is now live.",
+      });
       navigate("/dashboard/my-courses");
     } catch (error) {
+      console.error("Submission error:", error.response?.data);
       toast({
-        title: "Error",
-        description: error.response?.data?.error || "Check validation errors.",
+        title: "Creation Failed",
+        description:
+          error.response?.data?.error ||
+          "Please check all fields and try again.",
         variant: "destructive",
       });
     } finally {
@@ -97,49 +116,157 @@ const CreateCourse = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">
           Create New Course
         </h1>
+        <p className="text-muted-foreground mt-1">
+          Fill in the details to publish your course.
+        </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* ... الحقول السابقة (title, description, price) كما هي ... */}
-
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-6 bg-card p-6 rounded-lg border"
+        >
           <FormField
             control={form.control}
-            name="categoryId"
+            name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a real category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {realCategories.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Course Title</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Master React.js from Scratch"
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* ... حقل Level و Thumbnail ... */}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="What will students learn?"
+                    className="min-h-[120px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Course"}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price ($)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {realCategories.map((cat) => (
+                        <SelectItem key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="level"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Level</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Level" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {levels
+                        .filter((l) => l !== "All")
+                        .map((lvl) => (
+                          <SelectItem key={lvl} value={lvl}>
+                            {lvl}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="thumbnail"
+              render={({ field: { value, onChange, ...fieldProps } }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail Image</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => onChange(e.target.files)}
+                      {...fieldProps}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full md:w-auto"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Processing..." : "Publish Course"}
           </Button>
         </form>
       </Form>
