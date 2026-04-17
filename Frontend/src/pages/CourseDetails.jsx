@@ -5,10 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
-import { BookOpen, Clock, FileText, Play, ShieldCheck, Star, Users } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  FileText,
+  Play,
+  ShieldCheck,
+  Star,
+  Users,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 const CourseDetails = () => {
+  const [activeLesson, setActiveLesson] = useState(null);
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -51,7 +61,8 @@ const CourseDetails = () => {
     },
   });
 
-  if (isLoading) return <div className="p-8 text-center">Loading course details...</div>;
+  if (isLoading)
+    return <div className="p-8 text-center">Loading course details...</div>;
   if (!course) return <div className="p-8 text-center">Course not found</div>;
 
   return (
@@ -66,8 +77,10 @@ const CourseDetails = () => {
             <h1 className="text-4xl font-bold tracking-tight text-foreground">
               {course.title}
             </h1>
-            <p className="text-xl text-muted-foreground">{course.description}</p>
-            
+            <p className="text-xl text-muted-foreground">
+              {course.description}
+            </p>
+
             <div className="flex flex-wrap gap-6 pt-4">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
@@ -84,9 +97,20 @@ const CourseDetails = () => {
             </div>
           </div>
 
-          <div className="aspect-video relative rounded-2xl overflow-hidden bg-accent/10 border shadow-sm">
-            {course.thumbnail ? (
-              <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+          <div className="aspect-video relative rounded-2xl overflow-hidden bg-black border shadow-sm">
+            {isEnrolled && activeLesson?.videoUrl ? (
+              <video
+                src={activeLesson.videoUrl}
+                controls
+                className="w-full h-full"
+                poster={course.thumbnail}
+              />
+            ) : course.thumbnail ? (
+              <img
+                src={course.thumbnail}
+                alt={course.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Play className="w-16 h-16 text-muted-foreground/20" />
@@ -101,17 +125,31 @@ const CourseDetails = () => {
             <CardContent className="p-0">
               <div className="divide-y divide-border">
                 {course.contents?.map((content, index) => (
-                  <div key={content.id} className="flex items-center justify-between p-4 hover:bg-accent/5 transition-colors">
+                  <div
+                    key={content.id}
+                    className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${activeLesson?.id === content.id ? "bg-primary/10" : "hover:bg-accent/5"}`}
+                    onClick={() =>
+                      isEnrolled &&
+                      content.contentType === "Lesson" &&
+                      setActiveLesson(content)
+                    }
+                  >
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-sm font-medium">
                         {index + 1}
                       </div>
                       <div>
                         <p className="font-medium">{content.title}</p>
-                        <p className="text-xs text-muted-foreground uppercase">{content.contentType}</p>
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {content.contentType}
+                        </p>
                       </div>
                     </div>
-                    {content.contentType === 'Lesson' ? <Play className="w-4 h-4 text-muted-foreground" /> : <FileText className="w-4 h-4 text-muted-foreground" />}
+                    {content.contentType === "Lesson" ? (
+                      <Play className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -123,7 +161,9 @@ const CourseDetails = () => {
         <div className="lg:col-span-1">
           <Card className="sticky top-24 border-2 border-primary/10 shadow-xl overflow-hidden">
             <div className="bg-primary/5 p-8 text-center border-b">
-              <span className="text-4xl font-bold text-primary">${course.price}</span>
+              <span className="text-4xl font-bold text-primary">
+                ${course.price}
+              </span>
             </div>
             <CardContent className="p-8 space-y-6">
               <div className="space-y-4">
@@ -138,13 +178,17 @@ const CourseDetails = () => {
               </div>
 
               {isEnrolled ? (
-                <Button className="w-full" size="lg" onClick={() => navigate("/dashboard")}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => navigate("/dashboard")}
+                >
                   Go to Dashboard
                 </Button>
               ) : (
-                <Button 
-                  className="w-full" 
-                  size="lg" 
+                <Button
+                  className="w-full"
+                  size="lg"
                   onClick={() => enrollMutation.mutate()}
                   disabled={enrollMutation.isLoading}
                 >
