@@ -88,6 +88,59 @@ router.get(
   },
 );
 
+// Update course (Instructor/Admin)
+router.put(
+  "/:id",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  upload.single("thumbnail"),
+  async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
+
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      // منع أي instructor يعدل كورس مش بتاعه
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to update this course" });
+      }
+
+      const {
+        title,
+        description,
+        price,
+        level,
+        categoryId,
+        thumbnail: thumbnailLink,
+      } = req.body;
+
+      const thumbnail = req.file
+        ? req.file.path
+        : thumbnailLink || course.thumbnail;
+
+      course.title = title || course.title;
+      course.description = description || course.description;
+      course.price = price || course.price;
+      course.level = level || course.level;
+      course.categoryId = categoryId || course.categoryId;
+      course.thumbnail = thumbnail;
+
+      await course.save();
+
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
 // Get course details
 router.get("/:id", async (req, res) => {
   try {
