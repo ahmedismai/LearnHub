@@ -27,7 +27,7 @@ const upload = multer({ storage });
 router.get("/", async (req, res) => {
   const courses = await Course.find({ status: "Approved" }).populate(
     "instructorId",
-    "name",
+    "username",
   );
   res.json(courses);
 });
@@ -70,7 +70,9 @@ router.get(
       req.user.role === ROLES.ADMINISTRATOR
         ? {}
         : { instructorId: req.user.id };
-    const courses = await Course.find(filter).sort({ createdAt: -1 });
+    const courses = await Course.find(filter)
+      .populate("instructorId", "username email")
+      .sort({ createdAt: -1 });
     res.json(courses);
   },
 );
@@ -78,7 +80,7 @@ router.get(
 router.get("/:id", async (req, res) => {
   const course = await Course.findById(req.params.id).populate(
     "instructorId",
-    "name email",
+    "username email",
   );
   if (!course) {
     return res.status(404).json({ message: "Course not found" });

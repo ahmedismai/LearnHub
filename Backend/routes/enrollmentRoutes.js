@@ -41,7 +41,7 @@ router.get("/me", protect, authorize(ROLES.STUDENT), async (req, res) => {
   try {
     const enrollments = await Enrollment.find({ studentId: req.user.id }).populate({
       path: "courseId",
-      populate: { path: "instructorId", select: "name email" },
+      populate: { path: "instructorId", select: "username email" },
     });
     res.json(enrollments);
   } catch (error) {

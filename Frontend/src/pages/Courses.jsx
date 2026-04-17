@@ -34,7 +34,7 @@ const Courses = () => {
         const normalized = response.data.map((course) => ({
           id: course._id,
           ...course,
-          instructorName: course.instructorId?.name || "Unknown Instructor",
+          instructorName: course.instructorId?.username || "Unknown Instructor",
           enrolledCount: course.enrolledCount || 0,
           rating: course.rating || 0,
           duration: course.duration || "N/A",

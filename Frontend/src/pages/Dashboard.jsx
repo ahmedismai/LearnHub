@@ -93,193 +93,6 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  // Admin Dashboard
-  if (user.role === "Administrator") {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Overview of your learning platform
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Users
-                  </p>
-                  <p className="text-3xl font-bold text-foreground mt-1">
-                    1,234
-                  </p>
-                  <p className="text-sm text-success flex items-center gap-1 mt-2">
-                    <TrendingUp className="w-4 h-4" /> +12% this month
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Users className="w-7 h-7 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Courses
-                  </p>
-                  <p className="text-3xl font-bold text-foreground mt-1">
-                    {publicCourses.length}
-                  </p>
-                  <p className="text-sm text-success flex items-center gap-1 mt-2">
-                    <TrendingUp className="w-4 h-4" /> +3 new courses
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
-                  <BookOpen className="w-7 h-7 text-accent" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Revenue
-                  </p>
-                  <p className="text-3xl font-bold text-foreground mt-1">
-                    $45,678
-                  </p>
-                  <p className="text-sm text-success flex items-center gap-1 mt-2">
-                    <TrendingUp className="w-4 h-4" /> +18% this month
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center">
-                  <DollarSign className="w-7 h-7 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Active Enrollments
-                  </p>
-                  <p className="text-3xl font-bold text-foreground mt-1">892</p>
-                  <p className="text-sm text-success flex items-center gap-1 mt-2">
-                    <TrendingUp className="w-4 h-4" /> +25% this month
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center">
-                  <GraduationCap className="w-7 h-7 text-warning" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Enrollments</CardTitle>
-              <CardDescription>Latest student enrollments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {publicCourses.slice(0, 4).map((course) => (
-                  <div
-                    key={course._id}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30"
-                  >
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {course.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {(course.enrolledCount || 0).toLocaleString()} students
-                        enrolled
-                      </p>
-                    </div>
-                    <Badge variant="success">Active</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  asChild
-                >
-                  <Link to="/dashboard/users">
-                    <Users className="w-6 h-6" />
-                    <span>Manage Users</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  asChild
-                >
-                  <Link to="/dashboard/courses">
-                    <BookOpen className="w-6 h-6" />
-                    <span>Manage Courses</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  asChild
-                >
-                  <Link to="/dashboard/reports">
-                    <TrendingUp className="w-6 h-6" />
-                    <span>View Reports</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  asChild
-                >
-                  <Link to="/dashboard/payments">
-                    <DollarSign className="w-6 h-6" />
-                    <span>View Payments</span>
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   // Instructor Dashboard
   if (user.role === "Instructor") {
     const totalStudents = instructorCourses.reduce(
@@ -295,7 +108,7 @@ const Dashboard = () => {
               Instructor Dashboard
             </h1>
             <p className="text-muted-foreground mt-1">
-              Welcome back, {user.name.split(" ")[0]}!
+              Welcome back, {(user.username || "").split(" ")[0]}!
             </p>
           </div>
           <Button asChild>
@@ -462,7 +275,7 @@ const Dashboard = () => {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          Welcome back, {user.name.split(" ")[0]}!
+          Welcome back, {(user.username || "").split(" ")[0]}!
         </h1>
         <p className="text-muted-foreground mt-1">
           Continue your learning journey

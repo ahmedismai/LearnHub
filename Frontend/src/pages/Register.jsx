@@ -15,7 +15,7 @@ import { GraduationCap, Mail, Lock, User, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,7 +40,7 @@ const Register = () => {
     }
 
     try {
-      await register(name, email, password, role);
+      await register(username, email, password, role);
       toast({
         title: "Account created!",
         description: "Welcome to LearnHub. Start your learning journey.",
@@ -99,15 +99,15 @@ const Register = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="username">Username</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    id="name"
+                    id="username"
                     type="text"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                     required
                   />

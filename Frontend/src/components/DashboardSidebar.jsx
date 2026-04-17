@@ -36,8 +36,8 @@ const DashboardSidebar = () => {
 
   if (!user) return null;
 
-  const getInitials = (name) => {
-    return name
+  const getInitials = (username) => {
+    return (username || "")
       .split(" ")
       .map((n) => n[0])
       .join("")
@@ -165,12 +165,12 @@ const DashboardSidebar = () => {
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-              {getInitials(user.name)}
+              {getInitials(user.username)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-sidebar-foreground truncate">
-              {user.name}
+              {user.username}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {user.role}

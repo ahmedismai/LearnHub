@@ -12,6 +12,7 @@ import CourseDetails from "./pages/CourseDetails";
 import Payment from "./pages/Payment";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import MyCourses from "./pages/MyCourses";
 import CreateCourse from "./pages/CreateCourse";
 import Certificates from "./pages/Certificates";
@@ -46,12 +47,12 @@ const App = () => (
               <Route path="assignments" element={<Assignments />} />
               <Route path="quizzes" element={<Quizzes />} />
               <Route path="students" element={<Dashboard />} />
-              <Route path="users" element={<Dashboard />} />
-              <Route path="courses" element={<MyCourses />} />
-              <Route path="reports" element={<Dashboard />} />
-              <Route path="payments" element={<Dashboard />} />
+              <Route path="users" element={<AdminDashboard />} />
+              <Route path="courses" element={<AdminDashboard />} />
+              <Route path="reports" element={<AdminDashboard />} />
+              <Route path="payments" element={<AdminDashboard />} />
               <Route path="create-course" element={<CreateCourse />} />
-              <Route path="settings" element={<Dashboard />} />
+              <Route path="settings" element={<AdminDashboard />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

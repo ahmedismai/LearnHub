@@ -34,11 +34,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (name, email, password, role) => {
+  const register = async (username, email, password, role) => {
     setIsLoading(true);
     try {
       const response = await api.post("/auth/register", {
-        name,
+        username,
         email,
         password,
         role,
@@ -59,12 +59,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("lms_token");
   };
 
-  const updateProfile = async (name, email) => {
+  const updateProfile = async (data) => {
     if (!user) return;
     setIsLoading(true);
     try {
-      // Placeholder until profile endpoint is implemented
-      const updatedUser = { ...user, name, email, updatedAt: new Date() };
+      const response = await api.patch("/auth/profile", data);
+      const updatedUser = response.data;
       setUser(updatedUser);
       localStorage.setItem("lms_user", JSON.stringify(updatedUser));
     } finally {

@@ -45,7 +45,7 @@ const Payment = () => {
           id: response.data._id,
           ...response.data,
           instructorName:
-            response.data.instructorId?.name || "Unknown Instructor",
+            response.data.instructorId?.username || "Unknown Instructor",
         });
       } catch {
         // Keep local fallback data

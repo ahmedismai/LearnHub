@@ -50,7 +50,7 @@ const CourseDetails = () => {
           id: response.data._id,
           ...response.data,
           instructorName:
-            response.data.instructorId?.name || "Unknown Instructor",
+            response.data.instructorId?.username || "Unknown Instructor",
           enrolledCount: response.data.enrolledCount || 0,
           rating: response.data.rating || 0,
           duration: response.data.duration || "N/A",
@@ -544,8 +544,8 @@ const CourseDetails = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-6">
                       <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
-                        {course.instructorName
-                          ?.split(" ")
+                        {(course.instructorName || "")
+                          .split(" ")
                           .map((n) => n[0])
                           .join("")}
                       </div>
