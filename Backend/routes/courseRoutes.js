@@ -10,9 +10,13 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: "learnhub_courses",
-    allowed_formats: ["jpg", "png", "jpeg"],
+  params: async (req, file) => {
+    const isVideo = file.mimetype.startsWith("video");
+    return {
+      folder: "learnhub_courses",
+      resource_type: isVideo ? "video" : "image",
+      allowed_formats: ["jpg", "png", "jpeg", "mp4", "mov", "avi"],
+    };
   },
 });
 
@@ -41,7 +45,7 @@ router.post(
     try {
       const { title, description, price, level, categoryId } = req.body;
       const thumbnail = req.file ? req.file.path : "";
-      
+
       const course = new Course({
         title,
         description,
@@ -66,7 +70,10 @@ router.get(
   protect,
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
   async (req, res) => {
-    const filter = req.user.role === ROLES.ADMINISTRATOR ? {} : { instructorId: req.user.id };
+    const filter =
+      req.user.role === ROLES.ADMINISTRATOR
+        ? {}
+        : { instructorId: req.user.id };
     const courses = await Course.find(filter)
       .populate("instructorId", "name email")
       .populate("categoryId", "name")
@@ -83,7 +90,7 @@ router.get("/:id", async (req, res) => {
       .populate("categoryId", "name")
       .populate("contents")
       .populate("reviews");
-    
+
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
@@ -123,23 +130,36 @@ router.post(
   "/:id/contents",
   protect,
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  upload.single("video"),
   async (req, res) => {
     try {
       const course = await Course.findById(req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
 
-      if (req.user.role === ROLES.INSTRUCTOR && String(course.instructorId) !== String(req.user.id)) {
-        return res.status(403).json({ message: "Not authorized" });
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to add content to this course" });
       }
 
       const { type, ...rest } = req.body;
       let content;
 
-      if (type === 'Lesson') {
-        content = new Lesson({ ...rest, type, courseId: course._id });
-      } else if (type === 'Quiz') {
+      if (type === "Lesson") {
+        // إذا كان هناك ملف مرفوع نأخذ مساره، وإلا نستخدم الرابط النصي لو موجود
+        const videoUrl = req.file ? req.file.path : rest.videoUrl || "";
+        content = new Lesson({
+          ...rest,
+          videoUrl,
+          type,
+          courseId: course._id,
+        });
+      } else if (type === "Quiz") {
         content = new Quiz({ ...rest, type, courseId: course._id });
-      } else if (type === 'Assignment') {
+      } else if (type === "Assignment") {
         content = new Assignment({ ...rest, type, courseId: course._id });
       } else {
         return res.status(400).json({ message: "Invalid content type" });
@@ -148,9 +168,10 @@ router.post(
       await content.save();
       res.status(201).json(content);
     } catch (error) {
+      console.error("Content Creation Error:", error);
       res.status(400).json({ error: error.message });
     }
-  }
+  },
 );
 
 export default router;
