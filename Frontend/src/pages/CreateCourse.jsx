@@ -142,24 +142,23 @@ const CreateCourse = () => {
         level: values.level,
       };
 
+      let currentCourseId = id;
       if (isEditMode) {
         await api.put(`/courses/${id}`, coursePayload);
       } else {
         const res = await api.post("/courses", coursePayload);
-        var newCourseId = res.data._id;
+        currentCourseId = res.data._id;
       }
-
-      const currentCourseId = id || newCourseId;
 
       if (values.contents && values.contents.length > 0) {
         for (const lesson of values.contents) {
           if (!lesson._id) {
             const lessonPayload = {
               title: lesson.title,
-              description: lesson.description || "No description provided",
+              description:
+                lesson.description || `Description for ${lesson.title}`,
               type: "Lesson",
-              videoUrl: lesson.videoUrl || "",
-              order: 1,
+              videoUrl: lesson.videoUrl,
             };
 
             await api.post(
@@ -170,16 +169,19 @@ const CreateCourse = () => {
         }
       }
 
-      toast({ title: "Success", description: "All changes saved!" });
+      toast({
+        title: "Success!",
+        description: "Course and lessons saved successfully.",
+      });
       navigate("/dashboard/my-courses");
     } catch (error) {
-      console.error("Submission error:", error.response?.data);
+      console.error("Full Error Object:", error.response?.data);
       toast({
         variant: "destructive",
         title: "Error 400",
         description:
           error.response?.data?.error ||
-          "Check if all lesson fields are filled",
+          "Make sure video is uploaded and title is set.",
       });
     } finally {
       setIsSubmitting(false);
