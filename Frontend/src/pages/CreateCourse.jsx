@@ -116,11 +116,11 @@ const CreateCourse = () => {
     fetchData();
   }, [id, isEditMode, form, toast]);
 
-  // 2. دالة الرفع لـ Cloudinary (تدعم الصور والفيديو)
   const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "ml_default");
+    formData.append("folder", "learnhub_courses");
     const resourceType = file.type.startsWith("video") ? "video" : "image";
 
     const response = await fetch(

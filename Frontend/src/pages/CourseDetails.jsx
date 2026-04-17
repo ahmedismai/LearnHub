@@ -14,9 +14,20 @@ import {
   Star,
   Users,
   CheckCircle2,
+  PlusCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const CourseDetails = () => {
   const [activeLesson, setActiveLesson] = useState(null);
@@ -26,7 +37,16 @@ const CourseDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // جلب بيانات الكورس
+  // State for Quick Add Content
+  const [isAddingContent, setIsAddingContent] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [newLesson, setNewLesson] = useState({
+    title: "",
+    description: "",
+    videoFile: null,
+  });
+
+  // Fetch Course Details
   const { data: course, isLoading } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
@@ -35,7 +55,7 @@ const CourseDetails = () => {
     },
   });
 
-  // جلب اشتراكات المستخدم الحالي
+  // Fetch User Enrollments
   const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
@@ -45,13 +65,13 @@ const CourseDetails = () => {
     enabled: !!user,
   });
 
-  // --- منطق الصلاحيات الجديد ---
+  // Permission Logic
   const isInstructor =
     user?.role === "Instructor" && course?.instructorId?._id === user?.id;
   const isStudentEnrolled = enrollments.some((e) => e.courseId?._id === id);
   const hasAccess = isInstructor || isStudentEnrolled;
-  // ---------------------------
 
+  // Enrollment Mutation
   const enrollMutation = useMutation({
     mutationFn: async () => {
       return api.post("/enrollments", { courseId: id, paymentMethod: "Visa" });
@@ -69,17 +89,80 @@ const CourseDetails = () => {
     },
   });
 
+  // Handler for Quick Add Lesson
+  const handleAddContent = async () => {
+    if (!newLesson.title || !newLesson.videoFile) {
+      return toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please provide both a title and a video file.",
+      });
+    }
+
+    setIsUploading(true);
+    try {
+      // 1. Upload video to Cloudinary
+      const formData = new FormData();
+      formData.append("file", newLesson.videoFile);
+      formData.append("upload_preset", "ml_default");
+      formData.append("folder", "learnhub_courses");
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/duevc5acm/video/upload`,
+        { method: "POST", body: formData },
+      );
+
+      if (!cloudRes.ok) throw new Error("Cloudinary upload failed");
+      const cloudData = await cloudRes.json();
+
+      // 2. Save lesson to Backend API
+      await api.post(`/courses/${id}/contents`, {
+        title: newLesson.title,
+        description:
+          newLesson.description || `Introduction to ${newLesson.title}`,
+        type: "Lesson",
+        videoUrl: cloudData.secure_url,
+      });
+
+      toast({
+        title: "Success",
+        description: "Lesson added to course successfully!",
+      });
+
+      // 3. Reset state and refresh UI
+      setIsAddingContent(false);
+      setNewLesson({ title: "", description: "", videoFile: null });
+      queryClient.invalidateQueries(["course", id]);
+    } catch (error) {
+      console.error("Add Content Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description:
+          error.response?.data?.message || "Could not save the lesson.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (isLoading)
     return (
-      <div className="p-8 text-center text-lg">Loading course details...</div>
+      <div className="p-8 text-center text-lg font-medium">
+        Loading course details...
+      </div>
     );
   if (!course)
-    return <div className="p-8 text-center text-lg">Course not found</div>;
+    return (
+      <div className="p-8 text-center text-lg font-medium">
+        Course not found
+      </div>
+    );
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Course Info & Player */}
+        {/* Left Column: Course Header & Player */}
         <div className="lg:col-span-2 space-y-8">
           <div className="space-y-4">
             <Badge variant="secondary" className="px-3 py-1">
@@ -223,7 +306,7 @@ const CourseDetails = () => {
           </Card>
         </div>
 
-        {/* Right Column: Enrollment / Access Info */}
+        {/* Right Column: Instructor/Student Controls */}
         <div className="lg:col-span-1">
           <Card className="sticky top-24 border-2 border-primary/10 shadow-xl overflow-hidden">
             {isInstructor ? (
@@ -240,17 +323,84 @@ const CourseDetails = () => {
                       Course Management
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      You are the instructor of this course. You have full
-                      access to preview content and manage students.
+                      You are the instructor. You can quickly add content or
+                      manage the full course settings.
                     </p>
                   </div>
                 </div>
+
+                {/* Quick Add Content Dialog */}
+                <Dialog
+                  open={isAddingContent}
+                  onOpenChange={setIsAddingContent}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-primary/50 hover:bg-primary/5 transition-colors"
+                    >
+                      <PlusCircle className="w-5 h-5 text-primary" />
+                      Add Quick Lesson
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Lesson</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Lesson Title</Label>
+                        <Input
+                          id="title"
+                          value={newLesson.title}
+                          onChange={(e) =>
+                            setNewLesson({
+                              ...newLesson,
+                              title: e.target.value,
+                            })
+                          }
+                          placeholder="e.g. 01 - Getting Started"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="video">Video Lesson</Label>
+                        <Input
+                          id="video"
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) =>
+                            setNewLesson({
+                              ...newLesson,
+                              videoFile: e.target.files[0],
+                            })
+                          }
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleAddContent}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading Video...
+                          </>
+                        ) : (
+                          "Add Lesson"
+                        )}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Button
                   className="w-full py-6 text-lg font-bold shadow-lg"
                   onClick={() => navigate(`/dashboard/edit-course/${id}`)}
                 >
-                  Edit Course Content
+                  Edit Full Course
                 </Button>
+
                 <Button
                   variant="outline"
                   className="w-full"
@@ -301,8 +451,7 @@ const CourseDetails = () => {
                       You're Enrolled!
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      You have full access to this course. Pick a lesson from
-                      the list to start watching.
+                      Pick a lesson from the list on the left to start watching.
                     </p>
                   </div>
                 </div>
