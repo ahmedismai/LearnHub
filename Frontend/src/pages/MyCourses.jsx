@@ -131,10 +131,12 @@ const MyCourses = () => {
                     enrollment.status === "completed" ? "outline" : "gradient"
                   }
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  {enrollment.status === "completed"
-                    ? "Review Course"
-                    : "Continue"}
+                  <Link to={`/dashboard/courses/${enrollment.course?.id}`}>
+                    <Play className="w-4 h-4 mr-2" />
+                    {enrollment.status === "completed"
+                      ? "Review Course"
+                      : "Continue"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -162,9 +164,7 @@ const MyCourses = () => {
             >
               <div className="relative">
                 <img
-                  src={
-                    course.thumbnail
-                  }
+                  src={course.thumbnail}
                   alt={course.title}
                   className="w-full h-40 object-cover"
                 />
