@@ -102,6 +102,7 @@ const CourseDetails = () => {
     setIsUploading(true);
     try {
       // 1. Upload video to Cloudinary
+
       const formData = new FormData();
       formData.append("file", newLesson.videoFile);
       formData.append("upload_preset", "ml_default");
