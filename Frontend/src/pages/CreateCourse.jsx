@@ -25,7 +25,6 @@ import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
 import { levels } from "@/data/mockData";
 
-// تعريف الـ Schema لتتوافق مع متطلبات الباك إند
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z
@@ -46,23 +45,23 @@ const CreateCourse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [realCategories, setRealCategories] = useState([]);
 
-  // جلب الكاتيجوريز الحقيقية من الداتابيز عند تحميل الصفحة
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await api.get("/categories");
-        setRealCategories(response.data);
+        console.log("Categories from API:", response.data);
+
+        if (Array.isArray(response.data)) {
+          setRealCategories(response.data);
+        } else if (response.data.categories) {
+          setRealCategories(response.data.categories);
+        }
       } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast({
-          title: "Warning",
-          description: "Could not load categories from server.",
-          variant: "destructive",
-        });
+        console.error("Failed to fetch categories:", error);
       }
     };
     fetchCategories();
-  }, [toast]);
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
