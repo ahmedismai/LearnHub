@@ -25,7 +25,6 @@ import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
 import { levels } from "@/data/mockData";
 
-// تعريف الـ Schema لتتوافق مع متطلبات الباك إند
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z
@@ -46,7 +45,6 @@ const CreateCourse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [realCategories, setRealCategories] = useState([]);
 
-  // جلب الكاتيجوريز الحقيقية من الداتابيز عند تحميل الصفحة
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -76,25 +74,50 @@ const CreateCourse = () => {
     },
   });
 
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "your_upload_preset");
+
+    const cloudName = "duevc5acm";
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) throw new Error("Failed to upload image to Cloudinary");
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-
-      // إضافة الحقول للـ FormData
-      formData.append("title", values.title);
-      formData.append("description", values.description);
-      formData.append("price", values.price);
-      formData.append("categoryId", values.categoryId);
-      formData.append("level", values.level);
+      let thumbnailUrl = "";
 
       if (values.thumbnail && values.thumbnail[0]) {
-        formData.append("thumbnail", values.thumbnail[0]);
+        toast({
+          title: "Uploading image...",
+          description: "Please wait while we process the thumbnail.",
+        });
+        thumbnailUrl = await uploadToCloudinary(values.thumbnail[0]);
       }
 
-      await api.post("/courses", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const payload = {
+        title: values.title,
+        description: values.description,
+        price: values.price,
+        categoryId: values.categoryId,
+        level: values.level,
+        thumbnail: thumbnailUrl,
+      };
+
+      await api.post("/courses", payload);
 
       toast({
         title: "Success!",
@@ -102,11 +125,12 @@ const CreateCourse = () => {
       });
       navigate("/dashboard/my-courses");
     } catch (error) {
-      console.error("Submission error:", error.response?.data);
+      console.error("Submission error:", error);
       toast({
         title: "Creation Failed",
         description:
           error.response?.data?.error ||
+          error.message ||
           "Please check all fields and try again.",
         variant: "destructive",
       });
