@@ -5,24 +5,33 @@ const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Failed to parse user from localStorage", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
-    setLoading(false);
+    setIsLoading(false);
   }, []);
+
+  const isAuthenticated = !!user;
 
   const login = async (email, password) => {
     const response = await api.post("/auth/login", { email, password });
-    const { token, user } = response.data;
+    const { token, user: userData } = response.data;
     localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
-    return user;
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+    return userData;
   };
 
   const register = async (name, email, password, role) => {
@@ -57,7 +66,15 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, updateProfile, loading }}
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        updateProfile,
+        isLoading,
+        isAuthenticated,
+      }}
     >
       {children}
     </AuthContext.Provider>
