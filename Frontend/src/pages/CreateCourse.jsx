@@ -81,9 +81,11 @@ const CreateCourse = () => {
 
     const cloudName = "duevc5acm";
 
+    const resourceType = file.type.startsWith("video") ? "video" : "image";
+
     try {
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
         {
           method: "POST",
           body: formData,
@@ -92,17 +94,14 @@ const CreateCourse = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Cloudinary Error:", errorData);
         throw new Error(errorData.error?.message || "Upload failed");
       }
 
       const data = await response.json();
       return data.secure_url;
     } catch (err) {
-      console.error("Network/CORS Error:", err);
-      throw new Error(
-        "Network error: Please check your internet or disable AdBlock.",
-      );
+      console.error("Cloudinary Error:", err);
+      throw err;
     }
   };
 
