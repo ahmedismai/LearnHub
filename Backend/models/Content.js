@@ -22,28 +22,34 @@ contentSchema.virtual('contentId').get(function() {
 export const Content = mongoose.model('Content', contentSchema);
 
 // Lesson Discriminator
-export const Lesson = Content.discriminator('Lesson', new mongoose.Schema({
+const lessonSchema = new mongoose.Schema({
   contentUrl: { type: String, required: true }
-}));
+});
 
-Lesson.virtual('lessonId').get(function() {
+lessonSchema.virtual('lessonId').get(function() {
   return this._id.toHexString();
 });
+
+export const Lesson = Content.discriminator('Lesson', lessonSchema);
 
 // Quiz Discriminator
-export const Quiz = Content.discriminator('Quiz', new mongoose.Schema({
+const quizSchema = new mongoose.Schema({
   totalMarks: { type: Number, default: 100 }
-}));
+});
 
-Quiz.virtual('quizId').get(function() {
+quizSchema.virtual('quizId').get(function() {
   return this._id.toHexString();
 });
+
+export const Quiz = Content.discriminator('Quiz', quizSchema);
 
 // Assignment Discriminator
-export const Assignment = Content.discriminator('Assignment', new mongoose.Schema({
+const assignmentSchema = new mongoose.Schema({
   dueDate: { type: Date, required: true }
-}));
+});
 
-Assignment.virtual('assignmentId').get(function() {
+assignmentSchema.virtual('assignmentId').get(function() {
   return this._id.toHexString();
 });
+
+export const Assignment = Content.discriminator('Assignment', assignmentSchema);

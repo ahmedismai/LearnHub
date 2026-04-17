@@ -7,6 +7,7 @@ LearnHub is a professional, full-stack online learning platform designed to prov
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework:** React 18 (Vite)
 - **State Management:** TanStack Query (React Query)
 - **Styling:** Tailwind CSS + shadcn/ui + Lucide Icons
@@ -14,6 +15,7 @@ LearnHub is a professional, full-stack online learning platform designed to prov
 - **Authentication:** JWT + Context API
 
 ### Backend
+
 - **Runtime:** Node.js + Express.js
 - **Database:** MongoDB Atlas (Mongoose)
 - **Inheritance Pattern:** Mongoose Discriminators (for Users, Content, and Payments)
@@ -27,12 +29,14 @@ LearnHub is a professional, full-stack online learning platform designed to prov
 The system utilizes an advanced inheritance-based schema for 100% alignment with the UML design.
 
 ### 👥 User Inheritance System
+
 - **Base User:** `id`, `name`, `email`, `passwordHash`, `role`.
 - **Admin:** Inherits User, adds `adminId`.
 - **Instructor:** Inherits User, adds `instructorId`, `bio`.
 - **Student:** Inherits User, adds `studentId`, `enrollmentDate`.
 
 ### 📚 Course & Content System
+
 - **Category:** `categoryId`, `name`, `description`.
 - **Course:** `courseId`, `title`, `description`, `price`, `level`. (Linked to Category and Instructor).
 - **Content (Base):** `contentId`, `title`, `description`, `type`, `duration`.
@@ -41,6 +45,7 @@ The system utilizes an advanced inheritance-based schema for 100% alignment with
   - **Assignment:** Inherits Content, adds `dueDate`.
 
 ### 💳 Enrollment & Payment System
+
 - **Enrollment:** `enrollmentId`, `date`, `status`, `progress`. (Links Student to Course).
 - **Payment (Base):** `paymentId`, `amount`, `date`, `method`.
   - **Visa:** Inherits Payment, adds `status`.
@@ -63,12 +68,14 @@ The system utilizes an advanced inheritance-based schema for 100% alignment with
 ## 📦 Installation & Local Setup
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/ahmedismai/LearnHub.git
 cd LearnHub
 ```
 
 ### 2. Backend Setup
+
 ```bash
 cd Backend
 npm install
@@ -77,6 +84,7 @@ npm start
 ```
 
 ### 3. Frontend Setup
+
 ```bash
 cd ../Frontend
 npm install
@@ -87,7 +95,9 @@ npm run dev
 ---
 
 ## 📄 UML Alignment
+
 The codebase has been refactored to achieve **100% parity** with:
+
 - `Frontend/class.jpeg` (Class Diagram)
 - `Frontend/sequence.jpeg` (Sequence Diagram)
 
@@ -98,5 +108,5 @@ The codebase has been refactored to achieve **100% parity** with:
 **Ahmed Ismail Amer**
 Full-Stack Developer
 
-* **GitHub:** [https://github.com/ahmedismai](https://github.com/ahmedismai)
-* **LinkedIn:** [https://www.linkedin.com/in/ahmed-ismail-amer](https://www.linkedin.com/in/ahmed-ismail-amer)
+- **GitHub:** [https://github.com/ahmedismai](https://github.com/ahmedismai)
+- **LinkedIn:** [https://www.linkedin.com/in/ahmed-ismail-amer](https://www.linkedin.com/in/ahmed-ismail-amer)
