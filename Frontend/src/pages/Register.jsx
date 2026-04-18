@@ -25,7 +25,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("Student");
   const [isLoading, setIsLoading] = useState(false);
-  const { register, user } = useAuth();
+  const { register } = useAuth(); // شلنا user لأننا مش محتاجينه هنا حالياً
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -33,16 +33,17 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const userData = await register(name, email, password, role);
-      toast({ title: "Account created successfully!" });
-      // Redirect based on role
-      if (userData?.role === "Administrator") {
-        navigate("/dashboard");
-      } else if (userData?.role === "Student") {
-        navigate("/");
-      } else {
-        navigate("/dashboard"); // Default for Instructor
-      }
+      // عملية التسجيل في الباك-إند بتبعت إيميل التأكيد أوتوماتيكياً
+      await register(name, email, password, role);
+
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email for the confirmation code.",
+      });
+
+      // توجيه المستخدم لصفحة التأكيد مع تمرير الإيميل كـ state
+      // عشان صفحة الـ ConfirmEmail تقدر تسحب الإيميل وتعرضه للمستخدم
+      navigate("/confirm-email", { state: { email } });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -109,7 +110,7 @@ const Register = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-center w-full text-muted-foreground">
             Already have an account?{" "}
             <Link

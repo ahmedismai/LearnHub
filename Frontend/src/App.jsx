@@ -2,8 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -25,6 +31,20 @@ import Exam from "./pages/Exam";
 
 const queryClient = new QueryClient();
 
+// مكون حماية الصفحات (لازم لوجن عشان تدخل)
+const ProtectedRoute = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null; // يمكنك إضافة سبينر هنا إذا أردت
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+// مكون منع المسجلين (لو عامل لوجن ميتفتحش له صفحة اللوجن والريجستر)
+const PublicRoute = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return !user ? <Outlet /> : <Navigate to="/" replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -33,34 +53,44 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* --- الصفحات المتاحة للجميع (Public) --- */}
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:id" element={<CourseDetails />} />
-            <Route path="/payment/:courseId" element={<Payment />} />
             <Route path="/confirm-email" element={<ConfirmEmail />} />
 
-            {/* Dashboard Routes */}
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="my-courses" element={<MyCourses />} />
-              <Route path="courses/:id" element={<CourseDetails />} />
-              <Route path="edit-course/:id" element={<CreateCourse />} />
-              <Route path="certificates" element={<Certificates />} />
-              <Route path="grades" element={<Grades />} />
-              <Route path="assignments" element={<Assignments />} />
-              <Route path="quizzes" element={<Quizzes />} />
-              <Route path="exam/:id" element={<Exam />} />
-              <Route path="students" element={<Dashboard />} />
-              <Route path="users" element={<AdminDashboard />} />
-              <Route path="courses" element={<AdminDashboard />} />
-              <Route path="reports" element={<AdminDashboard />} />
-              <Route path="payments" element={<AdminDashboard />} />
-              <Route path="create-course" element={<CreateCourse />} />
-              <Route path="settings" element={<AdminDashboard />} />
+            {/* --- صفحات تفتح فقط إذا لم تكن مسجل دخول (Public Only) --- */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             </Route>
 
+            {/* --- الصفحات المحمية (Protected - Require Login) --- */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/payment/:courseId" element={<Payment />} />
+
+              {/* Dashboard Routes */}
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="my-courses" element={<MyCourses />} />
+                <Route path="courses/:id" element={<CourseDetails />} />
+                <Route path="edit-course/:id" element={<CreateCourse />} />
+                <Route path="certificates" element={<Certificates />} />
+                <Route path="grades" element={<Grades />} />
+                <Route path="assignments" element={<Assignments />} />
+                <Route path="quizzes" element={<Quizzes />} />
+                <Route path="exam/:id" element={<Exam />} />
+                <Route path="students" element={<Dashboard />} />
+                <Route path="users" element={<AdminDashboard />} />
+                <Route path="courses" element={<AdminDashboard />} />
+                <Route path="reports" element={<AdminDashboard />} />
+                <Route path="payments" element={<AdminDashboard />} />
+                <Route path="create-course" element={<CreateCourse />} />
+                <Route path="settings" element={<AdminDashboard />} />
+              </Route>
+            </Route>
+
+            {/* صفحة 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
