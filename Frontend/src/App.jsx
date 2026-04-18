@@ -111,7 +111,7 @@ const App = () => (
                 <Route path="payments" element={<AdminPayments />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="create-course" element={<CreateCourse />} />
-                <Route path="settings" element={<AdminOverview />} />
+                <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
             </Route>
