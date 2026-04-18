@@ -57,7 +57,7 @@ const AdminDashboard = () => {
   const { data: courses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["admin", "courses"],
     queryFn: async () => {
-      const response = await api.get("/Course/all");
+      const response = await api.get("/Course/list");
       return response.data;
     },
   });
