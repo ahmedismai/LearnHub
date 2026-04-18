@@ -44,9 +44,11 @@ const formSchema = z.object({
   contents: z
     .array(
       z.object({
-        title: z.string().min(1, "Lesson title is required"),
-        contentType: z.string().default("Lesson"),
+        title: z.string().min(1, "Content title is required"),
+        contentType: z.enum(["Lesson", "Quiz", "Assignment"]).default("Lesson"),
         videoUrl: z.string().optional(),
+        duration: z.number().optional(),
+        dueDate: z.string().optional(),
         id: z.string().optional(),
         _id: z.string().optional(),
       }),
@@ -357,76 +359,186 @@ const CreateCourse = () => {
 
           {/* قسم إضافة الدروس */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Video className="w-6 h-6" /> Course Content
-              </h2>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  append({ title: "", contentType: "Lesson", videoUrl: "" })
-                }
-              >
-                <Plus className="w-4 h-4 mr-2" /> Add Lesson
-              </Button>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Video className="w-6 h-6" />
+                <h2 className="text-2xl font-bold">Course Content</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({ title: "", contentType: "Lesson", videoUrl: "" })
+                  }
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Lesson
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({
+                      title: "",
+                      contentType: "Quiz",
+                      duration: 10,
+                    })
+                  }
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Quiz
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({
+                      title: "",
+                      contentType: "Assignment",
+                      dueDate: "",
+                    })
+                  }
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Assignment
+                </Button>
+              </div>
             </div>
 
-            {fields.map((field, index) => (
-              <Card key={field.id} className="bg-muted/30">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1 space-y-4">
-                      <FormField
-                        control={form.control}
-                        name={`contents.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Lesson {index + 1} Title</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Lesson Title" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+            {fields.map((field, index) => {
+              const contentType =
+                form.watch(`contents.${index}.contentType`) || "Lesson";
 
-                      <div className="flex items-center gap-4">
-                        <Input
-                          type="file"
-                          accept="video/*"
-                          onChange={async (e) => {
-                            if (e.target.files?.[0]) {
-                              toast({
-                                title: "Uploading video...",
-                                description: "Please wait.",
-                              });
-                              const url = await uploadToCloudinary(
-                                e.target.files[0],
-                              );
-                              form.setValue(`contents.${index}.videoUrl`, url);
-                              toast({ title: "Video Uploaded!" });
-                            }
-                          }}
-                        />
-                        {form.watch(`contents.${index}.videoUrl`) && (
-                          <Badge variant="secondary">Video Ready</Badge>
+              return (
+                <Card key={field.id} className="bg-muted/30">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={form.control}
+                            name={`contents.${index}.title`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {contentType} {index + 1} Title
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder={`${contentType} Title`}
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`contents.${index}.contentType`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Content Type</FormLabel>
+                                <FormControl>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="Lesson">
+                                        Lesson
+                                      </SelectItem>
+                                      <SelectItem value="Quiz">Quiz</SelectItem>
+                                      <SelectItem value="Assignment">
+                                        Assignment
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {contentType === "Lesson" && (
+                          <div className="flex items-center gap-4">
+                            <Input
+                              type="file"
+                              accept="video/*"
+                              onChange={async (e) => {
+                                if (e.target.files?.[0]) {
+                                  toast({
+                                    title: "Uploading video...",
+                                    description: "Please wait.",
+                                  });
+                                  const url = await uploadToCloudinary(
+                                    e.target.files[0],
+                                  );
+                                  form.setValue(
+                                    `contents.${index}.videoUrl`,
+                                    url,
+                                  );
+                                  toast({ title: "Video Uploaded!" });
+                                }
+                              }}
+                            />
+                            {form.watch(`contents.${index}.videoUrl`) && (
+                              <Badge variant="secondary">Video Ready</Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {contentType === "Quiz" && (
+                          <FormField
+                            control={form.control}
+                            name={`contents.${index}.duration`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Quiz Duration (minutes)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" min={1} {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        {contentType === "Assignment" && (
+                          <FormField
+                            control={form.control}
+                            name={`contents.${index}.dueDate`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Due Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
                         )}
                       </div>
+                      <div className="flex items-center justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => remove(index)}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           <Button
