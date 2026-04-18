@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import "./Review.js";
 
 const courseSchema = new mongoose.Schema(
   {
@@ -55,6 +56,12 @@ courseSchema.virtual("sections", {
 
 courseSchema.virtual("enrollments", {
   ref: "Enrollment",
+  localField: "_id",
+  foreignField: "courseId",
+});
+
+courseSchema.virtual("reviews", {
+  ref: "Review",
   localField: "_id",
   foreignField: "courseId",
 });
