@@ -99,7 +99,7 @@ const CreateCourse = () => {
             categoryId: course.categoryId?._id || course.categoryId,
             level: course.level,
             contents: course.contents || [],
-            thumbnail: null, // التمبنيلي يفضل مرفوع كما هو إلا لو المستخدم غيره
+            thumbnail: null,
           });
         }
       } catch (error) {
