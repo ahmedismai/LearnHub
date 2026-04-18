@@ -99,7 +99,7 @@ const Quizzes = () => {
                     </CardHeader>
                     <CardContent className="p-6 pt-0">
                       <Button variant="gradient" className="w-full" asChild>
-                        <Link to={`/courses/${quiz.courseId}`}>
+                        <Link to={`/dashboard/exam/${quiz._id}`}>
                           <Play className="w-4 h-4 mr-2" />
                           Start Quiz
                         </Link>

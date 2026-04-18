@@ -287,65 +287,76 @@ const CourseDetails = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {course.contents?.map((content, index) => (
-                  <div
-                    key={content._id || content.id}
-                    className={`flex items-center justify-between p-5 cursor-pointer transition-all ${
-                      activeLesson?.id === content.id ||
-                      activeLesson?._id === content._id
-                        ? "bg-primary/5 border-l-4 border-primary"
-                        : "hover:bg-accent/5 border-l-4 border-transparent"
-                    }`}
-                    onClick={() =>
-                      hasAccess &&
-                      content.contentType === "Lesson" &&
-                      setActiveLesson(content)
-                    }
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                          activeLesson?.id === content.id ||
-                          activeLesson?._id === content._id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-accent/20 text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p
-                          className={`font-semibold ${
-                            activeLesson?.id === content.id ||
-                            activeLesson?._id === content._id
-                              ? "text-primary"
-                              : ""
-                          }`}
-                        >
-                          {content.title}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] uppercase h-5"
+                {course.sections?.map((section) => (
+                  <div key={section._id} className="p-5">
+                    <h3 className="font-bold text-lg mb-3">{section.title}</h3>
+                    <div className="space-y-2">
+                      {course.contents
+                        ?.filter(
+                          (content) => content.sectionId?._id === section._id,
+                        )
+                        .map((content, index) => (
+                          <div
+                            key={content._id || content.id}
+                            className={`flex items-center justify-between p-3 cursor-pointer transition-all rounded ${
+                              activeLesson?.id === content.id ||
+                              activeLesson?._id === content._id
+                                ? "bg-primary/5 border-l-4 border-primary"
+                                : "hover:bg-accent/5 border-l-4 border-transparent"
+                            }`}
+                            onClick={() =>
+                              hasAccess &&
+                              content.contentType === "Lesson" &&
+                              setActiveLesson(content)
+                            }
                           >
-                            {content.contentType}
-                          </Badge>
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-4">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                  activeLesson?.id === content.id ||
+                                  activeLesson?._id === content._id
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-accent/20 text-muted-foreground"
+                                }`}
+                              >
+                                {index + 1}
+                              </div>
+                              <div>
+                                <p
+                                  className={`font-semibold ${
+                                    activeLesson?.id === content.id ||
+                                    activeLesson?._id === content._id
+                                      ? "text-primary"
+                                      : ""
+                                  }`}
+                                >
+                                  {content.title}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] uppercase h-5"
+                                  >
+                                    {content.contentType}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            {content.contentType === "Lesson" ? (
+                              <Play
+                                className={`w-5 h-5 ${
+                                  activeLesson?.id === content.id ||
+                                  activeLesson?._id === content._id
+                                    ? "text-primary animate-pulse"
+                                    : "text-muted-foreground/40"
+                                }`}
+                              />
+                            ) : (
+                              <FileText className="w-5 h-5 text-muted-foreground/40" />
+                            )}
+                          </div>
+                        ))}
                     </div>
-                    {content.contentType === "Lesson" ? (
-                      <Play
-                        className={`w-5 h-5 ${
-                          activeLesson?.id === content.id ||
-                          activeLesson?._id === content._id
-                            ? "text-primary animate-pulse"
-                            : "text-muted-foreground/40"
-                        }`}
-                      />
-                    ) : (
-                      <FileText className="w-5 h-5 text-muted-foreground/40" />
-                    )}
                   </div>
                 ))}
               </div>

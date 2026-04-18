@@ -3,9 +3,21 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -13,7 +25,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("Student");
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -23,7 +35,14 @@ const Register = () => {
     try {
       await register(name, email, password, role);
       toast({ title: "Account created successfully!" });
-      navigate("/dashboard");
+      // Redirect based on role
+      if (user?.role === "Administrator") {
+        navigate("/dashboard");
+      } else if (user?.role === "Student") {
+        navigate("/");
+      } else {
+        navigate("/dashboard"); // Default for Instructor
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -39,7 +58,9 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Create an account
+          </CardTitle>
           <p className="text-muted-foreground text-center">
             Join LearnHub to start your journey
           </p>
@@ -91,7 +112,10 @@ const Register = () => {
         <CardFooter>
           <p className="text-sm text-center w-full text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary hover:underline font-medium">
+            <Link
+              to="/login"
+              className="text-primary hover:underline font-medium"
+            >
               Login
             </Link>
           </p>

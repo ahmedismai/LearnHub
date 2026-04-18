@@ -20,6 +20,7 @@ import Grades from "./pages/Grades";
 import Assignments from "./pages/Assignments";
 import Quizzes from "./pages/Quizzes";
 import NotFound from "./pages/NotFound";
+import Exam from "./pages/Exam";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="grades" element={<Grades />} />
               <Route path="assignments" element={<Assignments />} />
               <Route path="quizzes" element={<Quizzes />} />
+              <Route path="exam/:id" element={<Exam />} />
               <Route path="students" element={<Dashboard />} />
               <Route path="users" element={<AdminDashboard />} />
               <Route path="courses" element={<AdminDashboard />} />

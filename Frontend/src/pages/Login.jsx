@@ -3,14 +3,20 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -20,7 +26,14 @@ const Login = () => {
     try {
       await login(email, password);
       toast({ title: "Welcome back!" });
-      navigate("/dashboard");
+      // Redirect based on role
+      if (user?.role === "Administrator") {
+        navigate("/dashboard");
+      } else if (user?.role === "Student") {
+        navigate("/");
+      } else {
+        navigate("/dashboard"); // Default for Instructor
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -36,7 +49,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md animate-scale-in">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Login
+          </CardTitle>
           <p className="text-muted-foreground text-center">
             Enter your credentials to access your account
           </p>
@@ -69,7 +84,10 @@ const Login = () => {
         <CardFooter className="flex flex-col space-y-2">
           <p className="text-sm text-center text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline font-medium">
+            <Link
+              to="/register"
+              className="text-primary hover:underline font-medium"
+            >
               Register
             </Link>
           </p>
