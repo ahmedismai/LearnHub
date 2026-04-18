@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import multer from "multer";
 import { Course } from "../models/Course.js";
 import { Category } from "../models/Category.js";
@@ -274,6 +275,10 @@ router.patch(
 // Get course details
 router.get("/:id", async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
     const course = await Course.findById(req.params.id)
       .populate("instructorId", "name email bio")
       .populate("categoryId", "name")
@@ -284,18 +289,34 @@ router.get("/:id", async (req, res) => {
       })
       .populate({
         path: "enrollments",
-        populate: { path: "userId", select: "name email" },
+        populate: { path: "studentId", select: "name email" },
       })
       .populate("reviews");
+
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
+
     res.json(course);
   } catch (error) {
     console.error("Course Details Error:", error);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error while fetching course details" });
+
+    try {
+      const courseFallback = await Course.findById(req.params.id)
+        .populate("instructorId", "name email bio")
+        .populate("categoryId", "name");
+
+      if (!courseFallback) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      return res.json(courseFallback);
+    } catch (fallbackError) {
+      console.error("Course Details Fallback Error:", fallbackError);
+      return res
+        .status(500)
+        .json({ error: "Internal Server Error while fetching course details" });
+    }
   }
 });
 
