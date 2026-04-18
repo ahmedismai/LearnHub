@@ -28,6 +28,7 @@ import Quizzes from "./pages/Quizzes";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 import QuizPage from "./pages/QuizPage";
+import Chatbot from "./components/Chatbot";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,7 @@ const App = () => (
             {/* صفحة 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Chatbot />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

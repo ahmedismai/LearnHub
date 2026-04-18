@@ -17,6 +17,7 @@ import {
   PlusCircle,
   Loader2,
   TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const CourseDetails = () => {
   const [activeLesson, setActiveLesson] = useState(null);
@@ -38,14 +40,56 @@ const CourseDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Review State
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [review, setReview] = useState({ rating: 5, comment: "" });
+
+  // Fetch Reviews
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["reviews", id],
+    queryFn: async () => {
+      const response = await api.get(`/Review/course/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+
+  // Submit Review Mutation
+  const submitReviewMutation = useMutation({
+    mutationFn: async (reviewData) => {
+      return api.post("/Review", { courseId: id, ...reviewData });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["reviews", id]);
+      setIsReviewing(false);
+      setReview({ rating: 5, comment: "" });
+      toast({ title: "Review submitted successfully!" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to submit review",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const handleReviewSubmit = () => {
+    if (!review.comment.trim()) return;
+    submitReviewMutation.mutate(review);
+  };
+
   // State for Quick Add Content
   const [isAddingContent, setIsAddingContent] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [newLesson, setNewLesson] = useState({
+  const [contentType, setContentType] = useState("Lesson");
+  const [newContent, setNewContent] = useState({
     title: "",
     description: "",
     videoFile: null,
     sectionId: "",
+    duration: 10,
+    dueDate: "",
   });
 
   // State for Add Section
@@ -76,7 +120,7 @@ const CourseDetails = () => {
     enabled: !!user && user?.role === "Student",
   });
 
-  // Permission Logic - تعديل ليكون أكثر مرونة مع الـ IDs
+  // Permission Logic
   const isInstructor =
     user?.role === "Instructor" &&
     (course?.instructorId?._id === user?.id ||
@@ -141,7 +185,7 @@ const CourseDetails = () => {
       return api.post("/Section", { courseId: id, ...sectionData });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["course", id]); // تحديث بيانات الكورس بالكامل
+      queryClient.invalidateQueries(["course", id]);
       setIsAddingSection(false);
       setNewSection({ title: "", description: "" });
       toast({ title: "Section created successfully!" });
@@ -155,60 +199,63 @@ const CourseDetails = () => {
     },
   });
 
-  // Handler for Quick Add Lesson
+  // Handler for Quick Add Content
   const handleAddContent = async () => {
-    if (!newLesson.title || !newLesson.videoFile) {
+    if (!newContent.title) {
       return toast({
         variant: "destructive",
         title: "Missing Fields",
-        description: "Please provide both a title and a video file.",
+        description: "Please provide a title.",
       });
     }
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", newLesson.videoFile);
-      formData.append("upload_preset", "ml_default");
-      formData.append("folder", "learnhub_courses");
+      let videoUrl = "";
+      if (contentType === "Lesson" && newContent.videoFile) {
+        const formData = new FormData();
+        formData.append("file", newContent.videoFile);
+        formData.append("upload_preset", "ml_default");
+        formData.append("folder", "learnhub_courses");
 
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/duevc5acm/video/upload`,
-        { method: "POST", body: formData },
-      );
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/duevc5acm/video/upload`,
+          { method: "POST", body: formData },
+        );
 
-      if (!cloudRes.ok) throw new Error("Cloudinary upload failed");
-      const cloudData = await cloudRes.json();
+        if (!cloudRes.ok) throw new Error("Cloudinary upload failed");
+        const cloudData = await cloudRes.json();
+        videoUrl = cloudData.secure_url;
+      }
 
-      await api.post(`/Lesson/course/${id}`, {
-        title: newLesson.title,
-        description:
-          newLesson.description || `Introduction to ${newLesson.title}`,
-        type: "Lesson",
-        videoUrl: cloudData.secure_url,
-        sectionId: newLesson.sectionId || undefined,
+      await api.post(`/Course/${id}/contents`, {
+        ...newContent,
+        type: contentType,
+        videoUrl,
+        sectionId: newContent.sectionId || undefined,
       });
 
       toast({
         title: "Success",
-        description: "Lesson added to course successfully!",
+        description: `${contentType} added successfully!`,
       });
 
       setIsAddingContent(false);
-      setNewLesson({
+      setNewContent({
         title: "",
         description: "",
         videoFile: null,
         sectionId: "",
+        duration: 10,
+        dueDate: "",
       });
       queryClient.invalidateQueries(["course", id]);
     } catch (error) {
       console.error("Add Content Error:", error);
       toast({
         variant: "destructive",
-        title: "Upload Failed",
-        description:
-          error.response?.data?.message || "Could not save the lesson.",
+        title: "Operation Failed",
+        description: error.response?.data?.message || "Could not save content.",
       });
     } finally {
       setIsUploading(false);
@@ -251,10 +298,6 @@ const CourseDetails = () => {
             <h1 className="text-4xl font-bold tracking-tight text-foreground">
               {course.title}
             </h1>
-            <p className="text-xl text-muted-foreground">
-              {course.description}
-            </p>
-
             <div className="flex flex-wrap gap-6 pt-4">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
@@ -262,13 +305,9 @@ const CourseDetails = () => {
                   {course.instructorId?.name || "Instructor"}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                <span className="font-medium">4.8 (120 reviews)</span>
-              </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="w-5 h-5" />
-                <span>{course.contents?.length || 0} modules</span>
+                <span>{course.contents?.length || 0} items</span>
               </div>
             </div>
           </div>
@@ -414,7 +453,12 @@ const CourseDetails = () => {
                                   <Link to={`/dashboard/exam/${content._id}`}>Take Quiz</Link>
                                 </Button>
                               ) : (
-                                <FileText className="w-5 h-5 text-muted-foreground/40" />
+                                <div className="flex items-center gap-2">
+                                   <FileText className="w-5 h-5 text-muted-foreground/40" />
+                                   {isStudentEnrolled && <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
+                                      <Link to="/dashboard/assignments">Submit</Link>
+                                    </Button>}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -422,6 +466,97 @@ const CourseDetails = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-md">
+            <CardHeader className="border-b flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary" />
+                Student Reviews
+              </CardTitle>
+              {isStudentEnrolled && (
+                <Dialog open={isReviewing} onOpenChange={setIsReviewing}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Write a Review
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Share your experience</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label>Rating (1-5)</Label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => setReview({ ...review, rating: star })}
+                              className={`text-2xl ${review.rating >= star ? "text-yellow-500" : "text-muted"}`}
+                            >
+                              <Star className={review.rating >= star ? "fill-yellow-500" : ""} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="comment">Your Feedback</Label>
+                        <Textarea
+                          id="comment"
+                          placeholder="What did you think of this course?"
+                          value={review.comment}
+                          onChange={(e) => setReview({ ...review, comment: e.target.value })}
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleReviewSubmit}
+                        disabled={submitReviewMutation.isPending || !review.comment.trim()}
+                      >
+                        {submitReviewMutation.isPending ? "Submitting..." : "Post Review"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {reviews.length > 0 ? (
+                  reviews.map((r) => (
+                    <div key={r._id} className="flex gap-4 border-b last:border-0 pb-6 last:pb-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
+                        {r.studentId?.name?.[0] || "U"}
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold">{r.studentId?.name || "User"}</h4>
+                          <div className="flex text-yellow-500">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${i < r.rating ? "fill-yellow-500" : "text-muted"}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground text-sm italic">
+                          "{r.comment}"
+                        </p>
+                        <p className="text-[10px] text-muted-foreground pt-1">
+                          {new Date(r.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No reviews yet. Be the first to review!</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -440,9 +575,6 @@ const CourseDetails = () => {
                       Instructor View
                     </Badge>
                     <h3 className="text-xl font-bold">Course Management</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Manage your lessons and sections here.
-                    </p>
                   </div>
                 </div>
 
@@ -455,50 +587,100 @@ const CourseDetails = () => {
                       variant="outline"
                       className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-primary/50"
                     >
-                      <PlusCircle className="w-5 h-5 text-primary" /> Add Quick
-                      Lesson
+                      <PlusCircle className="w-5 h-5 text-primary" /> Add Content
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add New Lesson</DialogTitle>
+                      <DialogTitle>Add New Content</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
                       <div className="space-y-2">
-                        <Label htmlFor="title">Lesson Title</Label>
+                        <Label>Content Type</Label>
+                        <select
+                          className="w-full p-2 border rounded"
+                          value={contentType}
+                          onChange={(e) => setContentType(e.target.value)}
+                        >
+                          <option value="Lesson">Lesson (Video)</option>
+                          <option value="Quiz">Quiz</option>
+                          <option value="Assignment">Assignment</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Title</Label>
                         <Input
                           id="title"
-                          value={newLesson.title}
+                          value={newContent.title}
                           onChange={(e) =>
-                            setNewLesson({
-                              ...newLesson,
+                            setNewContent({
+                              ...newContent,
                               title: e.target.value,
                             })
                           }
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="video">Video Lesson</Label>
-                        <Input
-                          id="video"
-                          type="file"
-                          accept="video/*"
-                          onChange={(e) =>
-                            setNewLesson({
-                              ...newLesson,
-                              videoFile: e.target.files[0],
-                            })
-                          }
-                        />
-                      </div>
+
+                      {contentType === "Lesson" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="video">Video File</Label>
+                          <Input
+                            id="video"
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) =>
+                              setNewContent({
+                                ...newContent,
+                                videoFile: e.target.files[0],
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {contentType === "Quiz" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="duration">Duration (minutes)</Label>
+                          <Input
+                            id="duration"
+                            type="number"
+                            value={newContent.duration}
+                            onChange={(e) =>
+                              setNewContent({
+                                ...newContent,
+                                duration: parseInt(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {contentType === "Assignment" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="dueDate">Due Date</Label>
+                          <Input
+                            id="dueDate"
+                            type="date"
+                            value={newContent.dueDate}
+                            onChange={(e) =>
+                              setNewContent({
+                                ...newContent,
+                                dueDate: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label htmlFor="section">Section</Label>
                         <select
                           id="section"
-                          value={newLesson.sectionId}
+                          value={newContent.sectionId}
                           onChange={(e) =>
-                            setNewLesson({
-                              ...newLesson,
+                            setNewContent({
+                              ...newContent,
                               sectionId: e.target.value,
                             })
                           }
@@ -520,10 +702,10 @@ const CourseDetails = () => {
                         {isUploading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                            Uploading...
+                            Processing...
                           </>
                         ) : (
-                          "Add Lesson"
+                          "Add to Course"
                         )}
                       </Button>
                     </div>
@@ -605,7 +787,7 @@ const CourseDetails = () => {
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <BookOpen className="w-5 h-5 text-primary" />{" "}
-                      <span>{course.contents?.length || 0} Lessons</span>
+                      <span>{course.contents?.length || 0} items</span>
                     </div>
                   </div>
                   <Button

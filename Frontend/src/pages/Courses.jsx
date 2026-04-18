@@ -13,9 +13,9 @@ import api from "@/api/axios";
 import { Link } from "react-router-dom";
 import { BookOpen, Search, User } from "lucide-react";
 import { useState } from "react";
-
 const Courses = () => {
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["courses"],
@@ -25,35 +25,74 @@ const Courses = () => {
     },
   });
 
-  const filteredCourses = courses.filter(
-    (course) =>
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const response = await api.get("/Category");
+      return response.data;
+    },
+  });
+
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch = 
       course.title.toLowerCase().includes(search.toLowerCase()) ||
-      course.categoryId?.name?.toLowerCase().includes(search.toLowerCase()),
-  );
+      course.categoryId?.name?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory = 
+      selectedCategory === "All" || 
+      course.categoryId?.name === selectedCategory ||
+      course.categoryId === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">
             Explore Courses
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Discover your next learning adventure
+          <p className="text-muted-foreground mt-2 text-lg">
+            Master new skills with our expert-led programs
           </p>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
-            placeholder="Search courses or categories..."
-            className="pl-10"
+            placeholder="Search by course, instructor or category..."
+            className="pl-12 h-12 text-base shadow-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
+      {/* Category Pills */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={selectedCategory === "All" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedCategory("All")}
+          className="rounded-full px-6"
+        >
+          All Courses
+        </Button>
+        {categories.map((cat) => (
+          <Button
+            key={cat._id}
+            variant={selectedCategory === cat.name ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedCategory(cat.name)}
+            className="rounded-full px-6"
+          >
+            {cat.name}
+          </Button>
+        ))}
+      </div>
+
       {isLoading ? (
+...
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="h-96 animate-pulse bg-accent/5" />

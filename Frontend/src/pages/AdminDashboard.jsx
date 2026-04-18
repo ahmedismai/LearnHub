@@ -30,14 +30,33 @@ import {
   DollarSign,
   Trash2,
   Loader2,
+  Layers,
+  History,
+  Plus,
+  Pencil,
 } from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const AdminDashboard = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Category State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryData, setCategoryData] = useState({ name: "", description: "" });
 
   // Fetch Stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -62,6 +81,24 @@ const AdminDashboard = () => {
     queryKey: ["admin", "courses"],
     queryFn: async () => {
       const response = await api.get("/Course/list");
+      return response.data;
+    },
+  });
+
+  // Fetch Categories
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => {
+      const response = await api.get("/Category");
+      return response.data;
+    },
+  });
+
+  // Fetch Payments
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ["admin", "payments"],
+    queryFn: async () => {
+      const response = await api.get("/Order");
       return response.data;
     },
   });
@@ -100,7 +137,32 @@ const AdminDashboard = () => {
     onError: () => toast.error("Failed to update course status"),
   });
 
-  const isLoading = statsLoading || usersLoading || coursesLoading;
+  const categoryMutation = useMutation({
+    mutationFn: async (data) => {
+      if (editingCategory) {
+        return await api.patch(`/Category/${editingCategory._id}`, data);
+      }
+      return await api.post("/Category", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "categories"]);
+      toast.success(`Category ${editingCategory ? "updated" : "created"} successfully`);
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      setCategoryData({ name: "", description: "" });
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Operation failed"),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id) => await api.delete(`/Category/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "categories"]);
+      toast.success("Category deleted");
+    },
+  });
+
+  const isLoading = statsLoading || usersLoading || coursesLoading || categoriesLoading || paymentsLoading;
 
   return (
     <div className="space-y-6 animate-fade-in p-6">
@@ -120,10 +182,12 @@ const AdminDashboard = () => {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid grid-cols-3 w-full lg:w-[400px]">
+        <TabsList className="grid grid-cols-5 w-full lg:w-[600px]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -253,6 +317,149 @@ const AdminDashboard = () => {
                     </span>
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Category Management</CardTitle>
+                <CardDescription>Organize courses into topics</CardDescription>
+              </div>
+              <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryData({ name: "", description: "" });
+                  }}>
+                    <Plus className="w-4 h-4 mr-2" /> Add Category
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingCategory ? "Edit" : "Create"} Category</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input 
+                        value={categoryData.name} 
+                        onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })}
+                        placeholder="e.g. Web Development"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea 
+                        value={categoryData.description}
+                        onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })}
+                        placeholder="Brief overview of the category"
+                      />
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => categoryMutation.mutate(categoryData)}
+                      disabled={categoryMutation.isPending}
+                    >
+                      {categoryMutation.isPending ? "Saving..." : "Save Category"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              {categoriesLoading ? (
+                <Skeleton className="h-40 w-full" />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((cat) => (
+                      <TableRow key={cat._id}>
+                        <TableCell className="font-bold">{cat.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{cat.description}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingCategory(cat);
+                                setCategoryData({ name: cat.name, description: cat.description });
+                                setIsCategoryModalOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("Delete this category?")) deleteCategoryMutation.mutate(cat._id);
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payments">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+              <CardDescription>View all platform payments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentsLoading ? (
+                <Skeleton className="h-40 w-full" />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((p) => (
+                      <TableRow key={p._id}>
+                        <TableCell>{p.studentId?.name || p.studentId?.username || "User"}</TableCell>
+                        <TableCell>{p.courseId?.title || "Course"}</TableCell>
+                        <TableCell className="font-bold">${p.amount}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{p.paymentMethod}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={p.status === "Success" ? "success" : "destructive"}>
+                            {p.status || "Success"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
