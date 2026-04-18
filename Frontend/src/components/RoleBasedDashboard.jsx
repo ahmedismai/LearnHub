@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
-import Dashboard from "./pages/Dashboard";
-import InstructorOverview from "./pages/instructor/InstructorOverview";
-import AdminOverview from "./pages/admin/AdminOverview";
+import Dashboard from "@/pages/Dashboard";
+import InstructorOverview from "@/pages/instructor/InstructorOverview";
+import AdminOverview from "@/pages/admin/AdminOverview";
 
 const RoleBasedDashboard = () => {
   const { user } = useAuth();

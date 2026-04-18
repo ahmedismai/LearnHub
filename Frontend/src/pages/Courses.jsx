@@ -34,12 +34,12 @@ const Courses = () => {
   });
 
   const filteredCourses = courses.filter((course) => {
-    const matchesSearch = 
+    const matchesSearch =
       course.title.toLowerCase().includes(search.toLowerCase()) ||
       course.categoryId?.name?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesCategory = 
-      selectedCategory === "All" || 
+    const matchesCategory =
+      selectedCategory === "All" ||
       course.categoryId?.name === selectedCategory ||
       course.categoryId === selectedCategory;
 
@@ -92,7 +92,6 @@ const Courses = () => {
       </div>
 
       {isLoading ? (
-...
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="h-96 animate-pulse bg-accent/5" />
