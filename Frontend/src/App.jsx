@@ -31,17 +31,32 @@ import Exam from "./pages/Exam";
 
 const queryClient = new QueryClient();
 
-// مكون حماية الصفحات (لازم لوجن عشان تدخل)
+// 1. تعديل الـ ProtectedRoute
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
-  if (loading) return null; // يمكنك إضافة سبينر هنا إذا أردت
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// مكون منع المسجلين (لو عامل لوجن ميتفتحش له صفحة اللوجن والريجستر)
 const PublicRoute = () => {
   const { user, loading } = useAuth();
-  if (loading) return null;
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return !user ? <Outlet /> : <Navigate to="/" replace />;
 };
 
