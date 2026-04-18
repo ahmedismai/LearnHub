@@ -3,7 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Play, Upload, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react";
+import {
+  FileText,
+  Play,
+  Upload,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
 import { toast } from "sonner";
@@ -46,15 +54,17 @@ const Assignments = () => {
     queryFn: async () => {
       const results = await Promise.all(
         courseIds.map(async (courseId) => {
-          const response = await api.get(`/assignments/course/${courseId}`);
+          const response = await api.get(`/Assignment/course/${courseId}`);
           return response.data.map((a) => {
             const enrollment = enrollments.find(
               (e) => e.courseId?._id === courseId,
             );
-            return { 
-              ...a, 
+            return {
+              ...a,
               courseTitle: enrollment?.courseId?.title,
-              isCompleted: enrollment?.completedAssignments?.some(id => id === a._id)
+              isCompleted: enrollment?.completedAssignments?.some(
+                (id) => id === a._id,
+              ),
             };
           });
         }),
@@ -68,7 +78,7 @@ const Assignments = () => {
     mutationFn: async ({ assignmentId, file }) => {
       const formData = new FormData();
       formData.append("file", file);
-      return await api.post(`/assignments/${assignmentId}/submit`, formData, {
+      return await api.post(`/Assignment/${assignmentId}/submit`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
     },
@@ -81,7 +91,9 @@ const Assignments = () => {
       setCurrentAssignment(null);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to submit assignment");
+      toast.error(
+        error.response?.data?.message || "Failed to submit assignment",
+      );
     },
   });
 
@@ -104,7 +116,7 @@ const Assignments = () => {
 
       {(isEnrollmentsLoading || isAssignmentsLoading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2].map(i => (
+          {[1, 2].map((i) => (
             <Card key={i} className="h-48 animate-pulse bg-muted" />
           ))}
         </div>
@@ -129,7 +141,9 @@ const Assignments = () => {
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${assignment.isCompleted ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${assignment.isCompleted ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}
+                    >
                       <FileText className="w-6 h-6" />
                     </div>
                     <div>
@@ -141,7 +155,10 @@ const Assignments = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={assignment.isCompleted ? "success" : "secondary"} className="h-6">
+                  <Badge
+                    variant={assignment.isCompleted ? "success" : "secondary"}
+                    className="h-6"
+                  >
                     {assignment.isCompleted ? "Completed" : "Pending"}
                   </Badge>
                 </CardHeader>
@@ -149,7 +166,7 @@ const Assignments = () => {
                   <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
                     {assignment.description}
                   </p>
-                  
+
                   <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="w-4 h-4" />
@@ -160,16 +177,23 @@ const Assignments = () => {
                     </span>
                   </div>
 
-                  <Dialog open={isSubmitting && currentAssignment?._id === assignment._id} onOpenChange={(open) => {
-                    setIsSubmitting(open);
-                    if (!open) {
-                      setCurrentAssignment(null);
-                      setSelectedFile(null);
+                  <Dialog
+                    open={
+                      isSubmitting && currentAssignment?._id === assignment._id
                     }
-                  }}>
+                    onOpenChange={(open) => {
+                      setIsSubmitting(open);
+                      if (!open) {
+                        setCurrentAssignment(null);
+                        setSelectedFile(null);
+                      }
+                    }}
+                  >
                     <DialogTrigger asChild>
-                      <Button 
-                        variant={assignment.isCompleted ? "outline" : "gradient"} 
+                      <Button
+                        variant={
+                          assignment.isCompleted ? "outline" : "gradient"
+                        }
                         className="w-full h-11 text-base font-semibold"
                         onClick={() => setCurrentAssignment(assignment)}
                       >
@@ -192,14 +216,19 @@ const Assignments = () => {
                       </DialogHeader>
                       <div className="grid gap-6 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="file" className="text-base font-semibold">
+                          <Label
+                            htmlFor="file"
+                            className="text-base font-semibold"
+                          >
                             Choose File
                           </Label>
                           <div className="flex items-center gap-3">
                             <Input
                               id="file"
                               type="file"
-                              onChange={(e) => setSelectedFile(e.target.files[0])}
+                              onChange={(e) =>
+                                setSelectedFile(e.target.files[0])
+                              }
                               className="cursor-pointer"
                             />
                           </div>
@@ -207,23 +236,27 @@ const Assignments = () => {
                             Accepted formats: PDF, ZIP, JPG, PNG (Max 10MB)
                           </p>
                         </div>
-                        
+
                         <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
                           <p className="text-sm font-medium flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 text-primary" />
                             Important Note
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Ensure your work is complete before submitting. You can resubmit anytime before the deadline.
+                            Ensure your work is complete before submitting. You
+                            can resubmit anytime before the deadline.
                           </p>
                         </div>
                       </div>
                       <div className="flex justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setIsSubmitting(false)}>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsSubmitting(false)}
+                        >
                           Cancel
                         </Button>
-                        <Button 
-                          onClick={handleSubmit} 
+                        <Button
+                          onClick={handleSubmit}
                           disabled={!selectedFile || submitMutation.isPending}
                           className="min-w-[120px]"
                         >
@@ -252,7 +285,8 @@ const Assignments = () => {
                   No Assignments Yet
                 </h3>
                 <p className="text-muted-foreground max-w-sm mx-auto">
-                  Enroll in a course to access and submit assignments. When they appear, they'll show up right here.
+                  Enroll in a course to access and submit assignments. When they
+                  appear, they'll show up right here.
                 </p>
                 <Button variant="outline" className="mt-8" asChild>
                   <a href="/courses">Browse Courses</a>

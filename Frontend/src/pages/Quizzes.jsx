@@ -37,7 +37,7 @@ const Quizzes = () => {
     queryFn: async () => {
       const results = await Promise.all(
         courseIds.map(async (courseId) => {
-          const response = await api.get(`/quizzes/course/${courseId}`);
+          const response = await api.get(`/Quiz/course/${courseId}`);
           return response.data.map((quiz) => ({ ...quiz, courseId }));
         }),
       );
