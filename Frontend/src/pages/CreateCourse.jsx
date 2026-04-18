@@ -316,14 +316,17 @@ const CreateCourse = () => {
               <FormField
                 control={form.control}
                 name="thumbnail"
-                render={({ field: { onChange, ...field } }) => (
+                render={({ field: { value, onChange, ...field } }) => (
                   <FormItem>
                     <FormLabel>Thumbnail Image</FormLabel>
                     <FormControl>
                       <Input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => onChange(e.target.files)}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onChange(file);
+                        }}
                         {...field}
                       />
                     </FormControl>
