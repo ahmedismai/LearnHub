@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   PlusCircle,
   Loader2,
+  TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -84,7 +85,37 @@ const CourseDetails = () => {
   const isStudentEnrolled = enrollments.some(
     (e) => (e.courseId?._id || e.courseId) === id,
   );
+  const currentEnrollment = enrollments.find(
+    (e) => (e.courseId?._id || e.courseId) === id,
+  );
   const hasAccess = isInstructor || isStudentEnrolled;
+
+  // Mark Lesson as Complete Mutation
+  const completeLessonMutation = useMutation({
+    mutationFn: async (lessonId) => {
+      return api.patch(`/Enrollment/${currentEnrollment._id}/complete-lesson`, { lessonId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["enrollments", "me"]);
+      toast({ title: "Lesson marked as complete!" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to update progress",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const isLessonCompleted = (lessonId) => {
+    return currentEnrollment?.completedLessons?.includes(lessonId);
+  };
+
+  const calculateProgress = () => {
+    if (!currentEnrollment) return 0;
+    return currentEnrollment.progress || 0;
+  };
 
   // Enrollment Mutation
   const enrollMutation = useMutation({
@@ -281,7 +312,24 @@ const CourseDetails = () => {
             )}
           </div>
 
-          <Card className="border-none shadow-md">
+          <Card className="border-none shadow-md overflow-hidden">
+            {isStudentEnrolled && (
+              <div className="p-6 bg-primary/5 border-b space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-primary flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Your Progress
+                  </h3>
+                  <span className="font-bold text-primary">{calculateProgress()}%</span>
+                </div>
+                <div className="h-3 w-full bg-primary/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-500" 
+                    style={{ width: `${calculateProgress()}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <CardHeader className="border-b">
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-primary" />
@@ -303,7 +351,7 @@ const CourseDetails = () => {
                         .map((content, index) => (
                           <div
                             key={content._id || index}
-                            className={`flex items-center justify-between p-3 cursor-pointer transition-all rounded ${
+                            className={`flex items-center justify-between p-3 cursor-pointer transition-all rounded group ${
                               activeLesson?._id === content._id
                                 ? "bg-primary/5 border-l-4 border-primary"
                                 : "hover:bg-accent/5 border-l-4 border-transparent"
@@ -317,12 +365,14 @@ const CourseDetails = () => {
                             <div className="flex items-center gap-4">
                               <div
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                  activeLesson?._id === content._id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-accent/20 text-muted-foreground"
+                                  isLessonCompleted(content._id)
+                                    ? "bg-green-500 text-white"
+                                    : activeLesson?._id === content._id
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-accent/20 text-muted-foreground"
                                 }`}
                               >
-                                {index + 1}
+                                {isLessonCompleted(content._id) ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
                               </div>
                               <div>
                                 <p
@@ -338,13 +388,35 @@ const CourseDetails = () => {
                                 </Badge>
                               </div>
                             </div>
-                            {content.contentType === "Lesson" ? (
-                              <Play
-                                className={`w-5 h-5 ${activeLesson?._id === content._id ? "text-primary animate-pulse" : "text-muted-foreground/40"}`}
-                              />
-                            ) : (
-                              <FileText className="w-5 h-5 text-muted-foreground/40" />
-                            )}
+                            <div className="flex items-center gap-3">
+                              {isStudentEnrolled && content.contentType === "Lesson" && (
+                                <Button
+                                  size="sm"
+                                  variant={isLessonCompleted(content._id) ? "ghost" : "outline"}
+                                  className={`opacity-0 group-hover:opacity-100 transition-opacity ${isLessonCompleted(content._id) ? "text-green-600" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isLessonCompleted(content._id)) {
+                                      completeLessonMutation.mutate(content._id);
+                                    }
+                                  }}
+                                  disabled={isLessonCompleted(content._id) || completeLessonMutation.isPending}
+                                >
+                                  {isLessonCompleted(content._id) ? "Completed" : "Mark Done"}
+                                </Button>
+                              )}
+                              {content.contentType === "Lesson" ? (
+                                <Play
+                                  className={`w-5 h-5 ${activeLesson?._id === content._id ? "text-primary animate-pulse" : "text-muted-foreground/40"}`}
+                                />
+                              ) : content.contentType === "Quiz" ? (
+                                <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
+                                  <Link to={`/dashboard/exam/${content._id}`}>Take Quiz</Link>
+                                </Button>
+                              ) : (
+                                <FileText className="w-5 h-5 text-muted-foreground/40" />
+                              )}
+                            </div>
                           </div>
                         ))}
                     </div>

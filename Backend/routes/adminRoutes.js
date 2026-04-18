@@ -2,6 +2,7 @@ import express from 'express';
 import { User } from '../models/User.js';
 import { Course } from '../models/Course.js';
 import { Enrollment } from '../models/Enrollment.js';
+import { Payment } from '../models/Payment.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 
@@ -38,6 +39,19 @@ router.patch('/users/:id/role', async (req, res) => {
   }
 });
 
+// Module 1: User & Permission Management - Delete User
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Module 3: Platform Statistics - View system statistics and Retrieve platform-wide analytics
 router.get('/stats', async (req, res) => {
   try {
@@ -46,6 +60,10 @@ router.get('/stats', async (req, res) => {
     const totalEnrollments = await Enrollment.countDocuments();
     const totalStudents = await User.countDocuments({ role: ROLES.STUDENT });
     const totalInstructors = await User.countDocuments({ role: ROLES.INSTRUCTOR });
+
+    // Calculate total revenue from successful payments
+    const payments = await Payment.find({ status: "Success" });
+    const totalRevenue = payments.reduce((acc, curr) => acc + curr.amount, 0);
     
     // System health (mocking for now as it's a typical requirement for "system health")
     const systemHealth = {
@@ -60,6 +78,7 @@ router.get('/stats', async (req, res) => {
       totalEnrollments,
       totalStudents,
       totalInstructors,
+      totalRevenue,
       systemHealth
     });
   } catch (error) {

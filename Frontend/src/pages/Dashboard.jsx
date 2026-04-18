@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import { BookOpen, GraduationCap, Layout, TrendingUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ const Dashboard = () => {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          Welcome back, {user?.name}!
+          Welcome back, {user?.name || user?.username}!
         </h1>
         <p className="text-muted-foreground mt-1">
           {user?.role} • ID:{" "}
@@ -66,7 +67,11 @@ const Dashboard = () => {
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold">{stat.value}</div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -79,12 +84,15 @@ const Dashboard = () => {
         </h2>
 
         {isLoading ? (
-          <p>Loading your courses...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {enrollments.length > 0 ? (
               enrollments.map((enrollment) => (
-                <Card key={enrollment.id} className="overflow-hidden">
+                <Card key={enrollment._id || enrollment.id} className="overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>

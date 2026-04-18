@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/api/axios";
 import {
   GraduationCap,
   BookOpen,
@@ -13,11 +15,20 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
+  Loader2,
 } from "lucide-react";
-import { mockCourses } from "@/data/mockData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
   const { isAuthenticated } = useAuth();
+
+  const { data: courses = [], isLoading } = useQuery({
+    queryKey: ["courses", "landing"],
+    queryFn: async () => {
+      const response = await api.get("/Course");
+      return response.data;
+    },
+  });
 
   const features = [
     {
@@ -125,8 +136,8 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="xl" variant="gradient" asChild>
-                <Link to="/register">
-                  Start Learning Free
+                <Link to={isAuthenticated ? "/dashboard" : "/register"}>
+                  {isAuthenticated ? "Go to Dashboard" : "Start Learning Free"}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
@@ -217,53 +228,72 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockCourses.slice(0, 6).map((course) => (
-              <Card
-                key={course.id}
-                className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-
-                  <Badge className="absolute top-4 left-4" variant="secondary">
-                    {course.category}
-                  </Badge>
-                </div>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Badge variant="muted" className="capitalize">
-                      {course.level}
-                    </Badge>
-                    <span>•</span>
-                    <span>{course.duration}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                    {course.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {course.description}
-                  </p>
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-accent fill-accent" />
-                      <span className="font-semibold text-foreground">
-                        {course.rating}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        ({course.enrolledCount})
-                      </span>
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden border-0 shadow-lg">
+                  <Skeleton className="h-48 w-full" />
+                  <CardContent className="p-5 space-y-4">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <div className="flex justify-between pt-4">
+                      <Skeleton className="h-6 w-1/4" />
+                      <Skeleton className="h-6 w-1/4" />
                     </div>
-                    <p className="text-xl font-bold text-primary">
-                      ${course.price}
-                    </p>
+                  </CardContent>
+                </Card>
+              ))
+            ) : courses.length > 0 ? (
+              courses.slice(0, 6).map((course) => (
+                <Card
+                  key={course._id}
+                  className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+
+                    <Badge className="absolute top-4 left-4" variant="secondary">
+                      {course.categoryId?.name || "General"}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Badge variant="muted" className="capitalize">
+                        {course.level}
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                      <Link to={`/course/${course._id}`}>{course.title}</Link>
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {course.description}
+                    </p>
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-accent fill-accent" />
+                        <span className="font-semibold text-foreground">
+                          4.8
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          (120)
+                        </span>
+                      </div>
+                      <p className="text-xl font-bold text-primary">
+                        ${course.price}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                No courses available at the moment.
+              </div>
+            )}
           </div>
 
           <div className="mt-10 text-center md:hidden">
@@ -291,8 +321,8 @@ const Index = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" variant="accent" asChild>
-                  <Link to="/register">
-                    Create Free Account
+                  <Link to={isAuthenticated ? "/dashboard" : "/register"}>
+                    {isAuthenticated ? "Continue Learning" : "Create Free Account"}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
                 </Button>
