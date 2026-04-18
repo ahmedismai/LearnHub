@@ -26,23 +26,25 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!user;
 
   const login = async (email, password) => {
-    const response = await api.post("/auth/login", { email, password });
-    const { token, user: userData } = response.data;
-    localStorage.setItem("token", token);
+    const response = await api.post("/Account/Login", { email, password });
+    const { accessToken, refreshToken, user: userData } = response.data;
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     return userData;
   };
 
   const register = async (name, email, password, role) => {
-    const response = await api.post("/auth/register", {
+    const response = await api.post("/Account/Register", {
       name,
       email,
       password,
       role,
     });
-    const { token, user } = response.data;
-    localStorage.setItem("token", token);
+    const { accessToken, refreshToken, user } = response.data;
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("user", JSON.stringify(user));
     setUser(user);
     return user;
@@ -55,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (data) => {
-    const response = await api.patch("/auth/profile", data);
+    const response = await api.put("/Account/Account/UpdateProfile", data);
     const updatedUser = response.data;
     const currentUser = JSON.parse(localStorage.getItem("user"));
     const newUser = { ...currentUser, ...updatedUser };

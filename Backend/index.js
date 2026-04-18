@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import authRoutes from "./routes/authRoutes.js";
+import accountRoutes from "./routes/accountRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
@@ -16,6 +16,14 @@ import gradeRoutes from "./routes/gradeRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import roleRoutes from "./routes/roleRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
+import sectionRoutes from "./routes/sectionRoutes.js";
+import lessonRoutes from "./routes/lessonRoutes.js";
+import examRoutes from "./routes/examRoutes.js";
+import examResultRoutes from "./routes/examResultRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
@@ -32,16 +40,28 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-app.use("/api/auth", authRoutes);
+app.use("/api/Account", accountRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/Course", courseRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/Enrollment", enrollmentRoutes);
 app.use("/api/grades", gradeRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/Category", categoryRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/Review", reviewRoutes);
+app.use("/api/Dashboards", dashboardRoutes);
+app.use("/api/Role", roleRoutes);
+app.use("/api/Chatbot", chatbotRoutes);
+app.use("/api/Section", sectionRoutes);
+app.use("/api/Lesson", lessonRoutes);
+app.use("/api/Exam", examRoutes);
+app.use("/api/ExamResult", examResultRoutes);
+app.use("/api/Order", orderRoutes);
 
 app.get("/", (req, res) => {
   res.send("LearnHub Server is Running Successfully! 🚀");

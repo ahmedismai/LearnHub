@@ -35,6 +35,46 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/list", async (req, res) => {
+  try {
+    const courses = await Course.find()
+      .populate("instructorId", "name email")
+      .populate("categoryId", "name")
+      .sort({ createdAt: -1 });
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/ByCategory/:categoryId", async (req, res) => {
+  try {
+    const courses = await Course.find({
+      categoryId: req.params.categoryId,
+      status: "Approved",
+    })
+      .populate("instructorId", "name email")
+      .populate("categoryId", "name");
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/ByInstructor/:instructorId", async (req, res) => {
+  try {
+    const courses = await Course.find({
+      instructorId: req.params.instructorId,
+      status: "Approved",
+    })
+      .populate("instructorId", "name email")
+      .populate("categoryId", "name");
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create new course (Instructor/Admin)
 router.post(
   "/",
@@ -88,6 +128,42 @@ router.get(
   },
 );
 
+router.get(
+  "/pending",
+  protect,
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const filter =
+        req.user.role === ROLES.ADMINISTRATOR
+          ? { status: "Pending" }
+          : { status: "Pending", instructorId: req.user.id };
+      const courses = await Course.find(filter)
+        .populate("instructorId", "name email")
+        .populate("categoryId", "name");
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+router.get("/MyCourses", protect, async (req, res) => {
+  try {
+    const filter =
+      req.user.role === ROLES.ADMINISTRATOR
+        ? {}
+        : { instructorId: req.user.id };
+    const courses = await Course.find(filter)
+      .populate("instructorId", "name email")
+      .populate("categoryId", "name")
+      .sort({ createdAt: -1 });
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update course (Instructor/Admin)
 router.put(
   "/:id",
@@ -98,6 +174,56 @@ router.put(
     try {
       const course = await Course.findById(req.params.id);
 
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to update this course" });
+      }
+
+      const {
+        title,
+        description,
+        price,
+        level,
+        categoryId,
+        thumbnail: thumbnailLink,
+      } = req.body;
+
+      const thumbnail = req.file
+        ? req.file.path
+        : thumbnailLink || course.thumbnail;
+
+      course.title = title || course.title;
+      course.description = description || course.description;
+      course.price = price || course.price;
+      course.level = level || course.level;
+      course.categoryId = categoryId || course.categoryId;
+      course.thumbnail = thumbnail;
+
+      await course.save();
+
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+router.patch(
+  "/:id",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  upload.single("thumbnail"),
+  async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
       }

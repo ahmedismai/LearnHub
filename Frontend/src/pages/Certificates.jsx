@@ -21,7 +21,7 @@ const Certificates = () => {
   } = useQuery({
     queryKey: ["certificates", "me"],
     queryFn: async () => {
-      const response = await api.get("/certificates");
+      const response = await api.get("/Certificate");
       return response.data;
     },
     enabled: user?.role === "Student",
@@ -30,7 +30,7 @@ const Certificates = () => {
   const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
-      const response = await api.get("/enrollments/me");
+      const response = await api.get("/Enrollment/me");
       return response.data;
     },
     enabled: user?.role === "Student",
@@ -43,7 +43,7 @@ const Certificates = () => {
   const handleGenerate = async (courseId) => {
     setIsGenerating(true);
     try {
-      await api.post("/certificates", { courseId });
+      await api.post("/Certificate", { courseId });
       await queryClient.invalidateQueries({ queryKey: ["certificates", "me"] });
       toast({
         title: "Certificate generated",
@@ -64,15 +64,17 @@ const Certificates = () => {
 
   const handleDownload = async (courseId) => {
     try {
-      await api.get(`/certificates/download/${courseId}`);
+      await api.get(`/Certificate/download/${courseId}`);
       toast({
         title: "Certificate ready",
-        description: "Certificate details loaded (PDF download can be added next).",
+        description:
+          "Certificate details loaded (PDF download can be added next).",
       });
     } catch (error) {
       toast({
         title: "Download failed",
-        description: error.response?.data?.message || "Certificate not available.",
+        description:
+          error.response?.data?.message || "Certificate not available.",
         variant: "destructive",
       });
     }
@@ -87,7 +89,9 @@ const Certificates = () => {
         </p>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">Loading certificates...</p>}
+      {isLoading && (
+        <p className="text-muted-foreground">Loading certificates...</p>
+      )}
 
       {isError && (
         <Card>
@@ -121,7 +125,10 @@ const Certificates = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    Issued on {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString()}
+                    Issued on{" "}
+                    {new Date(
+                      cert.issuedAt || cert.createdAt,
+                    ).toLocaleDateString()}
                   </span>
                 </div>
 

@@ -56,9 +56,58 @@ router.post("/", protect, authorize(ROLES.STUDENT), async (req, res) => {
   }
 });
 
+router.get("/", protect, authorize(ROLES.ADMINISTRATOR), async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find()
+      .populate("studentId", "name email")
+      .populate("courseId", "title");
+    res.json(enrollments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get(
+  "/ByCourse/:courseId",
+  protect,
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const enrollments = await Enrollment.find({
+        courseId: req.params.courseId,
+      })
+        .populate("studentId", "name email")
+        .populate("courseId", "title");
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
+router.get(
+  "/ByStudent/:studentId",
+  protect,
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const enrollments = await Enrollment.find({
+        studentId: req.params.studentId,
+      })
+        .populate("studentId", "name email")
+        .populate("courseId", "title");
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
 router.get("/me", protect, authorize(ROLES.STUDENT), async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ studentId: req.user.id }).populate({
+    const enrollments = await Enrollment.find({
+      studentId: req.user.id,
+    }).populate({
       path: "courseId",
       populate: { path: "instructorId", select: "name email" },
     });
@@ -67,6 +116,99 @@ router.get("/me", protect, authorize(ROLES.STUDENT), async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.id)
+      .populate("studentId", "name email")
+      .populate("courseId", "title");
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found" });
+    }
+    if (
+      req.user.role === ROLES.STUDENT &&
+      String(enrollment.studentId._id) !== String(req.user.id)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to view this enrollment" });
+    }
+    res.json(enrollment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put(
+  "/:id",
+  protect,
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const enrollment = await Enrollment.findById(req.params.id);
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+
+      const course = await Course.findById(enrollment.courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to update this enrollment" });
+      }
+
+      const { status } = req.body;
+      if (status) {
+        enrollment.status = status;
+      }
+      if (req.body.progress !== undefined) {
+        enrollment.progress = req.body.progress;
+      }
+      await enrollment.save();
+      res.json(enrollment);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
+router.delete(
+  "/:id",
+  protect,
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const enrollment = await Enrollment.findById(req.params.id);
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+
+      const course = await Course.findById(enrollment.courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to delete this enrollment" });
+      }
+
+      await enrollment.deleteOne();
+      res.json({ message: "Enrollment deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
 
 router.patch(
   "/:id/complete-lesson",
@@ -84,12 +226,18 @@ router.patch(
         return res.status(404).json({ message: "Enrollment not found" });
       }
 
-      const lesson = await Content.findOne({ _id: lessonId, courseId: enrollment.courseId, contentType: 'Lesson' });
+      const lesson = await Content.findOne({
+        _id: lessonId,
+        courseId: enrollment.courseId,
+        contentType: "Lesson",
+      });
       if (!lesson) {
         return res.status(404).json({ message: "Lesson not found" });
       }
 
-      const completedLessons = new Set((enrollment.completedLessons || []).map(String));
+      const completedLessons = new Set(
+        (enrollment.completedLessons || []).map(String),
+      );
       completedLessons.add(String(lessonId));
       enrollment.completedLessons = Array.from(completedLessons);
 
@@ -99,7 +247,7 @@ router.patch(
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  }
+  },
 );
 
 export default router;

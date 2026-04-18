@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,21 +20,24 @@ const Courses = () => {
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["courses"],
     queryFn: async () => {
-      const response = await api.get("/courses");
+      const response = await api.get("/Course");
       return response.data;
     },
   });
 
-  const filteredCourses = courses.filter((course) =>
-    course.title.toLowerCase().includes(search.toLowerCase()) ||
-    course.categoryId?.name?.toLowerCase().includes(search.toLowerCase())
+  const filteredCourses = courses.filter(
+    (course) =>
+      course.title.toLowerCase().includes(search.toLowerCase()) ||
+      course.categoryId?.name?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Explore Courses</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Explore Courses
+          </h1>
           <p className="text-muted-foreground mt-1">
             Discover your next learning adventure
           </p>
@@ -53,7 +62,10 @@ const Courses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
-            <Card key={course.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300">
+            <Card
+              key={course.id}
+              className="overflow-hidden group hover:shadow-xl transition-all duration-300"
+            >
               <div className="aspect-video relative overflow-hidden bg-accent/10">
                 {course.thumbnail ? (
                   <img
@@ -85,7 +97,9 @@ const Courses = () => {
                 </p>
               </CardContent>
               <CardFooter className="p-6 flex items-center justify-between">
-                <span className="text-xl font-bold text-primary">${course.price}</span>
+                <span className="text-xl font-bold text-primary">
+                  ${course.price}
+                </span>
                 <Button asChild>
                   <Link to={`/courses/${course.id}`}>View Details</Link>
                 </Button>

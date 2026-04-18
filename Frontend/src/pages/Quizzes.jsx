@@ -18,16 +18,14 @@ const Quizzes = () => {
   } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
-      const response = await api.get("/enrollments/me");
+      const response = await api.get("/Enrollment/me");
       return response.data;
     },
     enabled: user?.role === "Student",
   });
 
   const courseIds = useMemo(() => {
-    return enrollments
-      .map((e) => e.courseId?._id)
-      .filter(Boolean);
+    return enrollments.map((e) => e.courseId?._id).filter(Boolean);
   }, [enrollments]);
 
   const {
@@ -41,7 +39,7 @@ const Quizzes = () => {
         courseIds.map(async (courseId) => {
           const response = await api.get(`/quizzes/course/${courseId}`);
           return response.data.map((quiz) => ({ ...quiz, courseId }));
-        })
+        }),
       );
       return results.flat();
     },
@@ -89,7 +87,9 @@ const Quizzes = () => {
                           <ClipboardList className="w-5 h-5 text-accent" />
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{quiz.title}</CardTitle>
+                          <CardTitle className="text-lg">
+                            {quiz.title}
+                          </CardTitle>
                           <p className="text-sm text-muted-foreground">
                             {quiz.questions?.length || 0} questions
                           </p>
@@ -128,4 +128,3 @@ const Quizzes = () => {
 };
 
 export default Quizzes;
-

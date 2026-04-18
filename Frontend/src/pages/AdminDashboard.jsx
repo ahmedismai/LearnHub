@@ -57,7 +57,7 @@ const AdminDashboard = () => {
   const { data: courses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["admin", "courses"],
     queryFn: async () => {
-      const response = await api.get("/courses/mine");
+      const response = await api.get("/Course/all");
       return response.data;
     },
   });
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
 
   const updateCourseStatusMutation = useMutation({
     mutationFn: async ({ courseId, status }) => {
-      return await api.patch(`/courses/${courseId}/status`, { status });
+      return await api.patch(`/Course/${courseId}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["admin", "courses"]);

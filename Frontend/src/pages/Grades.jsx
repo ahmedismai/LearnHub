@@ -15,7 +15,7 @@ const Grades = () => {
   } = useQuery({
     queryKey: ["grades", "me"],
     queryFn: async () => {
-      const response = await api.get("/grades/me");
+      const response = await api.get("/Grade/me");
       return response.data;
     },
     enabled: user?.role === "Student",
@@ -145,9 +145,7 @@ const Grades = () => {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                      <Badge variant="muted">
-                        Quiz
-                      </Badge>
+                      <Badge variant="muted">Quiz</Badge>
                       <h4 className="font-semibold text-foreground">
                         {grade.quizId?.title || "Quiz"}
                       </h4>

@@ -5,12 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Play, CheckCircle } from "lucide-react";
-import { mockCourses } from "@/data/mockData";
-import { useAuth } from "@/contexts/AuthContext";
-import api from "@/api/axios";
+import { useToast } from "@/components/ui/use-toast";
 
 const MyCourses = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // For students, show enrolled courses
   // For instructors, show their created courses
@@ -23,7 +22,7 @@ const MyCourses = () => {
     const fetchData = async () => {
       try {
         if (isStudent) {
-          const response = await api.get("/enrollments/me");
+          const response = await api.get("/Enrollment/me");
           const enrollments = response.data.map((item) => ({
             id: item._id,
             progress: item.progress,
@@ -37,7 +36,7 @@ const MyCourses = () => {
           }));
           setStudentEnrollments(enrollments);
         } else if (isInstructor) {
-          const response = await api.get("/courses/mine");
+          const response = await api.get("/Course/mine");
           const courses = response.data.map((item) => ({
             id: item._id,
             title: item.title,
@@ -48,10 +47,13 @@ const MyCourses = () => {
           }));
           setInstructorCourses(courses);
         }
-      } catch {
-        if (isInstructor) {
-          setInstructorCourses(mockCourses);
-        }
+      } catch (error) {
+        console.error("Failed to load courses:", error);
+        toast({
+          title: "Error",
+          description: "Could not load your courses.",
+          variant: "destructive",
+        });
       }
     };
 

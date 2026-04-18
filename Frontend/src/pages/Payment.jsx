@@ -33,22 +33,25 @@ const Payment = () => {
   const [paymentMethod, setPaymentMethod] = useState("visa");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [course, setCourse] = useState(
-    mockCourses.find((c) => c.id === courseId) || null,
-  );
+  const [course, setCourse] = useState(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await api.get(`/courses/${courseId}`);
+        const response = await api.get(`/Course/${courseId}`);
         setCourse({
           id: response.data._id,
           ...response.data,
           instructorName:
             response.data.instructorId?.username || "Unknown Instructor",
         });
-      } catch {
-        // Keep local fallback data
+      } catch (error) {
+        console.error("Failed to load course:", error);
+        toast({
+          title: "Error",
+          description: "Could not load course details.",
+          variant: "destructive",
+        });
       }
     };
 
@@ -79,7 +82,7 @@ const Payment = () => {
     setIsProcessing(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await api.post("/enrollments", { courseId: course.id });
+      await api.post("/Enrollment", { courseId: course.id });
       toast({
         title: "Payment Successful!",
         description: `You are now enrolled in ${enrollment.course?.title}`,

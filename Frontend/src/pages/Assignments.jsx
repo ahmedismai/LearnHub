@@ -10,22 +10,17 @@ import api from "@/api/axios";
 const Assignments = () => {
   const { user } = useAuth();
 
-  const {
-    data: enrollments = [],
-    isLoading: isEnrollmentsLoading,
-  } = useQuery({
+  const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
-      const response = await api.get("/enrollments/me");
+      const response = await api.get("/Enrollment/me");
       return response.data;
     },
     enabled: user?.role === "Student",
   });
 
   const courseIds = useMemo(() => {
-    return enrollments
-      .map((e) => e.courseId?._id)
-      .filter(Boolean);
+    return enrollments.map((e) => e.courseId?._id).filter(Boolean);
   }, [enrollments]);
 
   const {
@@ -39,10 +34,12 @@ const Assignments = () => {
         courseIds.map(async (courseId) => {
           const response = await api.get(`/assignments/course/${courseId}`);
           return response.data.map((a) => {
-            const enrollment = enrollments.find(e => e.courseId?._id === courseId);
+            const enrollment = enrollments.find(
+              (e) => e.courseId?._id === courseId,
+            );
             return { ...a, courseTitle: enrollment?.courseId?.title };
           });
-        })
+        }),
       );
       return results.flat();
     },
@@ -84,7 +81,9 @@ const Assignments = () => {
                       <FileText className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{assignment.title}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {assignment.title}
+                      </CardTitle>
                       <p className="text-sm text-muted-foreground">
                         {assignment.courseTitle || "Course"} • Due:{" "}
                         {new Date(assignment.dueDate).toLocaleDateString()}
@@ -123,4 +122,3 @@ const Assignments = () => {
 };
 
 export default Assignments;
-

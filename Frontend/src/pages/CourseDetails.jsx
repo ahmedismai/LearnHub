@@ -50,7 +50,7 @@ const CourseDetails = () => {
   const { data: course, isLoading } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
-      const response = await api.get(`/courses/${id}`);
+      const response = await api.get(`/Course/${id}`);
       return response.data;
     },
   });
@@ -59,7 +59,7 @@ const CourseDetails = () => {
   const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
-      const response = await api.get("/enrollments/me");
+      const response = await api.get("/Enrollment/me");
       return response.data;
     },
     enabled: !!user,
@@ -74,7 +74,7 @@ const CourseDetails = () => {
   // Enrollment Mutation
   const enrollMutation = useMutation({
     mutationFn: async () => {
-      return api.post("/enrollments", { courseId: id, paymentMethod: "Visa" });
+      return api.post("/Enrollment", { courseId: id, paymentMethod: "Visa" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["enrollments", "me"]);
@@ -117,7 +117,7 @@ const CourseDetails = () => {
       const cloudData = await cloudRes.json();
 
       // 2. Save lesson to Backend API
-      await api.post(`/courses/${id}/contents`, {
+      await api.post(`/Lesson/course/${id}`, {
         title: newLesson.title,
         description:
           newLesson.description || `Introduction to ${newLesson.title}`,

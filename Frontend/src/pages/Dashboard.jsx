@@ -11,7 +11,7 @@ const Dashboard = () => {
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
-      const response = await api.get("/enrollments/me");
+      const response = await api.get("/Enrollment/me");
       return response.data;
     },
     enabled: user?.role === "Student",
@@ -26,15 +26,19 @@ const Dashboard = () => {
     },
     {
       title: "Average Progress",
-      value: enrollments.length > 0 
-        ? Math.round(enrollments.reduce((acc, curr) => acc + curr.progress, 0) / enrollments.length) + "%"
-        : "0%",
+      value:
+        enrollments.length > 0
+          ? Math.round(
+              enrollments.reduce((acc, curr) => acc + curr.progress, 0) /
+                enrollments.length,
+            ) + "%"
+          : "0%",
       icon: TrendingUp,
       color: "text-green-500",
     },
     {
       title: "Completed Courses",
-      value: enrollments.filter(e => e.completed).length,
+      value: enrollments.filter((e) => e.completed).length,
       icon: GraduationCap,
       color: "text-purple-500",
     },
@@ -43,9 +47,12 @@ const Dashboard = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Welcome back, {user?.name}!</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Welcome back, {user?.name}!
+        </h1>
         <p className="text-muted-foreground mt-1">
-          {user?.role} • ID: {user?.studentId || user?.instructorId || user?.adminId || user?.id}
+          {user?.role} • ID:{" "}
+          {user?.studentId || user?.instructorId || user?.adminId || user?.id}
         </p>
       </div>
 
@@ -70,7 +77,7 @@ const Dashboard = () => {
           <Layout className="w-5 h-5" />
           My Recent Progress
         </h2>
-        
+
         {isLoading ? (
           <p>Loading your courses...</p>
         ) : (
@@ -81,12 +88,16 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="font-bold text-lg">{enrollment.courseId?.title}</h3>
+                        <h3 className="font-bold text-lg">
+                          {enrollment.courseId?.title}
+                        </h3>
                         <p className="text-sm text-muted-foreground">
                           {enrollment.courseId?.instructorId?.name}
                         </p>
                       </div>
-                      <span className="text-sm font-bold text-primary">{enrollment.progress}%</span>
+                      <span className="text-sm font-bold text-primary">
+                        {enrollment.progress}%
+                      </span>
                     </div>
                     <Progress value={enrollment.progress} className="h-2" />
                   </CardContent>

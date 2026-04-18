@@ -85,11 +85,11 @@ const CreateCourse = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const catRes = await api.get("/categories");
+        const catRes = await api.get("/Category");
         setRealCategories(catRes.data);
 
         if (isEditMode) {
-          const courseRes = await api.get(`/courses/${id}`);
+          const courseRes = await api.get(`/Course/${id}`);
           const course = courseRes.data;
 
           form.reset({
@@ -144,9 +144,9 @@ const CreateCourse = () => {
 
       let currentCourseId = id;
       if (isEditMode) {
-        await api.put(`/courses/${id}`, coursePayload);
+        await api.patch(`/Course/${id}`, coursePayload);
       } else {
-        const res = await api.post("/courses", coursePayload);
+        const res = await api.post("/Course", coursePayload);
         currentCourseId = res.data._id;
       }
 

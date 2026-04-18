@@ -7,6 +7,10 @@ const contentSchema = new mongoose.Schema(
       ref: "Course",
       required: true,
     },
+    sectionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Section",
+    },
     title: { type: String, required: true },
     description: { type: String, required: true },
     type: { type: String, required: true },
