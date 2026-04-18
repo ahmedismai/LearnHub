@@ -134,12 +134,20 @@ const CreateCourse = () => {
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
+      let thumbnailUrl = "";
+
+      if (values.thumbnail && values.thumbnail instanceof File) {
+        toast({ title: "Uploading thumbnail...", description: "Please wait." });
+        thumbnailUrl = await uploadToCloudinary(values.thumbnail);
+      }
+
       const coursePayload = {
         title: values.title,
         description: values.description,
         price: Number(values.price),
         categoryId: values.categoryId,
         level: values.level,
+        thumbnail: thumbnailUrl, // إرسال رابط الصورة بعد الرفع
       };
 
       let currentCourseId = id;
@@ -150,6 +158,7 @@ const CreateCourse = () => {
         currentCourseId = res.data._id;
       }
 
+      // رفع الدروس (موجودة في كودك وسليمة)
       if (values.contents && values.contents.length > 0) {
         for (const lesson of values.contents) {
           if (!lesson._id) {
@@ -160,7 +169,6 @@ const CreateCourse = () => {
               type: "Lesson",
               videoUrl: lesson.videoUrl,
             };
-
             await api.post(
               `/courses/${currentCourseId}/contents`,
               lessonPayload,
@@ -169,19 +177,14 @@ const CreateCourse = () => {
         }
       }
 
-      toast({
-        title: "Success!",
-        description: "Course and lessons saved successfully.",
-      });
+      toast({ title: "Success!", description: "Course saved successfully." });
       navigate("/dashboard/my-courses");
     } catch (error) {
-      console.error("Full Error Object:", error.response?.data);
+      console.error("Upload Error:", error);
       toast({
         variant: "destructive",
-        title: "Error 400",
-        description:
-          error.response?.data?.error ||
-          "Make sure video is uploaded and title is set.",
+        title: "Error",
+        description: error.response?.data?.message || "Failed to save course.",
       });
     } finally {
       setIsSubmitting(false);
