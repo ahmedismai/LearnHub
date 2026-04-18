@@ -24,12 +24,12 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password);
+      const userData = await login(email, password);
       toast({ title: "Welcome back!" });
       // Redirect based on role
-      if (user?.role === "Administrator") {
+      if (userData?.role === "Administrator") {
         navigate("/dashboard");
-      } else if (user?.role === "Student") {
+      } else if (userData?.role === "Student") {
         navigate("/");
       } else {
         navigate("/dashboard"); // Default for Instructor
@@ -89,6 +89,15 @@ const Login = () => {
               className="text-primary hover:underline font-medium"
             >
               Register
+            </Link>
+          </p>
+          <p className="text-sm text-center text-muted-foreground">
+            Already have a confirmation code?{" "}
+            <Link
+              to="/confirm-email"
+              className="text-primary hover:underline font-medium"
+            >
+              Confirm Email
             </Link>
           </p>
         </CardFooter>

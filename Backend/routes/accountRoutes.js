@@ -2,11 +2,47 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 import { User, Student, Instructor, Admin } from "../models/User.js";
 import { ROLES } from "../constants/roles.js";
 import { protect, authorize } from "../middleware/auth.js";
 
 const router = express.Router();
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER || process.env.EMAIL_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const sendConfirmationEmail = async (email, token, name) => {
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  if (!process.env.SMTP_HOST || !smtpUser || !process.env.SMTP_PASS) {
+    console.warn(
+      "SMTP credentials are not configured. Skipping confirmation email.",
+    );
+    return;
+  }
+
+  const confirmUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || smtpUser,
+    to: email,
+    subject: "LearnHub Email Confirmation",
+    html: `
+      <p>مرحباً ${name || "User"},</p>
+      <p>الكود الخاص بتأكيد بريدك الإلكتروني هو:</p>
+      <h2>${token}</h2>
+      <p>يمكنك أيضاً تأكيد بريدك بالضغط على الرابط التالي:</p>
+      <p><a href="${confirmUrl}">${confirmUrl}</a></p>
+      <p>شكراً لاستخدام LearnHub.</p>
+    `,
+  });
+};
 const roleMap = {
   student: ROLES.STUDENT,
   instructor: ROLES.INSTRUCTOR,
@@ -72,6 +108,12 @@ router.post("/Register", async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    try {
+      await sendConfirmationEmail(user.email, confirmationToken, user.name);
+    } catch (emailError) {
+      console.warn("Failed to send confirmation email:", emailError.message);
+    }
+
     res.status(201).json({
       accessToken,
       refreshToken,
@@ -105,6 +147,31 @@ router.get("/ConfirmEmail", async (req, res) => {
   }
 });
 
+// Confirm email code by email and token
+router.post("/ConfirmEmailCode", async (req, res) => {
+  try {
+    const { email, token } = req.body;
+    if (!email || !token) {
+      return res.status(400).json({ message: "Email and token are required" });
+    }
+
+    const user = await User.findOne({ email, confirmationToken: token });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid email or confirmation code" });
+    }
+
+    user.emailConfirmed = true;
+    user.confirmationToken = "";
+    await user.save();
+
+    res.json({ message: "Email confirmed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Resend Confirm Email
 router.post("/ResendConfirmEmail", async (req, res) => {
   try {
@@ -123,6 +190,16 @@ router.post("/ResendConfirmEmail", async (req, res) => {
 
     user.confirmationToken = crypto.randomBytes(24).toString("hex");
     await user.save();
+
+    try {
+      await sendConfirmationEmail(
+        user.email,
+        user.confirmationToken,
+        user.name,
+      );
+    } catch (emailError) {
+      console.warn("Failed to send confirmation email:", emailError.message);
+    }
 
     res.json({
       message: "Confirmation token resent",

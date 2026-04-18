@@ -73,6 +73,15 @@ const CourseDetails = () => {
     enabled: !!id,
   });
 
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ["enrollments", "me"],
+    queryFn: async () => {
+      const response = await api.get("/Enrollment/me");
+      return response.data;
+    },
+    enabled: user?.role === "Student",
+  });
+
   // Permission Logic
   const isInstructor =
     user?.role === "Instructor" && course?.instructorId?._id === user?.id;

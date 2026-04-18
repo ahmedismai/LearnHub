@@ -33,12 +33,12 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await register(name, email, password, role);
+      const userData = await register(name, email, password, role);
       toast({ title: "Account created successfully!" });
       // Redirect based on role
-      if (user?.role === "Administrator") {
+      if (userData?.role === "Administrator") {
         navigate("/dashboard");
-      } else if (user?.role === "Student") {
+      } else if (userData?.role === "Student") {
         navigate("/");
       } else {
         navigate("/dashboard"); // Default for Instructor
@@ -117,6 +117,15 @@ const Register = () => {
               className="text-primary hover:underline font-medium"
             >
               Login
+            </Link>
+          </p>
+          <p className="text-sm text-center w-full text-muted-foreground">
+            Have a confirmation code?{" "}
+            <Link
+              to="/confirm-email"
+              className="text-primary hover:underline font-medium"
+            >
+              Confirm Email
             </Link>
           </p>
         </CardFooter>

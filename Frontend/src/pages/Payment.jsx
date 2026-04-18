@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,8 +59,7 @@ const Payment = () => {
   }, [courseId]);
 
   if (!isAuthenticated) {
-    navigate("/login");
-    return null;
+    return <Navigate to="/login" />;
   }
 
   if (!course) {
@@ -85,7 +84,7 @@ const Payment = () => {
       await api.post("/Enrollment", { courseId: course.id });
       toast({
         title: "Payment Successful!",
-        description: `You are now enrolled in ${enrollment.course?.title}`,
+        description: `You are now enrolled in ${course.title}`,
       });
       navigate("/dashboard/my-courses");
     } catch (error) {

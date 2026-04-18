@@ -19,6 +19,7 @@ import Certificates from "./pages/Certificates";
 import Grades from "./pages/Grades";
 import Assignments from "./pages/Assignments";
 import Quizzes from "./pages/Quizzes";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 import Exam from "./pages/Exam";
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:id" element={<CourseDetails />} />
             <Route path="/payment/:courseId" element={<Payment />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
 
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<DashboardLayout />}>
