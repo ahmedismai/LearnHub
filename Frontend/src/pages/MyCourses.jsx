@@ -178,7 +178,7 @@ const MyCourses = () => {
                 />
 
                 <Badge className="absolute top-3 right-3" variant="secondary">
-                  {course.category}
+                  {course.categoryId?.name || "General"}
                 </Badge>
               </div>
               <CardContent className="p-5">

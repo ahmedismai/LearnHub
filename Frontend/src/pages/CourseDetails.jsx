@@ -228,12 +228,22 @@ const CourseDetails = () => {
         videoUrl = cloudData.secure_url;
       }
 
-      await api.post(`/Course/${id}/contents`, {
-        ...newContent,
+      const contentPayload = {
+        title: newContent.title,
+        description: newContent.description, // Keep description if it's generally used
         type: contentType,
-        videoUrl,
         sectionId: newContent.sectionId || undefined,
-      });
+      };
+
+      if (contentType === "Lesson") {
+        contentPayload.videoUrl = videoUrl;
+      } else if (contentType === "Quiz") {
+        contentPayload.duration = newContent.duration;
+      } else if (contentType === "Assignment") {
+        contentPayload.dueDate = newContent.dueDate;
+      }
+
+      await api.post(`/Course/${id}/contents`, contentPayload);
 
       toast({
         title: "Success",

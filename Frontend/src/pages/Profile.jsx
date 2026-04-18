@@ -13,7 +13,7 @@ const Profile = () => {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setCategoryData] = useState({
+  const [formData, setFormData] = useState({
     name: user?.name || "",
     profileImage: user?.profileImage || "",
     bio: user?.bio || "",
@@ -97,7 +97,7 @@ const Profile = () => {
                       disabled={!isEditing}
                       className="pl-10"
                       value={formData.name}
-                      onChange={(e) => setCategoryData({ ...formData, name: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
                 </div>
@@ -122,7 +122,7 @@ const Profile = () => {
                   disabled={!isEditing}
                   placeholder="https://example.com/avatar.jpg"
                   value={formData.profileImage}
-                  onChange={(e) => setCategoryData({ ...formData, profileImage: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, profileImage: e.target.value })}
                 />
               </div>
 
@@ -135,7 +135,7 @@ const Profile = () => {
                     className="w-full min-h-[120px] p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     placeholder="Tell your students about your background and expertise..."
                     value={formData.bio}
-                    onChange={(e) => setCategoryData({ ...formData, bio: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   />
                 </div>
               )}
@@ -152,7 +152,7 @@ const Profile = () => {
                       variant="outline"
                       onClick={() => {
                         setIsEditing(false);
-                        setCategoryData({
+                        setFormData({
                           name: user?.name || "",
                           profileImage: user?.profileImage || "",
                           bio: user?.bio || "",

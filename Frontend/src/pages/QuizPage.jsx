@@ -27,19 +27,14 @@ const QuizPage = () => {
     queryKey: ["assessment", type, id],
     queryFn: async () => {
       if (type === "exam") {
-        const response = await api.get(`/Exam/Details/${id}`);
+        const response = await api.get(`/Exam/${id}`); // Assuming /Exam/{id} returns exam details including questions
         return response.data;
       } else {
-        // For Quiz, we might need to fetch the quiz info AND questions
-        const quizRes = await api.get(`/Course/list`); // Temporary hack to find quiz info if needed, but let's assume we have a direct endpoint or can get it from course
-        // Actually, let's try a direct guess or look for questions
-        const questionsRes = await api.get(`/Question/quiz/${id}`); // Assuming this exists or similar
-        return { ...quizRes.data, questions: questionsRes.data };
+        const response = await api.get(`/Quiz/${id}`); // Assuming /Quiz/{id} returns quiz details including questions
+        return response.data;
       }
     },
-    // Fallback if type=quiz and direct fetch fails
     retry: 1,
-  });
 
   // 2. Set initial timer
   useEffect(() => {
@@ -96,20 +91,18 @@ const QuizPage = () => {
   const handleSubmit = () => {
     if (isFinished || submitMutation.isPending) return;
 
-    const payload = type === "exam" 
-      ? {
-          examId: id,
-          answers: Object.entries(answers).map(([questionId, answer]) => ({
-            questionId,
-            answer,
-          })),
-        }
-      : {
-          answers: Object.entries(answers).map(([questionId, answer]) => ({
-            questionId,
-            answer,
-          })),
-        };
+    const payload = {
+      answers: Object.entries(answers).map(([questionId, answer]) => ({
+        questionId,
+        answer,
+      })),
+    };
+
+    if (type === "exam") {
+      payload.examId = id;
+    } else { // type === "quiz"
+      payload.quizId = id;
+    }
 
     submitMutation.mutate(payload);
   };

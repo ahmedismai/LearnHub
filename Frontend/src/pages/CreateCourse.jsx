@@ -68,7 +68,7 @@ const CreateCourse = () => {
     defaultValues: {
       title: "",
       description: "",
-      price: "",
+      price: 0, // Changed from "" to 0
       categoryId: "",
       level: "",
       thumbnail: null,
@@ -80,6 +80,34 @@ const CreateCourse = () => {
     control: form.control,
     name: "contents",
   });
+
+  // تحديث الـ Schema ليشمل الدروس بأنواعها
+const formSchema = z.object({
+  title: z.string().min(2, { message: "Title must be at least 2 characters." }),
+  description: z
+    .string()
+    .min(10, { message: "Description must be at least 10 characters." }),
+  price: z.preprocess(
+    (val) => Number(val),
+    z.number().positive({ message: "Price must be positive." }),
+  ),
+  categoryId: z.string().min(1, { message: "Please select a category." }),
+  level: z.string().min(1, { message: "Please select a level." }),
+  thumbnail: z.any().optional(),
+  contents: z
+    .array(
+      z.object({
+        title: z.string().min(1, "Content title is required"),
+        contentType: z.enum(["Lesson", "Quiz", "Assignment"]), // Explicit content types
+        videoUrl: z.string().optional(),
+        duration: z.number().optional(), // For quizzes
+        dueDate: z.string().optional(), // For assignments
+        id: z.string().optional(), // Existing content ID
+        _id: z.string().optional(), // Existing content ID
+      }),
+    )
+    .optional(),
+});
 
   // 1. جلب التصنيفات + جلب بيانات الكورس لو في وضع التعديل
   useEffect(() => {
@@ -98,7 +126,13 @@ const CreateCourse = () => {
             price: course.price,
             categoryId: course.categoryId?._id || course.categoryId,
             level: course.level,
-            contents: course.contents || [],
+            // Ensure contents match the updated schema for editing
+            contents: course.contents?.map(content => ({
+              ...content,
+              contentType: content.contentType || "Lesson", // Default if missing
+              duration: content.duration,
+              dueDate: content.dueDate,
+            })) || [],
             thumbnail: null,
           });
         }
@@ -160,18 +194,19 @@ const CreateCourse = () => {
 
       // رفع الدروس (موجودة في كودك وسليمة)
       if (values.contents && values.contents.length > 0) {
-        for (const lesson of values.contents) {
-          if (!lesson._id) {
-            const lessonPayload = {
-              title: lesson.title,
-              description:
-                lesson.description || `Description for ${lesson.title}`,
-              type: "Lesson",
-              videoUrl: lesson.videoUrl,
+        for (const contentItem of values.contents) {
+          if (!contentItem._id) { // Only add new content, existing are managed by CourseDetails quick add
+            const contentPayload = {
+              title: contentItem.title,
+              type: contentItem.contentType,
+              // Only include relevant fields based on type
+              ...(contentItem.contentType === "Lesson" && { videoUrl: contentItem.videoUrl }),
+              ...(contentItem.contentType === "Quiz" && { duration: contentItem.duration }),
+              ...(contentItem.contentType === "Assignment" && { dueDate: contentItem.dueDate }),
             };
             await api.post(
               `/Course/${currentCourseId}/contents`,
-              lessonPayload,
+              contentPayload,
             );
           }
         }
