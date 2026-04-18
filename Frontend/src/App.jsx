@@ -33,9 +33,9 @@ const queryClient = new QueryClient();
 
 // 1. تعديل الـ ProtectedRoute
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, IsLoading } = useAuth();
 
-  if (loading) {
+  if (IsLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -47,9 +47,9 @@ const ProtectedRoute = () => {
 };
 
 const PublicRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, IsLoading } = useAuth();
 
-  if (loading) {
+  if (IsLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
