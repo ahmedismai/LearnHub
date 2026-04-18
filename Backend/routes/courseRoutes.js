@@ -35,15 +35,20 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get all courses (Admin List)
 router.get("/list", async (req, res) => {
   try {
     const courses = await Course.find()
       .populate("instructorId", "name email")
       .populate("categoryId", "name")
       .sort({ createdAt: -1 });
-    res.json(courses);
+
+    const validCourses = courses.filter((c) => c.instructorId !== null);
+    res.json(validCourses);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: "Server Error: Check if all categories/instructors exist.",
+    });
   }
 });
 
@@ -272,19 +277,25 @@ router.get("/:id", async (req, res) => {
     const course = await Course.findById(req.params.id)
       .populate("instructorId", "name email bio")
       .populate("categoryId", "name")
+      .populate("sections")
       .populate({
         path: "contents",
         populate: { path: "sectionId", select: "title" },
       })
-      .populate("sections")
+      .populate({
+        path: "enrollments",
+        populate: { path: "userId", select: "name email" },
+      })
       .populate("reviews");
-
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
     res.json(course);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Course Details Error:", error);
+    res
+      .status(500)
+      .json({ error: "Internal Server Error while fetching course details" });
   }
 });
 

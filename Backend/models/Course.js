@@ -53,4 +53,10 @@ courseSchema.virtual("sections", {
   foreignField: "courseId",
 });
 
+courseSchema.virtual("enrollments", {
+  ref: "Enrollment",
+  localField: "_id",
+  foreignField: "courseId",
+});
+
 export const Course = mongoose.model("Course", courseSchema);
