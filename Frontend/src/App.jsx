@@ -28,10 +28,12 @@ import QuizPage from "./pages/QuizPage";
 import Chatbot from "./components/Chatbot";
 import Profile from "./pages/Profile";
 import AdminOverview from "./pages/admin/AdminOverview";
+import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCourses from "./pages/admin/AdminCourses";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPayments from "./pages/admin/AdminPayments";
+import Settings from "./pages/Settings";
 import StudentManagement from "./pages/instructor/StudentManagement";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import RoleBasedAssignments from "./pages/RoleBasedAssignments";
@@ -108,6 +110,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="admin-courses" element={<AdminCourses />} />
                 <Route path="reports" element={<AdminOverview />} />
+                <Route path="admin" element={<AdminDashboard />} />
                 <Route path="payments" element={<AdminPayments />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="create-course" element={<CreateCourse />} />

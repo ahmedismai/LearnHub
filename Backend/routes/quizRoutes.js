@@ -12,8 +12,29 @@ const router = express.Router();
 // Get quizzes for a course
 router.get("/course/:courseId", protect, async (req, res) => {
   try {
-    const quizzes = await Quiz.find({ courseId: req.params.courseId, contentType: 'Quiz' });
+    const quizzes = await Quiz.find({
+      courseId: req.params.courseId,
+      contentType: "Quiz",
+    });
     res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get quiz details by ID
+router.get("/:quizId", protect, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz || quiz.contentType !== "Quiz") {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    const questions = await Question.find({ quizId: quiz._id }).select(
+      "-correctAnswer",
+    );
+
+    res.json({ ...quiz.toObject(), questions });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -28,7 +49,7 @@ router.post(
     try {
       const { answers = [] } = req.body; // Array of { questionId, answer }
       const quiz = await Quiz.findById(req.params.quizId);
-      if (!quiz || quiz.contentType !== 'Quiz') {
+      if (!quiz || quiz.contentType !== "Quiz") {
         return res.status(404).json({ message: "Quiz not found" });
       }
 
@@ -37,7 +58,9 @@ router.post(
       const maxScore = questions.length;
 
       questions.forEach((q) => {
-        const studentAnswer = answers.find(a => String(a.questionId) === String(q._id))?.answer;
+        const studentAnswer = answers.find(
+          (a) => String(a.questionId) === String(q._id),
+        )?.answer;
         if (studentAnswer === q.correctAnswer) {
           score += 1;
         }
@@ -55,7 +78,7 @@ router.post(
           maxScore,
           percentage,
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true },
       );
 
       const enrollment = await Enrollment.findOne({
@@ -64,7 +87,9 @@ router.post(
       });
 
       if (enrollment) {
-        const completedQuizzes = new Set((enrollment.completedQuizzes || []).map(id => String(id)));
+        const completedQuizzes = new Set(
+          (enrollment.completedQuizzes || []).map((id) => String(id)),
+        );
         completedQuizzes.add(String(quiz._id));
         enrollment.completedQuizzes = Array.from(completedQuizzes);
         await updateEnrollmentProgress(enrollment);
@@ -74,7 +99,7 @@ router.post(
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  }
+  },
 );
 
 export default router;

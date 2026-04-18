@@ -27,10 +27,10 @@ const QuizPage = () => {
     queryKey: ["assessment", type, id],
     queryFn: async () => {
       if (type === "exam") {
-        const response = await api.get(`/Exam/${id}`); // Assuming /Exam/{id} returns exam details including questions
+        const response = await api.get(`/Exam/${id}`);
         return response.data;
       } else {
-        const response = await api.get(`/Quiz/${id}`); // Assuming /Quiz/{id} returns quiz details including questions
+        const response = await api.get(`/Quiz/${id}`);
         return response.data;
       }
     },

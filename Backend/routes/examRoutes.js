@@ -34,11 +34,9 @@ router.post(
         questions,
       } = req.body;
       if (!courseId || !title || !description || !questions?.length) {
-        return res
-          .status(400)
-          .json({
-            message: "courseId, title, description and questions are required",
-          });
+        return res.status(400).json({
+          message: "courseId, title, description and questions are required",
+        });
       }
 
       const course = await Course.findById(courseId);
@@ -87,6 +85,19 @@ router.get("/ByCourse/:courseId", async (req, res) => {
 router.get("/Details/:examId", async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.examId);
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+    res.json(exam);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Alias route for frontend compatibility
+router.get("/:id", async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
     if (!exam) {
       return res.status(404).json({ message: "Exam not found" });
     }

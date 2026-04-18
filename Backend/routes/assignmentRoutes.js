@@ -4,6 +4,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { Assignment } from "../models/Content.js";
 import { Submission } from "../models/Submission.js";
+import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { protect, authorize } from "../middleware/auth.js";
@@ -26,7 +27,10 @@ const upload = multer({ storage });
 // Get assignments for a course
 router.get("/course/:courseId", protect, async (req, res) => {
   try {
-    const assignments = await Assignment.find({ courseId: req.params.courseId, contentType: 'Assignment' });
+    const assignments = await Assignment.find({
+      courseId: req.params.courseId,
+      contentType: "Assignment",
+    });
     res.json(assignments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -47,14 +51,14 @@ router.post(
       }
 
       const assignment = await Assignment.findById(req.params.assignmentId);
-      if (!assignment || assignment.contentType !== 'Assignment') {
+      if (!assignment || assignment.contentType !== "Assignment") {
         return res.status(404).json({ message: "Assignment not found" });
       }
 
       const submission = await Submission.findOneAndUpdate(
         { studentId: req.user.id, assignmentId: assignment._id },
         { submittedFile: fileUrl, status: "Submitted", date: Date.now() },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true },
       );
 
       const enrollment = await Enrollment.findOne({
@@ -63,17 +67,93 @@ router.post(
       });
 
       if (enrollment) {
-        const completedAssignments = new Set((enrollment.completedAssignments || []).map(id => String(id)));
+        const completedAssignments = new Set(
+          (enrollment.completedAssignments || []).map((id) => String(id)),
+        );
         completedAssignments.add(String(assignment._id));
         enrollment.completedAssignments = Array.from(completedAssignments);
         await updateEnrollmentProgress(enrollment);
       }
 
-      res.status(201).json({ message: "Assignment submitted successfully", submission });
+      res
+        .status(201)
+        .json({ message: "Assignment submitted successfully", submission });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  }
+  },
+);
+
+// Get all submissions for an assignment (Instructor/Admin)
+router.get(
+  "/submissions/:assignmentId",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const assignment = await Assignment.findById(req.params.assignmentId);
+      if (!assignment || assignment.contentType !== "Assignment") {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+
+      if (req.user.role === ROLES.INSTRUCTOR) {
+        const course = await Course.findById(assignment.courseId);
+        if (!course || String(course.instructorId) !== String(req.user.id)) {
+          return res
+            .status(403)
+            .json({ message: "Not authorized to view these submissions" });
+        }
+      }
+
+      const submissions = await Submission.find({
+        assignmentId: assignment._id,
+      })
+        .populate("studentId", "name email")
+        .sort({ date: -1 });
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
+// Grade or review a submission
+router.patch(
+  "/submissions/:submissionId/grade",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const { score, feedback } = req.body;
+      const submission = await Submission.findById(req.params.submissionId);
+      if (!submission) {
+        return res.status(404).json({ message: "Submission not found" });
+      }
+
+      const assignment = await Assignment.findById(submission.assignmentId);
+      if (!assignment || assignment.contentType !== "Assignment") {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+
+      if (req.user.role === ROLES.INSTRUCTOR) {
+        const course = await Course.findById(assignment.courseId);
+        if (!course || String(course.instructorId) !== String(req.user.id)) {
+          return res
+            .status(403)
+            .json({ message: "Not authorized to grade this submission" });
+        }
+      }
+
+      submission.score = score;
+      submission.feedback = feedback;
+      submission.status = "Graded";
+      await submission.save();
+
+      res.json({ message: "Submission graded successfully", submission });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
 );
 
 export default router;

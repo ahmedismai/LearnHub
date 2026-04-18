@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -33,7 +33,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const DashboardSidebar = () => {
   const { user, logout } = useAuth();
-  const location = useLocation();
 
   if (!user) return null;
 
@@ -122,21 +121,24 @@ const DashboardSidebar = () => {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {links.map((link) => (
-                <SidebarMenuItem key={link.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={link.url}
-                      end={link.url === "/dashboard"}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                      activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      <link.icon className="w-5 h-5" />
-                      <span className="font-medium">{link.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {links.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <SidebarMenuItem key={link.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={link.url}
+                        end={link.url === "/dashboard"}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium">{link.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
