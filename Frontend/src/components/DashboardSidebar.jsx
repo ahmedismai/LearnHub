@@ -26,6 +26,7 @@ import {
   PlusCircle,
   ClipboardList,
   CreditCard,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -46,10 +47,10 @@ const DashboardSidebar = () => {
   };
 
   const adminLinks = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Overview", url: "/dashboard/reports", icon: LayoutDashboard },
     { title: "Users", url: "/dashboard/users", icon: Users },
-    { title: "Courses", url: "/dashboard/courses", icon: BookOpen },
-    { title: "Reports", url: "/dashboard/reports", icon: BarChart3 },
+    { title: "Courses", url: "/dashboard/admin-courses", icon: BookOpen },
+    { title: "Categories", url: "/dashboard/categories", icon: Layers },
     { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
   ];
 
@@ -67,6 +68,7 @@ const DashboardSidebar = () => {
       icon: ClipboardList,
     },
     { title: "Quizzes", url: "/dashboard/quizzes", icon: FileText },
+    { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Students", url: "/dashboard/students", icon: Users },
   ];
 
@@ -80,6 +82,7 @@ const DashboardSidebar = () => {
       icon: ClipboardList,
     },
     { title: "Quizzes", url: "/dashboard/quizzes", icon: FileText },
+    { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Grades", url: "/dashboard/grades", icon: BarChart3 },
     { title: "Certificates", url: "/dashboard/certificates", icon: Award },
   ];

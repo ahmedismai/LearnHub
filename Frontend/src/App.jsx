@@ -25,11 +25,21 @@ import Certificates from "./pages/Certificates";
 import Grades from "./pages/Grades";
 import Assignments from "./pages/Assignments";
 import Quizzes from "./pages/Quizzes";
+import Exams from "./pages/Exams";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 import QuizPage from "./pages/QuizPage";
 import Chatbot from "./components/Chatbot";
 import Profile from "./pages/Profile";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCourses from "./pages/admin/AdminCourses";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminPayments from "./pages/admin/AdminPayments";
+import StudentManagement from "./pages/instructor/StudentManagement";
+import RoleBasedDashboard from "./components/RoleBasedDashboard";
+import RoleBasedAssignments from "./pages/RoleBasedAssignments";
+import RoleBasedQuizzes from "./pages/RoleBasedQuizzes";
 
 const queryClient = new QueryClient();
 
@@ -88,22 +98,24 @@ const App = () => (
 
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<RoleBasedDashboard />} />
                 <Route path="my-courses" element={<MyCourses />} />
                 <Route path="courses/:id" element={<CourseDetails />} />
                 <Route path="edit-course/:id" element={<CreateCourse />} />
                 <Route path="certificates" element={<Certificates />} />
                 <Route path="grades" element={<Grades />} />
-                <Route path="assignments" element={<Assignments />} />
-                <Route path="quizzes" element={<Quizzes />} />
+                <Route path="assignments" element={<RoleBasedAssignments />} />
+                <Route path="quizzes" element={<RoleBasedQuizzes />} />
+                <Route path="exams" element={<Exams />} />
                 <Route path="exam/:id" element={<QuizPage />} />
-                <Route path="students" element={<Dashboard />} />
-                <Route path="users" element={<AdminDashboard />} />
-                <Route path="courses" element={<AdminDashboard />} />
-                <Route path="reports" element={<AdminDashboard />} />
-                <Route path="payments" element={<AdminDashboard />} />
+                <Route path="students" element={<StudentManagement />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="admin-courses" element={<AdminCourses />} />
+                <Route path="reports" element={<AdminOverview />} />
+                <Route path="payments" element={<AdminPayments />} />
+                <Route path="categories" element={<AdminCategories />} />
                 <Route path="create-course" element={<CreateCourse />} />
-                <Route path="settings" element={<AdminDashboard />} />
+                <Route path="settings" element={<AdminOverview />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
             </Route>
