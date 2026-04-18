@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const Dashboard = () => {
   const { user } = useAuth();
 
-  const { data: enrollments = [], isLoading } = useQuery({
+  const { data: enrollments = [] } = useQuery({
     queryKey: ["enrollments", "me"],
     queryFn: async () => {
       const response = await api.get("/Enrollment/me");
@@ -18,28 +18,51 @@ const Dashboard = () => {
     enabled: user?.role === "Student",
   });
 
-  const stats = [
+  const { data: dashboardStats, isLoading } = useQuery({
+    queryKey: ["dashboard", "stats", user?.role],
+    queryFn: async () => {
+      const endpoint = user?.role === "Instructor" ? "/Dashboard/InstructorDashboard" : "/Dashboard/StudentDashboard";
+      const response = await api.get(endpoint);
+      return response.data;
+    },
+    enabled: !!user,
+  });
+
+  const stats = user?.role === "Instructor" ? [
+    {
+      title: "Total Courses",
+      value: dashboardStats?.totalCourses || 0,
+      icon: BookOpen,
+      color: "text-blue-500",
+    },
+    {
+      title: "Total Students",
+      value: dashboardStats?.totalEnrollments || 0,
+      icon: Users,
+      color: "text-green-500",
+    },
+    {
+      title: "Pending Approval",
+      value: dashboardStats?.pendingCourses || 0,
+      icon: Clock,
+      color: "text-warning",
+    },
+  ] : [
     {
       title: "Enrolled Courses",
-      value: enrollments.length,
+      value: dashboardStats?.totalEnrollments || 0,
       icon: BookOpen,
       color: "text-blue-500",
     },
     {
       title: "Average Progress",
-      value:
-        enrollments.length > 0
-          ? Math.round(
-              enrollments.reduce((acc, curr) => acc + curr.progress, 0) /
-                enrollments.length,
-            ) + "%"
-          : "0%",
+      value: Math.round(dashboardStats?.averageProgress || 0) + "%",
       icon: TrendingUp,
       color: "text-green-500",
     },
     {
       title: "Completed Courses",
-      value: enrollments.filter((e) => e.completed).length,
+      value: dashboardStats?.completedCourses || 0,
       icon: GraduationCap,
       color: "text-purple-500",
     },

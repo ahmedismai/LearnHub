@@ -252,17 +252,17 @@ const Payment = () => {
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
                   <img
-                    src={enrollment.course?.thumbnail}
-                    alt={enrollment.course?.title}
+                    src={course.thumbnail}
+                    alt={course.title}
                     className="w-20 h-14 rounded-lg object-cover"
                   />
 
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground line-clamp-2">
-                      {enrollment.course?.title}
+                      {course.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      By {enrollment.course?.instructorName}
+                      By {course.instructorName}
                     </p>
                   </div>
                 </div>

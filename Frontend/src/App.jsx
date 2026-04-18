@@ -29,6 +29,7 @@ import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 import QuizPage from "./pages/QuizPage";
 import Chatbot from "./components/Chatbot";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="payments" element={<AdminDashboard />} />
                 <Route path="create-course" element={<CreateCourse />} />
                 <Route path="settings" element={<AdminDashboard />} />
+                <Route path="profile" element={<Profile />} />
               </Route>
             </Route>
 

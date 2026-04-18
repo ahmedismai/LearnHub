@@ -170,7 +170,7 @@ const CreateCourse = () => {
               videoUrl: lesson.videoUrl,
             };
             await api.post(
-              `/courses/${currentCourseId}/contents`,
+              `/Course/${currentCourseId}/contents`,
               lessonPayload,
             );
           }

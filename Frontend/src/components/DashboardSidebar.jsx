@@ -36,8 +36,8 @@ const DashboardSidebar = () => {
 
   if (!user) return null;
 
-  const getInitials = (username) => {
-    return (username || "")
+  const getInitials = (name) => {
+    return (name || "U")
       .split(" ")
       .map((n) => n[0])
       .join("")
@@ -147,6 +147,18 @@ const DashboardSidebar = () => {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink
+                    to="/dashboard/profile"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                    activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Users className="w-5 h-5" />
+                    <span className="font-medium">My Profile</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
                     to="/dashboard/settings"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
                     activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -165,12 +177,12 @@ const DashboardSidebar = () => {
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-              {getInitials(user.username)}
+              {getInitials(user.name || user.username)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-sidebar-foreground truncate">
-              {user.username}
+              {user.name || user.username}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {user.role}
