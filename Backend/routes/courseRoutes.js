@@ -272,7 +272,11 @@ router.get("/:id", async (req, res) => {
     const course = await Course.findById(req.params.id)
       .populate("instructorId", "name email bio")
       .populate("categoryId", "name")
-      .populate("contents")
+      .populate({
+        path: "contents",
+        populate: { path: "sectionId", select: "title" },
+      })
+      .populate("sections")
       .populate("reviews");
 
     if (!course) {

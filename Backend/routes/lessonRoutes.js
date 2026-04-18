@@ -8,27 +8,17 @@ import { ROLES } from "../constants/roles.js";
 const router = express.Router();
 
 router.post(
-  "/",
+  "/course/:courseId",
   protect,
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
   async (req, res) => {
     try {
-      const { courseId, sectionId, title, description, duration, videoUrl } =
-        req.body;
-      if (!courseId || !sectionId || !title || !description || !videoUrl) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "courseId, sectionId, title, description and videoUrl are required",
-          });
-      }
-
-      const section = await Section.findById(sectionId);
-      if (!section || String(section.courseId) !== String(courseId)) {
-        return res
-          .status(404)
-          .json({ message: "Section not found for the provided course" });
+      const { sectionId, title, description, duration, videoUrl } = req.body;
+      const courseId = req.params.courseId;
+      if (!title || !description || !videoUrl) {
+        return res.status(400).json({
+          message: "title, description and videoUrl are required",
+        });
       }
 
       const course = await Course.findById(courseId);
@@ -44,9 +34,29 @@ router.post(
           .json({ message: "Not authorized to create lesson for this course" });
       }
 
+      let finalSectionId = sectionId;
+      if (!sectionId) {
+        // Create a default section if not provided
+        const defaultSection = new Section({
+          courseId,
+          title: "Default Section",
+          description: "Default section for lessons",
+          order: 1,
+        });
+        await defaultSection.save();
+        finalSectionId = defaultSection._id;
+      } else {
+        const section = await Section.findById(sectionId);
+        if (!section || String(section.courseId) !== String(courseId)) {
+          return res
+            .status(404)
+            .json({ message: "Section not found for the provided course" });
+        }
+      }
+
       const lesson = new Lesson({
         courseId,
-        sectionId,
+        sectionId: finalSectionId,
         title,
         description,
         duration,

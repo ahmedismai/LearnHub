@@ -44,6 +44,14 @@ const CourseDetails = () => {
     title: "",
     description: "",
     videoFile: null,
+    sectionId: "",
+  });
+
+  // State for Add Section
+  const [isAddingSection, setIsAddingSection] = useState(false);
+  const [newSection, setNewSection] = useState({
+    title: "",
+    description: "",
   });
 
   // Fetch Course Details
@@ -55,14 +63,14 @@ const CourseDetails = () => {
     },
   });
 
-  // Fetch User Enrollments
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ["enrollments", "me"],
+  // Fetch Sections
+  const { data: sections = [], isLoading: sectionsLoading } = useQuery({
+    queryKey: ["sections", id],
     queryFn: async () => {
-      const response = await api.get("/Enrollment/me");
+      const response = await api.get(`/Section/course/${id}`);
       return response.data;
     },
-    enabled: !!user,
+    enabled: !!id,
   });
 
   // Permission Logic
@@ -84,6 +92,26 @@ const CourseDetails = () => {
       toast({
         variant: "destructive",
         title: "Enrollment failed",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  // Create Section Mutation
+  const createSectionMutation = useMutation({
+    mutationFn: async (sectionData) => {
+      return api.post("/Section", { courseId: id, ...sectionData });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["sections", id]);
+      setIsAddingSection(false);
+      setNewSection({ title: "", description: "" });
+      toast({ title: "Section created successfully!" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to create section",
         description: error.response?.data?.message || "Something went wrong",
       });
     },
@@ -123,6 +151,7 @@ const CourseDetails = () => {
           newLesson.description || `Introduction to ${newLesson.title}`,
         type: "Lesson",
         videoUrl: cloudData.secure_url,
+        sectionId: newLesson.sectionId || undefined, // Optional
       });
 
       toast({
@@ -132,7 +161,12 @@ const CourseDetails = () => {
 
       // 3. Reset state and refresh UI
       setIsAddingContent(false);
-      setNewLesson({ title: "", description: "", videoFile: null });
+      setNewLesson({
+        title: "",
+        description: "",
+        videoFile: null,
+        sectionId: "",
+      });
       queryClient.invalidateQueries(["course", id]);
     } catch (error) {
       console.error("Add Content Error:", error);
@@ -145,6 +179,18 @@ const CourseDetails = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Handler for Add Section
+  const handleAddSection = () => {
+    if (!newSection.title || !newSection.description) {
+      return toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please provide both title and description.",
+      });
+    }
+    createSectionMutation.mutate(newSection);
   };
 
   if (isLoading)
@@ -377,6 +423,27 @@ const CourseDetails = () => {
                           }
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="section">Section (Optional)</Label>
+                        <select
+                          id="section"
+                          value={newLesson.sectionId}
+                          onChange={(e) =>
+                            setNewLesson({
+                              ...newLesson,
+                              sectionId: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                        >
+                          <option value="">Default Section</option>
+                          {sections.map((section) => (
+                            <option key={section._id} value={section._id}>
+                              {section.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                       <Button
                         className="w-full"
                         onClick={handleAddContent}
@@ -389,6 +456,71 @@ const CourseDetails = () => {
                           </>
                         ) : (
                           "Add Lesson"
+                        )}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Add Section Dialog */}
+                <Dialog
+                  open={isAddingSection}
+                  onOpenChange={setIsAddingSection}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full py-4 flex items-center gap-2 border-dashed border-2 border-green-500/50 hover:bg-green-500/5 transition-colors"
+                    >
+                      <PlusCircle className="w-5 h-5 text-green-500" />
+                      Add Section
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Section</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="section-title">Section Title</Label>
+                        <Input
+                          id="section-title"
+                          value={newSection.title}
+                          onChange={(e) =>
+                            setNewSection({
+                              ...newSection,
+                              title: e.target.value,
+                            })
+                          }
+                          placeholder="e.g. Introduction"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="section-description">Description</Label>
+                        <Input
+                          id="section-description"
+                          value={newSection.description}
+                          onChange={(e) =>
+                            setNewSection({
+                              ...newSection,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Brief description of the section"
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleAddSection}
+                        disabled={createSectionMutation.isPending}
+                      >
+                        {createSectionMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          "Add Section"
                         )}
                       </Button>
                     </div>
