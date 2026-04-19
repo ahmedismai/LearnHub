@@ -10,7 +10,9 @@ const enrollmentSchema = new mongoose.Schema({
   completedLessons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
   completedQuizzes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
   completedAssignments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
-  completed: { type: Boolean, default: false }
+  completed: { type: Boolean, default: false },
+  canGenerateCertificate: { type: Boolean, default: false },
+  averageExamScore: { type: Number, default: 0 }
 }, {
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
