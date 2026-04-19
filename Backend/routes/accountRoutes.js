@@ -61,6 +61,7 @@ const buildUserResponse = (user) => ({
   email: user.email,
   role: user.role,
   profileImage: user.profileImage,
+  emailConfirmed: user.emailConfirmed,
   ...(user.role === ROLES.STUDENT && { studentId: user.studentId }),
   ...(user.role === ROLES.INSTRUCTOR && { instructorId: user.instructorId }),
   ...(user.role === ROLES.ADMINISTRATOR && { adminId: user.adminId }),
@@ -141,7 +142,17 @@ router.get("/ConfirmEmail", async (req, res) => {
     user.confirmationToken = "";
     await user.save();
 
-    res.json({ message: "Email confirmed successfully" });
+    const accessToken = createToken(user);
+    const refreshToken = crypto.randomBytes(32).toString("hex");
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({
+      message: "Email confirmed successfully",
+      accessToken,
+      refreshToken,
+      user: buildUserResponse(user),
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -166,7 +177,17 @@ router.post("/ConfirmEmailCode", async (req, res) => {
     user.confirmationToken = "";
     await user.save();
 
-    res.json({ message: "Email confirmed successfully" });
+    const accessToken = createToken(user);
+    const refreshToken = crypto.randomBytes(32).toString("hex");
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({
+      message: "Email confirmed successfully",
+      accessToken,
+      refreshToken,
+      user: buildUserResponse(user),
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

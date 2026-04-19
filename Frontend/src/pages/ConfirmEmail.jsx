@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ConfirmEmail = () => {
   const [email, setEmail] = useState("");
@@ -14,17 +15,22 @@ const ConfirmEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     const token = searchParams.get("token");
     const queryEmail = searchParams.get("email");
+    const stateEmail = location.state?.email;
     if (token) {
       setCode(token);
     }
     if (queryEmail) {
       setEmail(queryEmail);
+    } else if (stateEmail) {
+      setEmail(stateEmail);
     }
-  }, [searchParams]);
+  }, [searchParams, location.state]);
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -49,9 +55,27 @@ const ConfirmEmail = () => {
     }
     setIsLoading(true);
     try {
-      await api.post("/Account/ConfirmEmailCode", { email, token: code });
+      const response = await api.post("/Account/ConfirmEmailCode", {
+        email,
+        token: code,
+      });
+      const { accessToken, refreshToken, user: userData } = response.data;
+
+      // Store tokens and user data
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(userData));
+
       toast({ title: "تم تأكيد البريد بنجاح" });
-      navigate("/login");
+
+      // Redirect based on role
+      if (userData?.role === "Administrator") {
+        navigate("/dashboard");
+      } else if (userData?.role === "Student") {
+        navigate("/");
+      } else {
+        navigate("/dashboard"); // Default for Instructor
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -67,9 +91,26 @@ const ConfirmEmail = () => {
   async function handleConfirmTokenOnly(tokenOnly) {
     setIsLoading(true);
     try {
-      await api.get(`/Account/ConfirmEmail?token=${tokenOnly}`);
+      const response = await api.get(
+        `/Account/ConfirmEmail?token=${tokenOnly}`,
+      );
+      const { accessToken, refreshToken, user: userData } = response.data;
+
+      // Store tokens and user data
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(userData));
+
       toast({ title: "تم تأكيد البريد بنجاح" });
-      navigate("/login");
+
+      // Redirect based on role
+      if (userData?.role === "Administrator") {
+        navigate("/dashboard");
+      } else if (userData?.role === "Student") {
+        navigate("/");
+      } else {
+        navigate("/dashboard"); // Default for Instructor
+      }
     } catch (error) {
       toast({
         variant: "destructive",

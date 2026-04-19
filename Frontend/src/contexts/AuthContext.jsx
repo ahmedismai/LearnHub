@@ -42,12 +42,13 @@ export const AuthProvider = ({ children }) => {
       password,
       role,
     });
-    const { accessToken, refreshToken, user } = response.data;
-    localStorage.setItem("token", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
-    return user;
+    // Don't store tokens until email is confirmed
+    // const { accessToken, refreshToken, user } = response.data;
+    // localStorage.setItem("token", accessToken);
+    // localStorage.setItem("refreshToken", refreshToken);
+    // localStorage.setItem("user", JSON.stringify(user));
+    // setUser(user);
+    return response.data.user;
   };
 
   const logout = () => {

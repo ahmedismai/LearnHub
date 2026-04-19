@@ -62,6 +62,11 @@ const DashboardSidebar = () => {
       icon: PlusCircle,
     },
     {
+      title: "Create Exam",
+      url: "/dashboard/create-exam",
+      icon: GraduationCap,
+    },
+    {
       title: "Assignments",
       url: "/dashboard/assignments",
       icon: ClipboardList,

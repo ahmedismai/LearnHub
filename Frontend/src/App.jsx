@@ -18,7 +18,7 @@ import CourseDetails from "./pages/CourseDetails";
 import Payment from "./pages/Payment";
 import DashboardLayout from "./components/DashboardLayout";
 import MyCourses from "./pages/MyCourses";
-import CreateCourse from "./pages/CreateCourse";
+import CreateExam from "./pages/CreateExam";
 import Certificates from "./pages/Certificates";
 import Grades from "./pages/Grades";
 import Exams from "./pages/Exams";
@@ -53,7 +53,15 @@ const ProtectedRoute = () => {
     );
   }
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user.emailConfirmed) {
+    return <Navigate to="/confirm-email" replace />;
+  }
+
+  return <Outlet />;
 };
 
 const PublicRoute = () => {
@@ -113,7 +121,7 @@ const App = () => (
                 <Route path="admin" element={<AdminDashboard />} />
                 <Route path="payments" element={<AdminPayments />} />
                 <Route path="categories" element={<AdminCategories />} />
-                <Route path="create-course" element={<CreateCourse />} />
+                <Route path="create-exam" element={<CreateExam />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
