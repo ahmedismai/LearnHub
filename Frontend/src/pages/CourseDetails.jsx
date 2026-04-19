@@ -261,6 +261,22 @@ const CourseDetails = () => {
       });
     }
 
+    if (contentType === "Lesson" && !newContent.videoFile) {
+        return toast({
+          variant: "destructive",
+          title: "Video Required",
+          description: "Please select a video file for the lesson.",
+        });
+    }
+
+    if (contentType === "Assignment" && !newContent.dueDate) {
+        return toast({
+          variant: "destructive",
+          title: "Due Date Required",
+          description: "Please select a due date for the assignment.",
+        });
+    }
+
     setIsUploading(true);
     try {
       let videoUrl = "";

@@ -367,10 +367,19 @@ router.post(
       }
 
       const { type, ...rest } = req.body;
+      
+      // Clean up sectionId if it's an empty string
+      if (rest.sectionId === "") {
+        delete rest.sectionId;
+      }
+
       let content;
 
       if (type === "Lesson") {
         const videoUrl = req.body.videoUrl || "";
+        if (!videoUrl && !req.body.title.includes("AI")) { // Only require video if not an AI placeholder
+             return res.status(400).json({ message: "Video URL is required for lessons" });
+        }
 
         content = new Lesson({
           ...rest,
@@ -380,6 +389,10 @@ router.post(
         });
       } else if (type === "Quiz") {
         const { questions, ...quizData } = rest;
+        
+        // Ensure totalMarks is a number
+        if (!quizData.totalMarks) quizData.totalMarks = 100;
+
         content = new Quiz({ ...quizData, type, courseId: course._id });
         await content.save();
 
@@ -392,6 +405,9 @@ router.post(
         }
         return res.status(201).json(content);
       } else if (type === "Assignment") {
+        if (!rest.dueDate) {
+          return res.status(400).json({ message: "Due date is required for assignments" });
+        }
         content = new Assignment({ ...rest, type, courseId: course._id });
       } else {
         return res.status(400).json({ message: "Invalid content type" });
@@ -401,7 +417,11 @@ router.post(
       res.status(201).json(content);
     } catch (error) {
       console.error("Content Creation Error:", error);
-      res.status(400).json({ error: error.message });
+      // Send the specific mongoose validation error if it exists
+      const errorMessage = error.errors 
+        ? Object.values(error.errors).map(val => val.message).join(', ')
+        : error.message;
+      res.status(400).json({ message: errorMessage });
     }
   },
 );
