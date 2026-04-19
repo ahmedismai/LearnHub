@@ -36,6 +36,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPayments from "./pages/admin/AdminPayments";
 import Settings from "./pages/Settings";
 import StudentManagement from "./pages/instructor/StudentManagement";
+import InstructorSubmissions from "./pages/instructor/InstructorSubmissions";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import RoleBasedAssignments from "./pages/RoleBasedAssignments";
 import RoleBasedQuizzes from "./pages/RoleBasedQuizzes";
