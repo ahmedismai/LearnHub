@@ -24,6 +24,7 @@ import lessonRoutes from "./routes/lessonRoutes.js";
 import examRoutes from "./routes/examRoutes.js";
 import examResultRoutes from "./routes/examResultRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.use("/api/Lesson", lessonRoutes);
 app.use("/api/Exam", examRoutes);
 app.use("/api/ExamResult", examResultRoutes);
 app.use("/api/Order", orderRoutes);
+app.use("/api/AI-Assessment", aiAssessmentRoutes);
 
 app.get("/", (req, res) => {
   res.send("LearnHub Server is Running Successfully! 🚀");

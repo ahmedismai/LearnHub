@@ -31,6 +31,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import AIQuizDialog from "@/components/AIQuizDialog";
 
 const CourseDetails = () => {
   const [activeLesson, setActiveLesson] = useState(null);
@@ -827,6 +828,7 @@ const CourseDetails = () => {
                 >
                   Back to My Courses
                 </Button>
+                <AIQuizDialog courseId={id} />
               </CardContent>
             )}
           </Card>
