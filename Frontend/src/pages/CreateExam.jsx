@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Loader2, BookOpen, Clock, Target } from "lucide-react";
+import { Plus, Trash2, Loader2, BookOpen, Clock, Target, Sparkles, BrainCircuit } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 // Form Schema
@@ -55,6 +55,7 @@ const CreateExam = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [courses, setCourses] = useState([]);
 
   const form = useForm({
@@ -102,6 +103,57 @@ const CreateExam = () => {
     }
   }, [user, toast]);
 
+  const generateWithAI = async () => {
+    const courseId = form.getValues("courseId");
+    if (!courseId) {
+      return toast({
+        title: "Course Required",
+        description: "Please select a course first so AI can analyze its content.",
+        variant: "destructive",
+      });
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await api.post("/AI-Assessment/generate", {
+        courseId,
+        type: "Exam",
+        count: 5,
+      });
+
+      const { assessment } = response.data;
+      
+      const newQuestions = assessment.questions.map(q => ({
+        text: q.text,
+        type: "Multiple Choice",
+        options: q.options,
+        correctAnswer: q.correctAnswer
+      }));
+
+      form.setValue("questions", newQuestions);
+      if (!form.getValues("title")) {
+        form.setValue("title", assessment.title);
+      }
+      if (!form.getValues("description")) {
+        form.setValue("description", "AI-Generated comprehensive assessment based on course materials.");
+      }
+      
+      toast({
+        title: "AI Generation Successful!",
+        description: "Generated 5 smart questions based on your course content.",
+      });
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Generation Failed",
+        description: "Could not generate questions. Make sure your course has description/lessons.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const addQuestion = () => {
     append({
       text: "",
@@ -122,7 +174,6 @@ const CreateExam = () => {
       const newOptions = currentOptions.filter((_, i) => i !== optionIndex);
       form.setValue(`questions.${questionIndex}.options`, newOptions);
 
-      // Clear correct answer if it was the removed option
       const correctAnswer = form.getValues(`questions.${questionIndex}.correctAnswer`);
       if (correctAnswer === currentOptions[optionIndex]) {
         form.setValue(`questions.${questionIndex}.correctAnswer`, "");
@@ -160,21 +211,37 @@ const CreateExam = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <BookOpen className="w-6 h-6 text-primary" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <BookOpen className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Create Final Exam</h1>
+            <p className="text-muted-foreground">
+              Create comprehensive assessments for your course
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold">Create Final Exam</h1>
-          <p className="text-muted-foreground">
-            Create comprehensive assessments for your course
-          </p>
-        </div>
+        
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={generateWithAI}
+          disabled={isGenerating}
+          className="border-primary/50 text-primary hover:bg-primary/5 h-12 px-6"
+        >
+          {isGenerating ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <Sparkles className="w-4 h-4 mr-2" />
+          )}
+          AI Smart Generate
+        </Button>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Basic Exam Info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -295,20 +362,22 @@ const CreateExam = () => {
             </CardContent>
           </Card>
 
-          {/* Questions Section */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Questions</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                   <BrainCircuit className="w-5 h-5 text-primary" />
+                   Questions
+                </CardTitle>
                 <Button type="button" onClick={addQuestion} variant="outline" size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Question
+                  Add Question Manually
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {fields.map((field, questionIndex) => (
-                <Card key={field.id} className="border-l-4 border-l-primary/20">
+                <Card key={field.id} className="border-l-4 border-l-primary/20 bg-muted/5 shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-lg">
@@ -319,7 +388,7 @@ const CreateExam = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => remove(questionIndex)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -333,7 +402,7 @@ const CreateExam = () => {
                         <FormItem>
                           <FormLabel>Question Text</FormLabel>
                           <FormControl>
-                            <Textarea {...field} placeholder="Enter your question..." />
+                            <Textarea {...field} placeholder="Enter your question..." className="bg-background" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -346,41 +415,44 @@ const CreateExam = () => {
                         <Button
                           type="button"
                           onClick={() => addOption(questionIndex)}
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
+                          className="text-primary"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Option
                         </Button>
                       </div>
 
-                      {form.watch(`questions.${questionIndex}.options`).map((_, optionIndex) => (
-                        <div key={optionIndex} className="flex gap-2">
-                          <FormField
-                            control={form.control}
-                            name={`questions.${questionIndex}.options.${optionIndex}`}
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormControl>
-                                  <Input {...field} placeholder={`Option ${optionIndex + 1}`} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {form.watch(`questions.${questionIndex}.options`).map((_, optionIndex) => (
+                          <div key={optionIndex} className="flex gap-2">
+                            <FormField
+                              control={form.control}
+                              name={`questions.${questionIndex}.options.${optionIndex}`}
+                              render={({ field }) => (
+                                <FormItem className="flex-1">
+                                  <FormControl>
+                                    <Input {...field} placeholder={`Option ${optionIndex + 1}`} className="bg-background" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            {form.watch(`questions.${questionIndex}.options`).length > 2 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeOption(questionIndex, optionIndex)}
+                                className="text-destructive px-2"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             )}
-                          />
-                          {form.watch(`questions.${questionIndex}.options`).length > 2 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeOption(questionIndex, optionIndex)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <FormField
@@ -388,10 +460,10 @@ const CreateExam = () => {
                       name={`questions.${questionIndex}.correctAnswer`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Correct Answer</FormLabel>
+                          <FormLabel className="text-primary font-bold">Correct Answer</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="border-primary/30">
                                 <SelectValue placeholder="Select correct answer" />
                               </SelectTrigger>
                             </FormControl>
@@ -414,9 +486,9 @@ const CreateExam = () => {
               ))}
 
               {fields.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No questions added yet. Click "Add Question" to get started.</p>
+                <div className="text-center py-12 border-2 border-dashed rounded-2xl">
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-muted-foreground font-medium">Use AI to generate questions or add them manually.</p>
                 </div>
               )}
             </CardContent>
@@ -427,14 +499,14 @@ const CreateExam = () => {
               type="button"
               variant="outline"
               onClick={() => navigate("/dashboard/exams")}
-              className="flex-1"
+              className="flex-1 h-12"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1"
+              className="flex-1 h-12 text-lg font-bold"
             >
               {isSubmitting ? (
                 <>
@@ -442,7 +514,7 @@ const CreateExam = () => {
                   Creating Exam...
                 </>
               ) : (
-                "Create Exam"
+                "Save & Publish Exam"
               )}
             </Button>
           </div>

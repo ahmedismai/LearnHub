@@ -18,6 +18,8 @@ import {
   Loader2,
   TrendingUp,
   MessageSquare,
+  Sparkles,
+  BrainCircuit,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -40,6 +42,10 @@ const CourseDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // AI Generation State for Instructors
+  const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState([]);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // Review State
   const [isReviewing, setIsReviewing] = useState(false);
@@ -134,6 +140,51 @@ const CourseDetails = () => {
     (e) => (e.courseId?._id || e.courseId) === id,
   );
   const hasAccess = isInstructor || isStudentEnrolled;
+
+  // AI Generate Handler
+  const handleAIGenerate = async () => {
+    if (!id || (contentType !== "Quiz" && contentType !== "Assignment")) return;
+    setIsAiGenerating(true);
+    try {
+      const response = await api.post("/AI-Assessment/generate", {
+        courseId: id,
+        type: contentType,
+        count: 5,
+      });
+
+      const { assessment } = response.data;
+
+      if (contentType === "Quiz") {
+        setNewContent({
+          ...newContent,
+          title: assessment.title || `Quick Quiz`,
+          description: "AI-Generated Quiz based on lessons.",
+        });
+        setAiGeneratedQuestions(assessment.questions);
+      } else if (contentType === "Assignment") {
+        const firstTask = assessment.tasks?.[0];
+        setNewContent({
+          ...newContent,
+          title: assessment.title || `Assignment`,
+          description: firstTask ? `${firstTask.description}\n\nSuccess Criteria: ${firstTask.criteria}` : "AI-Generated Assignment.",
+        });
+      }
+
+      toast({
+        title: "AI Generation Success! ✨",
+        description: `Generated details for your ${contentType}. You can now save it.`,
+      });
+    } catch (error) {
+      console.error("AI Gen Error:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Failed",
+        description: "Could not generate content. Try manual entry.",
+      });
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
 
   // Mark Lesson as Complete Mutation
   const completeLessonMutation = useMutation({
@@ -231,7 +282,7 @@ const CourseDetails = () => {
 
       const contentPayload = {
         title: newContent.title,
-        description: newContent.description, // Keep description if it's generally used
+        description: newContent.description,
         type: contentType,
         sectionId: newContent.sectionId || undefined,
       };
@@ -240,6 +291,10 @@ const CourseDetails = () => {
         contentPayload.videoUrl = videoUrl;
       } else if (contentType === "Quiz") {
         contentPayload.duration = newContent.duration;
+        // Include AI Generated questions if they exist
+        if (aiGeneratedQuestions.length > 0) {
+           contentPayload.questions = aiGeneratedQuestions;
+        }
       } else if (contentType === "Assignment") {
         contentPayload.dueDate = newContent.dueDate;
       }
@@ -252,6 +307,7 @@ const CourseDetails = () => {
       });
 
       setIsAddingContent(false);
+      setAiGeneratedQuestions([]);
       setNewContent({
         title: "",
         description: "",
@@ -591,19 +647,39 @@ const CourseDetails = () => {
 
                 <Dialog
                   open={isAddingContent}
-                  onOpenChange={setIsAddingContent}
+                  onOpenChange={(open) => {
+                    setIsAddingContent(open);
+                    if (!open) {
+                      setAiGeneratedQuestions([]);
+                      setNewContent({ title: "", description: "", videoFile: null, sectionId: "", duration: 10, dueDate: "" });
+                    }
+                  }}
                 >
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-primary/50"
+                      className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-primary/50 hover:bg-primary/5"
                     >
                       <PlusCircle className="w-5 h-5 text-primary" /> Add Content
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add New Content</DialogTitle>
+                      <div className="flex justify-between items-center">
+                         <DialogTitle>Add New Content</DialogTitle>
+                         {(contentType === "Quiz" || contentType === "Assignment") && (
+                           <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleAIGenerate}
+                            disabled={isAiGenerating}
+                            className="text-xs border-primary text-primary"
+                           >
+                              {isAiGenerating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                              AI Smart Fill
+                           </Button>
+                         )}
+                      </div>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
                       <div className="space-y-2">
@@ -611,7 +687,10 @@ const CourseDetails = () => {
                         <select
                           className="w-full p-2 border rounded"
                           value={contentType}
-                          onChange={(e) => setContentType(e.target.value)}
+                          onChange={(e) => {
+                            setContentType(e.target.value);
+                            setAiGeneratedQuestions([]);
+                          }}
                         >
                           <option value="Lesson">Lesson (Video)</option>
                           <option value="Quiz">Quiz</option>
@@ -630,6 +709,21 @@ const CourseDetails = () => {
                               title: e.target.value,
                             })
                           }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="desc">Description</Label>
+                        <Textarea
+                          id="desc"
+                          value={newContent.description}
+                          onChange={(e) =>
+                            setNewContent({
+                              ...newContent,
+                              description: e.target.value,
+                            })
+                          }
+                          className="min-h-[100px]"
                         />
                       </div>
 
@@ -652,7 +746,14 @@ const CourseDetails = () => {
 
                       {contentType === "Quiz" && (
                         <div className="space-y-2">
-                          <Label htmlFor="duration">Duration (minutes)</Label>
+                          <div className="flex justify-between items-center">
+                            <Label htmlFor="duration">Duration (minutes)</Label>
+                            {aiGeneratedQuestions.length > 0 && (
+                              <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                {aiGeneratedQuestions.length} AI Questions Ready
+                              </Badge>
+                            )}
+                          </div>
                           <Input
                             id="duration"
                             type="number"
@@ -706,7 +807,7 @@ const CourseDetails = () => {
                         </select>
                       </div>
                       <Button
-                        className="w-full"
+                        className="w-full py-6 text-lg font-bold"
                         onClick={handleAddContent}
                         disabled={isUploading}
                       >
@@ -716,7 +817,7 @@ const CourseDetails = () => {
                             Processing...
                           </>
                         ) : (
-                          "Add to Course"
+                          `Save ${contentType}`
                         )}
                       </Button>
                     </div>

@@ -4,6 +4,7 @@ import multer from "multer";
 import { Course } from "../models/Course.js";
 import { Category } from "../models/Category.js";
 import { Content, Lesson, Quiz, Assignment } from "../models/Content.js";
+import { Question } from "../models/Question.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -378,7 +379,18 @@ router.post(
           courseId: course._id,
         });
       } else if (type === "Quiz") {
-        content = new Quiz({ ...rest, type, courseId: course._id });
+        const { questions, ...quizData } = rest;
+        content = new Quiz({ ...quizData, type, courseId: course._id });
+        await content.save();
+
+        if (questions && Array.isArray(questions)) {
+          const questionDocs = questions.map((q) => ({
+            ...q,
+            quizId: content._id,
+          }));
+          await Question.insertMany(questionDocs);
+        }
+        return res.status(201).json(content);
       } else if (type === "Assignment") {
         content = new Assignment({ ...rest, type, courseId: course._id });
       } else {
