@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import {
+  useParams,
+  useNavigate,
+  useSearchParams,
+  useLocation,
+} from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +12,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
-import { Loader2, Clock, AlertTriangle, CheckCircle2, Trophy, BrainCircuit } from "lucide-react";
+import {
+  Loader2,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  Trophy,
+  BrainCircuit,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 
@@ -15,7 +27,7 @@ const QuizPage = () => {
   const { id } = useParams();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const type = searchParams.get("type") || "quiz"; // 'quiz' or 'exam'
+  const type = searchParams.get("type") || "quiz";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -189,20 +201,33 @@ const QuizPage = () => {
           <h2 className="text-3xl font-black">Practice Completed!</h2>
           <div className="flex justify-center gap-4">
             <div className="p-6 bg-muted rounded-2xl">
-              <p className="text-sm text-muted-foreground uppercase font-bold mb-1">Your Score</p>
-              <p className={`text-5xl font-black ${score >= 50 ? 'text-green-500' : 'text-destructive'}`}>{score}%</p>
+              <p className="text-sm text-muted-foreground uppercase font-bold mb-1">
+                Your Score
+              </p>
+              <p
+                className={`text-5xl font-black ${score >= 50 ? "text-green-500" : "text-destructive"}`}
+              >
+                {score}%
+              </p>
             </div>
           </div>
           <p className="text-muted-foreground">
-            Great job! This AI-generated quiz was designed for your level. 
-            Keep practicing to improve your skills.
+            Great job! This AI-generated quiz was designed for your level. Keep
+            practicing to improve your skills.
           </p>
         </div>
         <div className="flex gap-4 justify-center">
-          <Button onClick={() => navigate(-1)} variant="outline" className="h-12 px-8">
+          <Button
+            onClick={() => navigate(-1)}
+            variant="outline"
+            className="h-12 px-8"
+          >
             Return to Course
           </Button>
-          <Button onClick={() => navigate('/dashboard/quizzes')} className="h-12 px-8">
+          <Button
+            onClick={() => navigate("/dashboard/quizzes")}
+            className="h-12 px-8"
+          >
             View All Quizzes
           </Button>
         </div>
@@ -217,12 +242,17 @@ const QuizPage = () => {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b py-4 px-6 flex justify-between items-center rounded-b-2xl shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            {isAiPractice ? <BrainCircuit className="w-6 h-6 text-primary" /> : <CheckCircle2 className="w-6 h-6 text-primary" />}
+            {isAiPractice ? (
+              <BrainCircuit className="w-6 h-6 text-primary" />
+            ) : (
+              <CheckCircle2 className="w-6 h-6 text-primary" />
+            )}
           </div>
           <div>
             <h1 className="text-xl font-bold line-clamp-1">{quizData.title}</h1>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              {questions.length} Questions • {isAiPractice ? 'AI Practice' : type}
+              {questions.length} Questions •{" "}
+              {isAiPractice ? "AI Practice" : type}
             </p>
           </div>
         </div>
