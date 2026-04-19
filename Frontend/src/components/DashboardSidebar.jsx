@@ -75,6 +75,7 @@ const DashboardSidebar = () => {
     { title: "Quizzes", url: "/dashboard/quizzes", icon: FileText },
     { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Students", url: "/dashboard/students", icon: Users },
+    { title: "Student Results", url: "/dashboard/student-results", icon: BarChart3 },
   ];
 
   const studentLinks = [

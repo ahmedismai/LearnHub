@@ -37,6 +37,7 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import Settings from "./pages/Settings";
 import StudentManagement from "./pages/instructor/StudentManagement";
 import InstructorSubmissions from "./pages/instructor/InstructorSubmissions";
+import StudentResults from "./pages/instructor/StudentResults"; // New import
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import RoleBasedAssignments from "./pages/RoleBasedAssignments";
 import RoleBasedQuizzes from "./pages/RoleBasedQuizzes";
@@ -119,6 +120,7 @@ const App = () => (
                 <Route path="exams" element={<Exams />} />
                 <Route path="exam/:id" element={<QuizPage />} />
                 <Route path="students" element={<StudentManagement />} />
+                <Route path="student-results" element={<StudentResults />} /> {/* New route */}
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="admin-courses" element={<AdminCourses />} />
                 <Route path="reports" element={<AdminOverview />} />
