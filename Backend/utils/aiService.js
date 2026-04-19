@@ -15,7 +15,7 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
       System: You are an expert academic professor specialized in ${type} design.
@@ -57,10 +57,12 @@ export const generateAssessment = async (context, level, type, count = 5) => {
       Important: Return ONLY the raw JSON object. Do not include markdown blocks or conversational text.
     `;
 
-    console.log(`[AI-LOG] Sending Context to Gemini (${context.length} chars)...`);
+    console.log(
+      `[AI-LOG] Sending Context to Gemini (${context.length} chars)...`,
+    );
 
     const result = await model.generateContent(prompt);
-    
+
     if (!result || !result.response) {
       throw new Error("Gemini API returned an empty or invalid response.");
     }
@@ -69,8 +71,8 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     console.log("[AI-LOG] Raw Response Received from Gemini.");
 
     // Defensive Sanitization: Find the first { and last } to extract JSON
-    const startIdx = rawText.indexOf('{');
-    const endIdx = rawText.lastIndexOf('}');
+    const startIdx = rawText.indexOf("{");
+    const endIdx = rawText.lastIndexOf("}");
 
     if (startIdx === -1 || endIdx === -1) {
       console.error("[AI-LOG] Invalid AI Output Format. Raw text:", rawText);
@@ -78,11 +80,14 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     }
 
     const sanitizedJson = rawText.substring(startIdx, endIdx + 1);
-    
+
     try {
       return JSON.parse(sanitizedJson);
     } catch (parseError) {
-      console.error("[AI-LOG] JSON Parse Error. Sanitized String:", sanitizedJson);
+      console.error(
+        "[AI-LOG] JSON Parse Error. Sanitized String:",
+        sanitizedJson,
+      );
       throw new Error("Failed to parse AI output as JSON.");
     }
   } catch (error) {
