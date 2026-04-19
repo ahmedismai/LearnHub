@@ -366,34 +366,35 @@ router.post(
           .json({ message: "Not authorized to add content to this course" });
       }
 
-      const { type, ...rest } = req.body;
+      const { type, title, description, ...rest } = req.body;
       
       // Clean up sectionId if it's an empty string
-      if (rest.sectionId === "") {
-        delete rest.sectionId;
-      }
+      const sectionId = req.body.sectionId === "" ? undefined : req.body.sectionId;
 
       let content;
 
       if (type === "Lesson") {
         const videoUrl = req.body.videoUrl || "";
-        if (!videoUrl && !req.body.title.includes("AI")) { // Only require video if not an AI placeholder
-             return res.status(400).json({ message: "Video URL is required for lessons" });
-        }
-
         content = new Lesson({
-          ...rest,
-          videoUrl,
+          title,
+          description,
           type,
+          videoUrl,
+          sectionId,
           courseId: course._id,
+          ...rest
         });
       } else if (type === "Quiz") {
-        const { questions, ...quizData } = rest;
-        
-        // Ensure totalMarks is a number
-        if (!quizData.totalMarks) quizData.totalMarks = 100;
-
-        content = new Quiz({ ...quizData, type, courseId: course._id });
+        const { questions, duration } = req.body;
+        content = new Quiz({
+          title,
+          description,
+          type,
+          duration,
+          sectionId,
+          courseId: course._id,
+          totalMarks: req.body.totalMarks || 100
+        });
         await content.save();
 
         if (questions && Array.isArray(questions)) {
@@ -405,10 +406,16 @@ router.post(
         }
         return res.status(201).json(content);
       } else if (type === "Assignment") {
-        if (!rest.dueDate) {
-          return res.status(400).json({ message: "Due date is required for assignments" });
-        }
-        content = new Assignment({ ...rest, type, courseId: course._id });
+        const { dueDate } = req.body;
+        content = new Assignment({
+          title,
+          description,
+          type,
+          dueDate,
+          sectionId,
+          courseId: course._id,
+          ...rest
+        });
       } else {
         return res.status(400).json({ message: "Invalid content type" });
       }

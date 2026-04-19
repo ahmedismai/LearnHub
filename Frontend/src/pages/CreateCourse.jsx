@@ -28,7 +28,6 @@ import { Plus, Trash2, Video, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// تحديث الـ Schema ليشمل الدروس
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   description: z
@@ -45,6 +44,7 @@ const formSchema = z.object({
     .array(
       z.object({
         title: z.string().min(1, "Content title is required"),
+        description: z.string().optional(),
         contentType: z.enum(["Lesson", "Quiz", "Assignment"]).default("Lesson"),
         videoUrl: z.string().optional(),
         duration: z.number().optional(),
@@ -57,7 +57,7 @@ const formSchema = z.object({
 });
 
 const CreateCourse = () => {
-  const { id } = useParams(); // الحصول على الـ ID لو موجود (وضع التعديل)
+  const { id } = useParams();
   const isEditMode = !!id;
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -70,7 +70,7 @@ const CreateCourse = () => {
     defaultValues: {
       title: "",
       description: "",
-      price: 0, // Changed from "" to 0
+      price: 0,
       categoryId: "",
       level: "",
       thumbnail: null,
@@ -83,7 +83,6 @@ const CreateCourse = () => {
     name: "contents",
   });
 
-  // 1. جلب التصنيفات + جلب بيانات الكورس لو في وضع التعديل
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -100,11 +99,11 @@ const CreateCourse = () => {
             price: course.price,
             categoryId: course.categoryId?._id || course.categoryId,
             level: course.level,
-            // Ensure contents match the updated schema for editing
             contents:
               course.contents?.map((content) => ({
                 ...content,
-                contentType: content.contentType || "Lesson", // Default if missing
+                contentType: content.contentType || "Lesson",
+                description: content.description || "",
                 duration: content.duration,
                 dueDate: content.dueDate,
               })) || [],
@@ -156,7 +155,7 @@ const CreateCourse = () => {
         price: Number(values.price),
         categoryId: values.categoryId,
         level: values.level,
-        thumbnail: thumbnailUrl, // إرسال رابط الصورة بعد الرفع
+        thumbnail: thumbnailUrl,
       };
 
       let currentCourseId = id;
@@ -167,15 +166,13 @@ const CreateCourse = () => {
         currentCourseId = res.data._id;
       }
 
-      // رفع الدروس (موجودة في كودك وسليمة)
       if (values.contents && values.contents.length > 0) {
         for (const contentItem of values.contents) {
           if (!contentItem._id) {
-            // Only add new content, existing are managed by CourseDetails quick add
             const contentPayload = {
               title: contentItem.title,
+              description: contentItem.description || "Course material",
               type: contentItem.contentType,
-              // Only include relevant fields based on type
               ...(contentItem.contentType === "Lesson" && {
                 videoUrl: contentItem.videoUrl,
               }),
@@ -357,7 +354,6 @@ const CreateCourse = () => {
             </CardContent>
           </Card>
 
-          {/* قسم إضافة الدروس */}
           <div className="space-y-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
@@ -370,7 +366,7 @@ const CreateCourse = () => {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    append({ title: "", contentType: "Lesson", videoUrl: "" })
+                    append({ title: "", description: "", contentType: "Lesson", videoUrl: "" })
                   }
                 >
                   <Plus className="w-4 h-4 mr-2" /> Add Lesson
@@ -382,6 +378,7 @@ const CreateCourse = () => {
                   onClick={() =>
                     append({
                       title: "",
+                      description: "",
                       contentType: "Quiz",
                       duration: 10,
                     })
@@ -396,6 +393,7 @@ const CreateCourse = () => {
                   onClick={() =>
                     append({
                       title: "",
+                      description: "",
                       contentType: "Assignment",
                       dueDate: "",
                     })
@@ -464,6 +462,19 @@ const CreateCourse = () => {
                             )}
                           />
                         </div>
+
+                        <FormField
+                          control={form.control}
+                          name={`contents.${index}.description`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Brief Description</FormLabel>
+                              <FormControl>
+                                <Input placeholder="What will they learn?" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
                         {contentType === "Lesson" && (
                           <div className="flex items-center gap-4">

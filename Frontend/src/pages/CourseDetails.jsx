@@ -298,7 +298,7 @@ const CourseDetails = () => {
 
       const contentPayload = {
         title: newContent.title,
-        description: newContent.description,
+        description: newContent.description || "No description provided.",
         type: contentType,
         sectionId: newContent.sectionId || undefined,
       };
