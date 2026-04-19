@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,8 @@ import {
   Clock,
   AlertCircle,
   Loader2,
+  BrainCircuit,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
@@ -25,12 +28,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const Assignments = () => {
+const Assignments = ({ isSubComponent = false }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentAssignment, setCurrentAssignment] = useState(null);
+
+  const aiAssignment = location.state?.aiAssignment;
 
   const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
     queryKey: ["enrollments", "me"],
@@ -106,13 +112,58 @@ const Assignments = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Assignments</h1>
-        <p className="text-muted-foreground mt-1">
-          Track and submit your course work
-        </p>
-      </div>
+    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''}`}>
+      {!isSubComponent && (
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Assignments</h1>
+          <p className="text-muted-foreground mt-1">
+            Track and submit your course work
+          </p>
+        </div>
+      )}
+
+      {/* AI Practice Section */}
+      {aiAssignment && (
+        <Card className="border-primary/30 bg-primary/5 overflow-hidden">
+           <CardHeader className="bg-primary/10 pb-4">
+             <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+                      <BrainCircuit className="w-6 h-6" />
+                   </div>
+                   <div>
+                     <CardTitle className="text-2xl font-black tracking-tight">{aiAssignment.title}</CardTitle>
+                     <CardDescription className="text-primary font-bold">AI Smart Practice Assignment</CardDescription>
+                   </div>
+                </div>
+                <Badge className="bg-primary text-primary-foreground"><Sparkles className="w-3 h-3 mr-1" /> Personalized</Badge>
+             </div>
+           </CardHeader>
+           <CardContent className="p-8 space-y-8">
+              <div className="grid grid-cols-1 gap-6">
+                {aiAssignment.tasks?.map((task, idx) => (
+                  <div key={idx} className="p-6 rounded-2xl bg-background border-2 border-primary/10 shadow-sm space-y-4">
+                     <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-black text-sm">{idx + 1}</span>
+                        <h4 className="text-lg font-bold">The Task</h4>
+                     </div>
+                     <p className="text-foreground leading-relaxed">{task.description}</p>
+                     <div className="pt-4 border-t border-dashed">
+                        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Success Criteria:</p>
+                        <p className="text-sm italic text-muted-foreground">{task.criteria}</p>
+                     </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center pt-4">
+                 <Button variant="outline" onClick={() => window.print()} className="h-12 px-8">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Save Tasks as PDF
+                 </Button>
+              </div>
+           </CardContent>
+        </Card>
+      )}
 
       {(isEnrollmentsLoading || isAssignmentsLoading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

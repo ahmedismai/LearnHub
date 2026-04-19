@@ -27,6 +27,7 @@ import {
   ClipboardList,
   CreditCard,
   Layers,
+  BrainCircuit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -81,12 +82,10 @@ const DashboardSidebar = () => {
     { title: "My Courses", url: "/dashboard/my-courses", icon: BookOpen },
     { title: "Browse Courses", url: "/courses", icon: GraduationCap },
     {
-      title: "Assignments",
-      url: "/dashboard/assignments",
-      icon: ClipboardList,
+      title: "Smart Assessments",
+      url: "/dashboard/quizzes",
+      icon: BrainCircuit,
     },
-    { title: "Quizzes", url: "/dashboard/quizzes", icon: FileText },
-    { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Grades", url: "/dashboard/grades", icon: BarChart3 },
     { title: "Certificates", url: "/dashboard/certificates", icon: Award },
   ];

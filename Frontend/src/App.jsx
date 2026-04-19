@@ -39,6 +39,7 @@ import StudentManagement from "./pages/instructor/StudentManagement";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import RoleBasedAssignments from "./pages/RoleBasedAssignments";
 import RoleBasedQuizzes from "./pages/RoleBasedQuizzes";
+import SmartAssessments from "./pages/SmartAssessments";
 
 const queryClient = new QueryClient();
 

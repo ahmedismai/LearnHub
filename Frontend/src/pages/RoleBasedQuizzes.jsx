@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import Quizzes from "./Quizzes";
+import SmartAssessments from "./SmartAssessments";
 import InstructorQuizzes from "./instructor/InstructorQuizzes";
 
 const RoleBasedQuizzes = () => {
@@ -9,7 +9,7 @@ const RoleBasedQuizzes = () => {
     return <InstructorQuizzes />;
   }
 
-  return <Quizzes />;
+  return <SmartAssessments />;
 };
 
 export default RoleBasedQuizzes;

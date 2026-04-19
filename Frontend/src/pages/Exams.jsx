@@ -8,7 +8,7 @@ import { GraduationCap, Timer, BookOpen, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const Exams = () => {
+const Exams = ({ isSubComponent = false }) => {
   const { user } = useAuth();
 
   const { data: exams = [], isLoading } = useQuery({
@@ -23,13 +23,15 @@ const Exams = () => {
   if (isLoading) return <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Skeleton className="h-48" /><Skeleton className="h-48" /></div>;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Final Exams</h1>
-        <p className="text-muted-foreground mt-1">
-          Complete your courses by taking the final assessments
-        </p>
-      </div>
+    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''}`}>
+      {!isSubComponent && (
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Final Exams</h1>
+          <p className="text-muted-foreground mt-1">
+            Complete your courses by taking the final assessments
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {exams.length > 0 ? (

@@ -8,7 +8,7 @@ import api from "@/api/axios";
 import { ClipboardList, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Quizzes = () => {
+const Quizzes = ({ isSubComponent = false }) => {
   const { user } = useAuth();
 
   const {
@@ -49,13 +49,15 @@ const Quizzes = () => {
   const quizzes = quizzesByCourse;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Quizzes</h1>
-        <p className="text-muted-foreground mt-1">
-          Practice and test your knowledge
-        </p>
-      </div>
+    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''}`}>
+      {!isSubComponent && (
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Quizzes</h1>
+          <p className="text-muted-foreground mt-1">
+            Practice and test your knowledge
+          </p>
+        </div>
+      )}
 
       {(isEnrollmentsLoading || isQuizzesLoading) && (
         <p className="text-muted-foreground">Loading quizzes...</p>

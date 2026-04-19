@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
-const AIQuizDialog = ({ courseId }) => {
+const AIQuizDialog = ({ courseId, buttonText }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("Quiz");
@@ -41,7 +41,7 @@ const AIQuizDialog = ({ courseId }) => {
       
       toast({
         title: `Smart ${type} Generated!`,
-        description: `Level: ${studentLevel}. Content based on lessons.`,
+        description: `Level: ${studentLevel}. Content based on ${buttonText || 'lessons'}.`,
       });
 
       if (type === "Assignment") {
@@ -77,17 +77,22 @@ const AIQuizDialog = ({ courseId }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2 border-primary/50 hover:border-primary w-full py-6">
-          <Sparkles className="w-4 h-4 text-primary" />
-          AI Smart Study
+        <Button variant="outline" className="flex items-center gap-2 border-primary/20 hover:border-primary w-full py-5 px-4 justify-start text-left bg-background/50 backdrop-blur-sm overflow-hidden group">
+          <Sparkles className="w-4 h-4 text-primary shrink-0 group-hover:animate-pulse" />
+          <span className="truncate font-semibold text-sm">{buttonText || 'AI Smart Study'}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BrainCircuit className="w-5 h-5 text-primary" />
-            AI-Powered Study Tool
-          </DialogTitle>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+               <BrainCircuit className="w-5 h-5 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">AI-Powered Study Tool</DialogTitle>
+          </div>
+          <div className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded inline-block">
+             COURSE: {buttonText || 'Selected Course'}
+          </div>
         </DialogHeader>
         <div className="py-6 space-y-6">
           <div className="space-y-4">
