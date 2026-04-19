@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Sparkles,
   BrainCircuit,
+  Lightbulb, // Added for AI generation modal
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -29,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter, // Added for modal actions
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -43,9 +45,15 @@ const CourseDetails = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // AI Generation State for Instructors
+  // AI Generation State for Quick Add Content (existing)
   const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState([]);
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false); // Used for quick add
+
+  // New AI Assessment Generation State
+  const [isAIGenerationModalOpen, setIsAIGenerationModalOpen] = useState(false);
+  const [aiAssessmentType, setAiAssessmentType] = useState("Quiz");
+  const [aiQuestionCount, setAiQuestionCount] = useState(5);
+  const [isAIGeneratingAssessment, setIsAIGeneratingAssessment] = useState(false); // For dedicated AI button
 
   // Review State
   const [isReviewing, setIsReviewing] = useState(false);
@@ -84,6 +92,53 @@ const CourseDetails = () => {
   const handleReviewSubmit = () => {
     if (!review.comment.trim()) return;
     submitReviewMutation.mutate(review);
+  };
+
+  // AI Assessment Generation Mutation (for the new dedicated button)
+  const generateAIAssessmentMutation = useMutation({
+    mutationFn: async ({ type, count }) => {
+      return api.post("/AI-Assessment/generate", {
+        courseId: id,
+        type,
+        count,
+      });
+    },
+    onMutate: () => {
+      setIsAIGeneratingAssessment(true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["course", id]); // Refresh course content
+      setIsAIGenerationModalOpen(false);
+      setAiQuestionCount(5); // Reset to default
+      toast({
+        title: "AI Assessment Generated! ✨",
+        description: "Your new assessment has been added to the course.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "AI Generation Failed",
+        description: error.response?.data?.message || "Something went wrong during AI generation.",
+      });
+    },
+    onSettled: () => {
+      setIsAIGeneratingAssessment(false);
+    },
+  });
+
+  const handleGenerateAssessment = () => {
+    if (aiQuestionCount <= 0) {
+      return toast({
+        variant: "destructive",
+        title: "Invalid Count",
+        description: "Question count must be a positive number.",
+      });
+    }
+    generateAIAssessmentMutation.mutate({
+      type: aiAssessmentType,
+      count: aiQuestionCount,
+    });
   };
 
   // State for Quick Add Content
@@ -661,6 +716,69 @@ const CourseDetails = () => {
                   </div>
                 </div>
 
+                {/* New AI Assessment Generation Dialog */}
+                <Dialog
+                  open={isAIGenerationModalOpen}
+                  onOpenChange={setIsAIGenerationModalOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-purple-500/50 hover:bg-purple-500/5 text-purple-600"
+                    >
+                      <Sparkles className="w-5 h-5" /> Generate with AI
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-purple-600" /> AI Assessment Generator
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="ai-type">Assessment Type</Label>
+                        <select
+                          id="ai-type"
+                          className="w-full p-2 border rounded"
+                          value={aiAssessmentType}
+                          onChange={(e) => setAiAssessmentType(e.target.value)}
+                        >
+                          <option value="Quiz">Quiz</option>
+                          <option value="Assignment">Assignment</option>
+                          <option value="Final Exam">Final Exam</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ai-count">Question/Task Count</Label>
+                        <Input
+                          id="ai-count"
+                          type="number"
+                          min="1"
+                          value={aiQuestionCount}
+                          onChange={(e) => setAiQuestionCount(parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        className="w-full"
+                        onClick={handleGenerateAssessment}
+                        disabled={isAIGeneratingAssessment || aiQuestionCount <= 0}
+                      >
+                        {isAIGeneratingAssessment ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+                          </>
+                        ) : (
+                          "Generate"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Existing Add Content Dialog */}
                 <Dialog
                   open={isAddingContent}
                   onOpenChange={(open) => {
@@ -840,6 +958,7 @@ const CourseDetails = () => {
                   </DialogContent>
                 </Dialog>
 
+                {/* Existing Add Section Dialog */}
                 <Dialog
                   open={isAddingSection}
                   onOpenChange={setIsAddingSection}
