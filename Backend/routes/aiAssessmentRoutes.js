@@ -1,6 +1,6 @@
 import express from "express";
 import { Course } from "../models/Course.js";
-import { Lesson } from "../models/Content.js";
+import { Content } from "../models/Content.js";
 import { calculateStudentLevel } from "../utils/studentLevel.js";
 import { generateAssessment } from "../utils/aiService.js";
 import { protect } from "../middleware/auth.js";
@@ -8,72 +8,76 @@ import { protect } from "../middleware/auth.js";
 const router = express.Router();
 
 /**
- * @route POST /api/ai-assessment/generate
- * @desc Generate an AI-powered assessment based on student level and course content
- * @access Private
+ * @route POST /api/AI-Assessment/generate
+ * @desc Generate an AI-powered assessment with robust RAG and error handling
  */
 router.post("/generate", protect, async (req, res) => {
+  const { courseId, type, count } = req.body;
+  const studentId = req.user._id;
+
   try {
-    const { courseId, type, count } = req.body;
-    const studentId = req.user._id;
-
-    console.log(`[AI-RAG] Generating ${type} for course ${courseId}...`);
-
+    // 1. Validation
     if (!courseId || !type) {
-      return res.status(400).json({ message: "Course ID and type are required" });
+      return res.status(400).json({ message: "Missing courseId or assessment type." });
     }
 
-    // 1. Calculate student level
-    const level = await calculateStudentLevel(studentId, courseId).catch(err => {
-      console.error("[AI-RAG] Level Calculation Error:", err);
-      return "Beginner"; // Fallback
-    });
+    console.log(`[AI-CONTROLLER] Request: Type=${type}, Course=${courseId}`);
 
-    // 2. Retrieve course context (RAG - Retrieval)
-    const course = await Course.findById(courseId).catch(err => {
-      console.error("[AI-RAG] Course DB Error:", err);
-      return null;
-    });
+    // 2. Student Level (Graceful default)
+    let level = "Beginner";
+    try {
+      level = await calculateStudentLevel(studentId, courseId);
+    } catch (lvlErr) {
+      console.warn(`[AI-CONTROLLER] Level calculation failed, using default: ${level}`);
+    }
 
+    // 3. Robust Context Retrieval (RAG)
+    const course = await Course.findById(courseId).select("title description").lean();
     if (!course) {
-      return res.status(404).json({ message: "Course not found in database" });
+      return res.status(404).json({ message: "Course not found." });
     }
 
-    const allContent = await Content.find({ courseId }).catch(err => {
-      console.error("[AI-RAG] Content DB Error:", err);
-      return [];
-    });
-    
-    const contentContext = allContent
-      .map((c) => {
-        return `Type: ${c.contentType}\nTitle: ${c.title}\nDescription: ${c.description || 'No description'}`;
-      })
-      .join("\n\n---\n\n");
+    const contents = await Content.find({ courseId })
+      .select("title description contentType")
+      .lean();
 
-    const fullContext = `
-      COURSE: ${course.title}
-      OVERVIEW: ${course.description}
-      CONTENT:
-      ${contentContext || 'No lessons added yet.'}
+    const contextItems = contents.map(c => 
+      `[${c.contentType}] ${c.title}: ${c.description || 'No detailed description available.'}`
+    );
+
+    const ragContext = `
+      COURSE TITLE: ${course.title}
+      COURSE OVERVIEW: ${course.description}
+      CONTENT DETAILS:
+      ${contextItems.length > 0 ? contextItems.join("\n") : "No specific lessons found."}
     `;
 
-    // 3. Generate Assessment (RAG - Generation)
+    // 4. Generation with specific error handling
     try {
-      const assessment = await generateAssessment(fullContext, level, type, count || 5);
-      res.json({
+      const assessment = await generateAssessment(ragContext, level, type, count || 5);
+      
+      console.log(`[AI-CONTROLLER] Successfully generated ${type}.`);
+      return res.status(200).json({
+        success: true,
         studentLevel: level,
         assessment
       });
-    } catch (aiErr) {
-      console.error("[AI-RAG] Gemini/AI Service Error:", aiErr.message);
-      res.status(502).json({ 
-        message: "AI Service failed to generate content. Please check if GEMINI_API_KEY is valid.",
-        error: aiErr.message 
+
+    } catch (aiError) {
+      console.error("[AI-CONTROLLER] AI Service Error:", aiError.message);
+      // Return 502 (Bad Gateway) indicating the AI provider failed
+      return res.status(502).json({ 
+        message: "The AI service is currently unable to fulfill the request.",
+        error: aiError.message 
       });
     }
+
   } catch (error) {
-    console.error("AI Generation Route Critical Error:", error);
-    res.status(500).json({ message: "Internal server error during AI generation" });
+    console.error("[AI-CONTROLLER-CRITICAL]:", error);
+    return res.status(500).json({ 
+      message: "A critical server error occurred during AI processing.",
+      details: error.message 
+    });
   }
 });
 

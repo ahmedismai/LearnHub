@@ -3,57 +3,37 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 /**
- * Generates an assessment based on content and student level.
- * @param {string} context - The course content/lessons text.
- * @param {string} level - Student level (Beginner, Intermediate, Advanced).
- * @param {string} type - 'Quiz' | 'Assignment' | 'Exam'.
- * @param {number} count - Number of questions/tasks.
- * @returns {Promise<Object>} The generated content.
+ * Hardened Gemini interaction service with defensive parsing
  */
 export const generateAssessment = async (context, level, type, count = 5) => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-       throw new Error("Missing GEMINI_API_KEY in environment variables.");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("[CRITICAL] GEMINI_API_KEY is not defined in environment.");
+      throw new Error("AI configuration missing on server.");
     }
 
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-      You are an expert professor specialized in educational assessment.
+      System: You are an expert academic professor specialized in ${type} design.
       
-      TASK: Generate a ${type} based on the provided course materials and the student's current proficiency level.
-      STUDENT LEVEL: ${level}
-      ASSESSMENT TYPE: ${type}
-      LANGUAGE: ENGLISH ONLY
-
-      COURSE MATERIALS & CONTEXT:
+      Context:
       ${context}
 
-      DIFFICULTY GUIDELINES PER LEVEL:
-      - Beginner: Focus on core terminology, basic understanding, and "what" questions.
-      - Intermediate: Focus on "how" and "why", scenario-based questions, and practical application.
-      - Advanced: Focus on critical analysis, synthesis of multiple concepts, and complex problem-solving.
+      Task: Generate a ${type} in ENGLISH for a student at the ${level} proficiency level.
+      Quantity: ${count} items.
 
-      ${type === 'Assignment' ? `
-      ASSIGNMENT REQUIREMENTS:
-      - Create ${count} practical tasks or projects.
-      - Each task should have a clear description and specific success criteria.
-      - Ensure tasks relate directly to the video lessons and course description mentioned above.
-      ` : `
-      ${type === 'Exam' ? 'EXAM' : 'QUIZ'} REQUIREMENTS:
-      - Generate ${count} multiple-choice questions.
-      - Each question must have 4 options and 1 correct answer.
-      - The questions should be comprehensive, covering various parts of the course materials.
-      - Distractors (wrong options) should be plausible but clearly incorrect.
-      `}
+      Output Requirements:
+      1. Format: STRICT JSON ONLY.
+      2. Content: Questions/Tasks must be directly derived from the provided Context.
+      3. Language: ALL output must be in English.
 
-      OUTPUT FORMAT (STRICT JSON ONLY):
-      If Quiz or Exam:
+      Expected JSON Structure (Quiz/Exam):
       {
-        "title": "${type} Title",
+        "title": "Clear English Title",
         "questions": [
           {
             "text": "The question text?",
@@ -63,37 +43,50 @@ export const generateAssessment = async (context, level, type, count = 5) => {
         ]
       }
 
-      If Assignment:
+      Expected JSON Structure (Assignment):
       {
-        "title": "Assignment Title",
+        "title": "Clear English Title",
         "tasks": [
           {
-            "description": "Detailed task description based on course material",
-            "criteria": "What constitutes a successful submission"
+            "description": "Specific task instruction",
+            "criteria": "Success metrics"
           }
         ]
       }
-      
-      CRITICAL: Return ONLY the JSON object. Do not include markdown formatting or extra text.
+
+      Important: Return ONLY the raw JSON object. Do not include markdown blocks or conversational text.
     `;
 
+    console.log(`[AI-LOG] Sending Context to Gemini (${context.length} chars)...`);
+
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
     
-    // Improved JSON cleaning: find the first { and last }
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-       console.error("[AI-SERVICE] Raw AI Response:", text);
-       throw new Error("AI returned an invalid response format (No JSON found).");
+    if (!result || !result.response) {
+      throw new Error("Gemini API returned an empty or invalid response.");
     }
 
-    const jsonString = text.substring(firstBrace, lastBrace + 1);
-    return JSON.parse(jsonString);
+    const rawText = result.response.text();
+    console.log("[AI-LOG] Raw Response Received from Gemini.");
+
+    // Defensive Sanitization: Find the first { and last } to extract JSON
+    const startIdx = rawText.indexOf('{');
+    const endIdx = rawText.lastIndexOf('}');
+
+    if (startIdx === -1 || endIdx === -1) {
+      console.error("[AI-LOG] Invalid AI Output Format. Raw text:", rawText);
+      throw new Error("AI response did not contain a valid JSON object.");
+    }
+
+    const sanitizedJson = rawText.substring(startIdx, endIdx + 1);
+    
+    try {
+      return JSON.parse(sanitizedJson);
+    } catch (parseError) {
+      console.error("[AI-LOG] JSON Parse Error. Sanitized String:", sanitizedJson);
+      throw new Error("Failed to parse AI output as JSON.");
+    }
   } catch (error) {
-    console.error("[AI-SERVICE] Error:", error.message);
+    console.error("[AI-SERVICE-ERROR]:", error.message);
     throw error;
   }
 };
