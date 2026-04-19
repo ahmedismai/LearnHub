@@ -108,6 +108,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<RoleBasedDashboard />} />
                 <Route path="my-courses" element={<MyCourses />} />
+                <Route path="create-course" element={<CreateCourse />} />
                 <Route path="courses/:id" element={<CourseDetails />} />
                 <Route path="edit-course/:id" element={<CreateCourse />} />
                 <Route path="certificates" element={<Certificates />} />
