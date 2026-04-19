@@ -8,6 +8,9 @@ import {
   Layout,
   TrendingUp,
   Clock,
+  Sparkles,
+  BrainCircuit,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -68,14 +71,50 @@ const Dashboard = () => {
             Student • Ready to continue your learning journey?
           </p>
         </div>
-        <Button
-          asChild
-          variant="gradient"
-          className="shadow-lg shadow-primary/20"
-        >
-          <Link to="/courses">Browse More Courses</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            asChild
+            variant="outline"
+            className="border-primary/30 text-primary hover:bg-primary/5 shadow-sm"
+          >
+            <Link to="/dashboard/quizzes" className="flex items-center gap-2 font-bold">
+               <Sparkles className="w-4 h-4" /> AI Study Center
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="gradient"
+            className="shadow-lg shadow-primary/20"
+          >
+            <Link to="/courses">Browse More Courses</Link>
+          </Button>
+        </div>
       </div>
+
+      {/* AI Hub Highlight */}
+      <Card className="bg-gradient-to-r from-primary/10 via-background to-primary/5 border-primary/20 shadow-lg overflow-hidden relative group">
+        <div className="absolute right-0 top-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+           <BrainCircuit className="w-32 h-32 text-primary" />
+        </div>
+        <CardContent className="p-8">
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20">
+               <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left space-y-2">
+               <h2 className="text-2xl font-black tracking-tight">AI Smart Practice Hub</h2>
+               <p className="text-muted-foreground max-w-lg">
+                  Boost your grades with our AI. Generate personalized quizzes and assignments based on your actual course videos and progress.
+               </p>
+            </div>
+            <Button asChild size="lg" className="h-14 px-8 text-lg font-black group-hover:translate-x-1 transition-transform">
+               <Link to="/dashboard/quizzes">
+                 Launch AI Center <ArrowRight className="ml-2 w-5 h-5" />
+               </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statCards.map((stat, i) => (

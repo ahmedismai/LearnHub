@@ -16,6 +16,9 @@ import {
   PlusCircle,
   FileText,
   Award,
+  Sparkles,
+  BrainCircuit,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -76,13 +79,52 @@ const InstructorOverview = () => {
           <h1 className="text-3xl font-bold text-foreground">Instructor Dashboard</h1>
           <p className="text-muted-foreground mt-1">Manage your expertise and student engagement</p>
         </div>
-        <Button asChild className="gap-2 h-11 px-6 shadow-lg shadow-primary/20">
-          <Link to="/dashboard/create-course">
-            <PlusCircle className="w-5 h-5" />
-            Create New Course
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 h-11 px-6">
+            <Link to="/dashboard/create-exam" className="flex items-center gap-2">
+               <Sparkles className="w-4 h-4" /> AI Exam Creator
+            </Link>
+          </Button>
+          <Button asChild className="gap-2 h-11 px-6 shadow-lg shadow-primary/20">
+            <Link to="/dashboard/create-course">
+              <PlusCircle className="w-5 h-5" />
+              Create New Course
+            </Link>
+          </Button>
+        </div>
       </div>
+
+      {/* AI Instructor Highlight */}
+      <Card className="bg-gradient-to-r from-blue-600/10 via-background to-primary/10 border-primary/20 shadow-lg overflow-hidden relative group">
+        <div className="absolute right-0 top-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+           <Sparkles className="w-32 h-32 text-primary" />
+        </div>
+        <CardContent className="p-8">
+          <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-xl shadow-primary/20">
+               <BrainCircuit className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left space-y-2">
+               <h2 className="text-2xl font-black tracking-tight">AI Content Creation Tools</h2>
+               <p className="text-muted-foreground max-w-xl">
+                  Save time using our AI generators. Create comprehensive final exams or quickly generate quizzes and assignments inside your course content.
+               </p>
+            </div>
+            <div className="flex flex-col gap-3">
+               <Button asChild className="h-12 px-8 font-bold">
+                  <Link to="/dashboard/create-exam">
+                    Generate Final Exam <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+               </Button>
+               <Button asChild variant="outline" className="h-12 px-8 font-bold border-primary text-primary">
+                  <Link to="/dashboard/my-courses">
+                    AI Quiz in Course <Sparkles className="ml-2 w-4 h-4" />
+                  </Link>
+               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
