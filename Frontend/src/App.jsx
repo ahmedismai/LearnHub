@@ -18,6 +18,7 @@ import CourseDetails from "./pages/CourseDetails";
 import Payment from "./pages/Payment";
 import DashboardLayout from "./components/DashboardLayout";
 import MyCourses from "./pages/MyCourses";
+import CreateCourse from "./pages/CreateCourse";
 import CreateExam from "./pages/CreateExam";
 import Certificates from "./pages/Certificates";
 import Grades from "./pages/Grades";
