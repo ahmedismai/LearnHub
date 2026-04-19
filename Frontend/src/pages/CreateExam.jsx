@@ -452,5 +452,4 @@ const CreateExam = () => {
   );
 };
 
-export default CreateExam;</content>
-<parameter name="filePath">d:\academy-weave-way\LearnHub\LearnHub\Frontend\src\pages\CreateExam.jsx
+export default CreateExam;
