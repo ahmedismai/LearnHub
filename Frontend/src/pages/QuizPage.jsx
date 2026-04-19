@@ -74,23 +74,37 @@ const QuizPage = () => {
   // 3. Submit Mutation
   const submitMutation = useMutation({
     mutationFn: async (payload) => {
-      if (isAiPractice) return { score: calculateScore() };
-      const endpoint =
-        type === "exam" ? "/ExamResult/Submit" : `/Quiz/${id}/submit`;
-      return api.post(endpoint, payload);
+      // Use the new Exam-Lifecycle for Exams (including AI Practice)
+      if (type === "exam" || isAiPractice) {
+        const lifecyclePayload = {
+          examId: isAiPractice ? aiData.examId || id : id,
+          selectedAnswers: payload.answers.map(a => ({
+            questionId: a.questionId,
+            answer: a.answer
+          }))
+        };
+        const response = await api.post("/Exam-Lifecycle/submit", lifecyclePayload);
+        return response.data;
+      }
+      
+      // Keep old logic for regular Quizzes
+      const endpoint = `/Quiz/${id}/submit`;
+      const response = await api.post(endpoint, payload);
+      return response.data;
     },
     onSuccess: (data) => {
-      if (isAiPractice) {
+      if (isAiPractice || type === "exam") {
         setScore(data.score);
         setShowResults(true);
         setIsFinished(true);
+        if (!isAiPractice) {
+           toast.success("Exam submitted and graded!");
+        }
       } else {
-        toast.success(
-          `${type === "exam" ? "Exam" : "Quiz"} submitted successfully!`,
-        );
+        toast.success("Quiz submitted successfully!");
         setIsFinished(true);
         queryClient.invalidateQueries(["enrollments", "me"]);
-        navigate(type === "exam" ? "/dashboard/exams" : "/dashboard/quizzes");
+        navigate("/dashboard/quizzes");
       }
     },
     onError: (error) => {

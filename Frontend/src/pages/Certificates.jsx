@@ -37,7 +37,7 @@ const Certificates = () => {
   });
 
   const eligibleEnrollments = useMemo(() => {
-    return enrollments.filter((e) => e.completed && e.courseId?._id);
+    return enrollments.filter((e) => e.canGenerateCertificate && e.courseId?._id);
   }, [enrollments]);
 
   const handleGenerate = async (courseId) => {
@@ -46,15 +46,15 @@ const Certificates = () => {
       await api.post("/Certificate", { courseId });
       await queryClient.invalidateQueries({ queryKey: ["certificates", "me"] });
       toast({
-        title: "Certificate generated",
-        description: "Your certificate is now available.",
+        title: "Certificate generated! 🎉",
+        description: "Congratulations on your graduation.",
       });
     } catch (error) {
       toast({
-        title: "Unable to generate certificate",
+        title: "Generation failed",
         description:
           error.response?.data?.message ||
-          "Please ensure you've completed all lessons and quizzes.",
+          "Please ensure you meet all graduation requirements.",
         variant: "destructive",
       });
     } finally {
