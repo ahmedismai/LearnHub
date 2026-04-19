@@ -15,6 +15,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
  */
 export const generateAssessment = async (context, level, type, count = 5) => {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+       throw new Error("Missing GEMINI_API_KEY in environment variables.");
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
@@ -77,11 +81,19 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     const response = await result.response;
     const text = response.text();
     
-    // Clean JSON if needed (sometimes Gemini wraps it in markdown)
-    const jsonString = text.replace(/```json|```/g, "").trim();
+    // Improved JSON cleaning: find the first { and last }
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+       console.error("[AI-SERVICE] Raw AI Response:", text);
+       throw new Error("AI returned an invalid response format (No JSON found).");
+    }
+
+    const jsonString = text.substring(firstBrace, lastBrace + 1);
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Error generating assessment:", error);
-    throw new Error("Failed to generate assessment with AI");
+    console.error("[AI-SERVICE] Error:", error.message);
+    throw error;
   }
 };
