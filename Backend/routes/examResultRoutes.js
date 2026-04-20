@@ -1,5 +1,6 @@
 import express from "express";
 import { Exam } from "../models/Exam.js";
+import { Course } from "../models/Course.js";
 import { ExamResult } from "../models/ExamResult.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { protect, authorize } from "../middleware/auth.js";
@@ -64,6 +65,43 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.get(
+  "/Instructor/AllResults",
+  protect,
+  authorize(ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const courses = await Course.find({ instructorId: req.user.id });
+      const courseIds = courses.map((c) => c._id);
+      const results = await ExamResult.find({ courseId: { $in: courseIds } })
+        .populate("studentId", "name email")
+        .populate("examId", "title")
+        .populate("courseId", "title");
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
+
+router.get(
+  "/ByExam/:examId/me",
+  protect,
+  authorize(ROLES.STUDENT),
+  async (req, res) => {
+    try {
+      const result = await ExamResult.findOne({
+        examId: req.params.examId,
+        studentId: req.user.id,
+      });
+      if (!result) return res.status(404).json({ message: "No result found" });
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 router.get("/:id", protect, async (req, res) => {
   try {

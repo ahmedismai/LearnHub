@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
-import { Loader2, Clock } from "lucide-react";
+import { Loader2, Clock, GraduationCap } from "lucide-react";
 
 const Exam = () => {
   const { id } = useParams();
@@ -18,7 +18,25 @@ const Exam = () => {
   const queryClient = useQueryClient();
 
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(3600); // 1 hour in seconds
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  // Check if already submitted
+  const { data: existingResult, isLoading: isCheckingResult } = useQuery({
+    queryKey: ["examResult", id, user?.id],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/ExamResult/StudentResults/${id}`); // This might need a specific endpoint to check by examId
+        // The endpoint /StudentResults/:courseId exists, let's see if we can use another one
+        // or just rely on the error or empty array from a new endpoint.
+        // Actually, let's add an endpoint to check result by examId.
+        const res = await api.get(`/ExamResult/ByExam/${id}/me`);
+        return res.data;
+      } catch (e) {
+        return null;
+      }
+    },
+    enabled: !!id && !!user,
+  });
 
   // Fetch Exam Details
   const { data: exam, isLoading } = useQuery({
@@ -27,7 +45,24 @@ const Exam = () => {
       const response = await api.get(`/Exam/${id}`);
       return response.data;
     },
+    onSuccess: (data) => {
+      if (!timeLeft && data.duration) {
+        const mins = parseInt(data.duration);
+        if (!isNaN(mins)) {
+          setTimeLeft(mins * 60);
+        } else {
+          setTimeLeft(3600); // Default 1 hour
+        }
+      }
+    },
   });
+
+  useEffect(() => {
+    if (exam && !timeLeft) {
+      const mins = parseInt(exam.duration) || 30;
+      setTimeLeft(mins * 60);
+    }
+  }, [exam]);
 
   // Submit Exam Mutation
   const submitMutation = useMutation({
@@ -36,7 +71,7 @@ const Exam = () => {
     },
     onSuccess: () => {
       toast({ title: "Exam submitted successfully!" });
-      navigate("/dashboard/quizzes");
+      navigate("/dashboard/quizzes", { replace: true });
     },
     onError: (error) => {
       toast({
@@ -49,10 +84,16 @@ const Exam = () => {
 
   // Timer
   useEffect(() => {
+    if (timeLeft === null) return;
+
     if (timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else {
+    } else if (timeLeft === 0) {
+      toast({
+        title: "Time's up!",
+        description: "Your exam is being submitted automatically.",
+      });
       handleSubmit();
     }
   }, [timeLeft]);
@@ -62,7 +103,7 @@ const Exam = () => {
   };
 
   const handleSubmit = () => {
-    if (!exam) return;
+    if (!exam || submitMutation.isPending) return;
     const examData = {
       examId: id,
       answers: Object.entries(answers).map(([questionId, answer]) => ({
@@ -73,10 +114,25 @@ const Exam = () => {
     submitMutation.mutate(examData);
   };
 
-  if (isLoading) {
+  if (isLoading || isCheckingResult) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (existingResult) {
+    return (
+      <div className="max-w-md mx-auto mt-20 text-center space-y-4 p-8 border rounded-2xl shadow-xl bg-background">
+        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+           <GraduationCap className="w-10 h-10" />
+        </div>
+        <h2 className="text-2xl font-bold">Exam Already Submitted</h2>
+        <p className="text-muted-foreground">You have already completed this exam. You cannot take it multiple times.</p>
+        <Button onClick={() => navigate("/dashboard/quizzes")} className="w-full">
+          Back to Quizzes
+        </Button>
       </div>
     );
   }
