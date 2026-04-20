@@ -963,6 +963,7 @@ const CourseDetails = () => {
                 >
                   Edit Full Course
                 </Button>
+                </div>
               </CardContent>
             ) : !isStudentEnrolled ? (
               <>
