@@ -75,14 +75,14 @@ const QuizPage = () => {
   if (isAiPractice && !aiData && !isLoading) {
     return (
       <div className="max-w-2xl mx-auto mt-12 text-center space-y-6">
-        <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning">
+        <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning ">
           <AlertTriangle className="w-10 h-10" />
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">Session Expired</h2>
           <p className="text-muted-foreground">
-            AI-generated assessments are temporary and lost on refresh. 
-            Please go back and generate a new one.
+            AI-generated assessments are temporary and lost on refresh. Please
+            go back and generate a new one.
           </p>
         </div>
         <Button onClick={() => navigate(-1)} variant="outline">
@@ -105,9 +105,9 @@ const QuizPage = () => {
             correct++;
           }
         });
-        
+
         const score = Math.round((correct / questions.length) * 100);
-        
+
         // Return a mock response that matches the expected structure
         return {
           success: true,
@@ -115,7 +115,7 @@ const QuizPage = () => {
           correctCount: correct,
           totalQuestions: questions.length,
           passed: score >= 70,
-          isAiPractice: true
+          isAiPractice: true,
         };
       }
 
@@ -123,15 +123,18 @@ const QuizPage = () => {
       if (type === "exam") {
         const lifecyclePayload = {
           examId: id,
-          selectedAnswers: payload.answers.map(a => ({
+          selectedAnswers: payload.answers.map((a) => ({
             questionId: a.questionId,
-            answer: a.answer
-          }))
+            answer: a.answer,
+          })),
         };
-        const response = await api.post("/Exam-Lifecycle/submit", lifecyclePayload);
+        const response = await api.post(
+          "/Exam-Lifecycle/submit",
+          lifecyclePayload,
+        );
         return response.data;
       }
-      
+
       // Keep old logic for regular Quizzes
       const endpoint = `/Quiz/${id}/submit`;
       const response = await api.post(endpoint, payload);
@@ -143,7 +146,7 @@ const QuizPage = () => {
         setShowResults(true);
         setIsFinished(true);
         if (!isAiPractice) {
-           toast.success("Exam submitted and graded!");
+          toast.success("Exam submitted and graded!");
         }
       } else {
         toast.success("Quiz submitted successfully!");
