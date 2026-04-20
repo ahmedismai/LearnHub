@@ -3,6 +3,7 @@ import { Exam } from "../models/Exam.js";
 import { Submission } from "../models/Submission.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { checkGraduationStatus } from "../utils/graduationEngine.js";
+import { updateGrade } from "../utils/gradeUpdater.js";
 import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
@@ -68,6 +69,16 @@ router.post("/submit", protect, async (req, res) => {
     });
 
     await submission.save();
+
+    // Save/Update Grade record
+    await updateGrade({
+      studentId,
+      courseId: exam.courseId,
+      examId: exam._id,
+      type: "Exam",
+      score,
+      maxScore: 100,
+    });
 
     // Run graduation check logic
     await checkGraduationStatus(studentId, exam.courseId);

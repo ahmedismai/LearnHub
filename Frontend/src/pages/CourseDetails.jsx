@@ -716,71 +716,16 @@ const CourseDetails = () => {
                   </div>
                 </div>
 
-                {/* New AI Assessment Generation Dialog */}
-                <Dialog
-                  open={isAIGenerationModalOpen}
-                  onOpenChange={setIsAIGenerationModalOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full py-6 flex items-center gap-2 border-dashed border-2 border-purple-500/50 hover:bg-purple-500/5 text-purple-600"
-                    >
-                      <Sparkles className="w-5 h-5" /> Generate with AI
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Lightbulb className="w-5 h-5 text-purple-600" /> AI Assessment Generator
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="ai-type">Assessment Type</Label>
-                        <select
-                          id="ai-type"
-                          className="w-full p-2 border rounded"
-                          value={aiAssessmentType}
-                          onChange={(e) => setAiAssessmentType(e.target.value)}
-                        >
-                          <option value="Quiz">Quiz</option>
-                          <option value="Assignment">Assignment</option>
-                          <option value="Final Exam">Final Exam</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="ai-count">Question/Task Count</Label>
-                        <Input
-                          id="ai-count"
-                          type="number"
-                          min="1"
-                          value={aiQuestionCount}
-                          onChange={(e) => setAiQuestionCount(parseInt(e.target.value) || 1)}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        className="w-full"
-                        onClick={handleGenerateAssessment}
-                        disabled={isAIGeneratingAssessment || aiQuestionCount <= 0}
-                      >
-                        {isAIGeneratingAssessment ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                          </>
-                        ) : (
-                          "Generate"
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Existing Add Content Dialog */}
-                <Dialog
-                  open={isAddingContent}
+                <div className="space-y-4">
+                  <AIQuizDialog 
+                    courseId={id} 
+                    mode="instructor" 
+                    buttonText="AI Smart Generator" 
+                  />
+                  
+                  {/* Existing Add Content Dialog */}
+                  <Dialog
+                    open={isAddingContent}
                   onOpenChange={(open) => {
                     setIsAddingContent(open);
                     if (!open) {
@@ -1064,7 +1009,7 @@ const CourseDetails = () => {
                 >
                   Back to My Courses
                 </Button>
-                <AIQuizDialog courseId={id} />
+                <AIQuizDialog courseId={id} mode="student" />
               </CardContent>
             )}
           </Card>

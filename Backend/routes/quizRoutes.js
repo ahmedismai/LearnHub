@@ -4,6 +4,7 @@ import { Question } from "../models/Question.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Grade } from "../models/Grade.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
+import { updateGrade } from "../utils/gradeUpdater.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
@@ -68,18 +69,14 @@ router.post(
 
       const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
-      const grade = await Grade.findOneAndUpdate(
-        { studentId: req.user.id, quizId: quiz._id },
-        {
-          studentId: req.user.id,
-          courseId: quiz.courseId,
-          quizId: quiz._id,
-          score,
-          maxScore,
-          percentage,
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
+      const grade = await updateGrade({
+        studentId: req.user.id,
+        courseId: quiz.courseId,
+        quizId: quiz._id,
+        type: "Quiz",
+        score,
+        maxScore,
+      });
 
       const enrollment = await Enrollment.findOne({
         studentId: req.user.id,

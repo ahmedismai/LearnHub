@@ -75,7 +75,7 @@ const QuizPage = () => {
   if (isAiPractice && !aiData && !isLoading) {
     return (
       <div className="max-w-2xl mx-auto mt-12 text-center space-y-6">
-        <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning ">
+        <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning">
           <AlertTriangle className="w-10 h-10" />
         </div>
         <div className="space-y-2">

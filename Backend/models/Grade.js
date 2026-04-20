@@ -16,9 +16,23 @@ const gradeSchema = new mongoose.Schema(
     },
     quizId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Quiz",
-      required: true,
+      ref: "Content", // Refers to the Quiz (Content discriminator)
       index: true,
+    },
+    examId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Exam",
+      index: true,
+    },
+    assignmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Content", // Refers to the Assignment (Content discriminator)
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: ["Quiz", "Exam", "Assignment"],
+      required: true,
     },
     score: { type: Number, required: true, min: 0 },
     maxScore: { type: Number, required: true, min: 1 },
@@ -28,6 +42,9 @@ const gradeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-gradeSchema.index({ studentId: 1, quizId: 1 }, { unique: true });
+// Ensure a student has only one grade per specific assessment
+gradeSchema.index({ studentId: 1, quizId: 1 }, { unique: true, partialFilterExpression: { quizId: { $exists: true } } });
+gradeSchema.index({ studentId: 1, examId: 1 }, { unique: true, partialFilterExpression: { examId: { $exists: true } } });
+gradeSchema.index({ studentId: 1, assignmentId: 1 }, { unique: true, partialFilterExpression: { assignmentId: { $exists: true } } });
 
 export const Grade = mongoose.model("Grade", gradeSchema);

@@ -21,15 +21,17 @@ import { useNavigate } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
-const AIQuizDialog = ({ courseId, buttonText }) => {
+const AIQuizDialog = ({ courseId, buttonText, mode = "student" }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("Quiz");
+  const [generatedAssessment, setGeneratedAssessment] = useState(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const generateAIQuiz = async () => {
     setLoading(true);
+    setGeneratedAssessment(null);
     try {
       const response = await api.post("/AI-Assessment/generate", {
         courseId,
@@ -38,36 +40,85 @@ const AIQuizDialog = ({ courseId, buttonText }) => {
       });
 
       const { assessment, studentLevel } = response.data;
+      setGeneratedAssessment(assessment);
       
       toast({
         title: `Smart ${type} Generated!`,
-        description: `Level: ${studentLevel}. Content based on ${buttonText || 'lessons'}.`,
+        description: mode === "instructor" 
+          ? "Preview your content below before adding to course." 
+          : `Level: ${studentLevel}. Content based on lessons.`,
       });
 
-      if (type === "Assignment") {
-         navigate("/dashboard/assignments", { 
-          state: { 
-            aiAssignment: assessment,
-            isAiGenerated: true 
-          } 
-        });
-      } else {
-        navigate("/dashboard/exam/ai-practice", { 
-          state: { 
-            quizData: assessment,
-            isAiGenerated: true,
-            assessmentType: type
-          } 
-        });
+      if (mode === "student") {
+        if (type === "Assignment") {
+           navigate("/dashboard/assignments", { 
+            state: { 
+              aiAssignment: assessment,
+              isAiGenerated: true 
+            } 
+          });
+        } else {
+          navigate("/dashboard/exam/ai-practice", { 
+            state: { 
+              quizData: assessment,
+              isAiGenerated: true,
+              assessmentType: type
+            } 
+          });
+        }
+        setOpen(false);
       }
-      
-      setOpen(false);
     } catch (error) {
       console.error("AI Generation Error:", error);
       toast({
         variant: "destructive",
         title: "Generation Failed",
         description: "Could not generate AI content at this time.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveToCourse = async () => {
+    if (!generatedAssessment) return;
+    setLoading(true);
+    try {
+      let formattedDescription = `AI-Generated ${type} for this course.`;
+      
+      if (type === "Assignment") {
+        formattedDescription = `### ${generatedAssessment.title}\n\n**Instructions:**\n` + 
+          generatedAssessment.tasks.map((t, i) => `${i+1}. ${t.description}\n   - *Success Criteria:* ${t.criteria}`).join('\n\n');
+      }
+
+      const payload = {
+        type: type, // "Quiz" or "Assignment"
+        title: generatedAssessment.title,
+        description: formattedDescription,
+        ...(type === "Quiz" && { 
+          questions: generatedAssessment.questions,
+          duration: "20m"
+        }),
+        ...(type === "Assignment" && {
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Default 1 week
+        })
+      };
+
+      await api.post(`/Course/${courseId}/contents`, payload);
+      
+      toast({
+        title: "Success!",
+        description: `${type} has been added to your course content.`,
+      });
+      setOpen(false);
+      setGeneratedAssessment(null);
+      // Optional: reload page or invalidate queries
+      window.location.reload();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Save",
+        description: error.response?.data?.message || "Could not add content to course.",
       });
     } finally {
       setLoading(false);
@@ -103,30 +154,36 @@ const AIQuizDialog = ({ courseId, buttonText }) => {
                 <Label htmlFor="quiz" className="flex flex-1 items-center gap-2 cursor-pointer">
                   <ListChecks className="w-4 h-4 text-primary" />
                   <div>
-                    <p className="font-bold">Practice Quiz</p>
-                    <p className="text-xs text-muted-foreground">Quick test on core concepts</p>
+                    <p className="font-bold">{mode === "instructor" ? "Official Quiz" : "Practice Quiz"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {mode === "instructor" ? "Add an AI-powered quiz to your lessons" : "Quick test on core concepts"}
+                    </p>
                   </div>
                 </Label>
               </div>
 
-              <div className={`flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${type === "Exam" ? "bg-primary/5 border-primary" : "border-muted"}`} onClick={() => setType("Exam")}>
-                <RadioGroupItem value="Exam" id="exam" />
-                <Label htmlFor="exam" className="flex flex-1 items-center gap-2 cursor-pointer">
-                  <GraduationCap className="w-4 h-4 text-primary" />
-                  <div>
-                    <p className="font-bold">Practice Exam</p>
-                    <p className="text-xs text-muted-foreground">Comprehensive final check</p>
-                  </div>
-                </Label>
-              </div>
+              {mode === "student" && (
+                <div className={`flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${type === "Exam" ? "bg-primary/5 border-primary" : "border-muted"}`} onClick={() => setType("Exam")}>
+                  <RadioGroupItem value="Exam" id="exam" />
+                  <Label htmlFor="exam" className="flex flex-1 items-center gap-2 cursor-pointer">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="font-bold">Practice Exam</p>
+                      <p className="text-xs text-muted-foreground">Comprehensive final check</p>
+                    </div>
+                  </Label>
+                </div>
+              )}
 
               <div className={`flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${type === "Assignment" ? "bg-primary/5 border-primary" : "border-muted"}`} onClick={() => setType("Assignment")}>
                 <RadioGroupItem value="Assignment" id="assignment" />
                 <Label htmlFor="assignment" className="flex flex-1 items-center gap-2 cursor-pointer">
                   <FileText className="w-4 h-4 text-primary" />
                   <div>
-                    <p className="font-bold">Practice Assignment</p>
-                    <p className="text-xs text-muted-foreground">Hands-on tasks & projects</p>
+                    <p className="font-bold">{mode === "instructor" ? "Official Assignment" : "Practice Assignment"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {mode === "instructor" ? "Add hands-on tasks to your course" : "Hands-on tasks & projects"}
+                    </p>
                   </div>
                 </Label>
               </div>
@@ -137,20 +194,53 @@ const AIQuizDialog = ({ courseId, buttonText }) => {
             We'll analyze your current grades and video lesson descriptions to create a personalized {type.toLowerCase()} just for you.
           </p>
 
-          <Button 
-            onClick={generateAIQuiz} 
-            disabled={loading}
-            className="w-full h-12 text-lg font-bold"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating {type}...
-              </>
-            ) : (
-              `Generate Smart ${type}`
-            )}
-          </Button>
+          {generatedAssessment && mode === "instructor" && (
+            <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3">
+              <p className="text-sm font-bold flex items-center gap-2">
+                 <Sparkles className="w-4 h-4 text-primary" />
+                 Preview: {generatedAssessment.title}
+              </p>
+              <div className="text-xs text-muted-foreground max-h-32 overflow-y-auto space-y-1">
+                 {type === "Quiz" || type === "Exam" ? (
+                   generatedAssessment.questions?.map((q, i) => (
+                     <div key={i} className="border-b border-primary/10 pb-1">
+                        Q{i+1}: {q.text || q.question}
+                     </div>
+                   ))
+                 ) : (
+                   generatedAssessment.tasks?.map((t, i) => (
+                    <div key={i} className="border-b border-primary/10 pb-1">
+                       Task {i+1}: {t.description}
+                    </div>
+                  ))
+                 )}
+              </div>
+              <Button 
+                onClick={saveToCourse} 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="animate-spin" /> : `Add this ${type} to Course`}
+              </Button>
+            </div>
+          )}
+
+          {(!generatedAssessment || mode === "student") && (
+            <Button 
+              onClick={generateAIQuiz} 
+              disabled={loading}
+              className="w-full h-12 text-lg font-bold"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating {type}...
+                </>
+              ) : (
+                `Generate Smart ${type}`
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

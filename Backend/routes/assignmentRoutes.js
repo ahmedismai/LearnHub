@@ -7,6 +7,7 @@ import { Submission } from "../models/Submission.js";
 import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
+import { updateGrade } from "../utils/gradeUpdater.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
@@ -148,6 +149,16 @@ router.patch(
       submission.feedback = feedback;
       submission.status = "Graded";
       await submission.save();
+
+      // Update Grade record
+      await updateGrade({
+        studentId: submission.studentId,
+        courseId: assignment.courseId,
+        assignmentId: assignment._id,
+        type: "Assignment",
+        score,
+        maxScore: 100, // Assuming assignments are out of 100
+      });
 
       res.json({ message: "Submission graded successfully", submission });
     } catch (error) {
