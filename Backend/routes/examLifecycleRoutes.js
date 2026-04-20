@@ -15,20 +15,29 @@ router.post("/submit", protect, async (req, res) => {
   const { examId, selectedAnswers } = req.body; // Array of { questionId, answer }
   const studentId = req.user._id;
 
+  if (!examId || !Array.isArray(selectedAnswers)) {
+    return res.status(400).json({ message: "Invalid submission format. examId and selectedAnswers are required." });
+  }
+
   try {
     const exam = await Exam.findById(examId);
     if (!exam) return res.status(404).json({ message: "Exam not found" });
 
     let correctCount = 0;
-    const questions = exam.questions;
+    const questions = exam.questions || [];
 
-    const gradedAnswers = questions.map((q) => {
-      const studentAns = selectedAnswers.find(a => a.questionId === q._id.toString());
+    if (questions.length === 0) {
+      return res.status(400).json({ message: "This exam has no questions." });
+    }
+
+    const gradedAnswers = questions.map((q, idx) => {
+      const qId = q._id ? q._id.toString() : idx.toString();
+      const studentAns = selectedAnswers.find(a => a.questionId === qId);
       const isCorrect = studentAns?.answer === q.correctAnswer;
       if (isCorrect) correctCount++;
 
       return {
-        questionId: q._id,
+        questionId: qId,
         selectedOption: studentAns?.answer || "No Answer",
         isCorrect
       };

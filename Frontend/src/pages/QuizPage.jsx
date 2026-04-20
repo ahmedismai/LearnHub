@@ -71,13 +71,58 @@ const QuizPage = () => {
     }
   }, [quizData, isAiPractice]);
 
+  // Handle case where AI Practice data is lost (e.g. refresh)
+  if (isAiPractice && !aiData && !isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 text-center space-y-6">
+        <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto text-warning">
+          <AlertTriangle className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Session Expired</h2>
+          <p className="text-muted-foreground">
+            AI-generated assessments are temporary and lost on refresh. 
+            Please go back and generate a new one.
+          </p>
+        </div>
+        <Button onClick={() => navigate(-1)} variant="outline">
+          Go Back to Course
+        </Button>
+      </div>
+    );
+  }
+
   // 3. Submit Mutation
   const submitMutation = useMutation({
     mutationFn: async (payload) => {
-      // Use the new Exam-Lifecycle for Exams (including AI Practice)
-      if (type === "exam" || isAiPractice) {
+      // Handle AI Practice locally
+      if (isAiPractice) {
+        let correct = 0;
+        const questions = quizData?.questions || [];
+        payload.answers.forEach((ans, idx) => {
+          const originalQuestion = questions[idx];
+          if (ans.answer === originalQuestion?.correctAnswer) {
+            correct++;
+          }
+        });
+        
+        const score = Math.round((correct / questions.length) * 100);
+        
+        // Return a mock response that matches the expected structure
+        return {
+          success: true,
+          score,
+          correctCount: correct,
+          totalQuestions: questions.length,
+          passed: score >= 70,
+          isAiPractice: true
+        };
+      }
+
+      // Use the new Exam-Lifecycle for Exams
+      if (type === "exam") {
         const lifecyclePayload = {
-          examId: isAiPractice ? aiData.examId || id : id,
+          examId: id,
           selectedAnswers: payload.answers.map(a => ({
             questionId: a.questionId,
             answer: a.answer
