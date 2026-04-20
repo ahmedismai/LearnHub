@@ -14,6 +14,7 @@ import {
   Loader2,
   BrainCircuit,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
@@ -36,6 +37,7 @@ const Assignments = ({ isSubComponent = false }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentAssignment, setCurrentAssignment] = useState(null);
 
+  const isInstructor = user?.role === "Instructor";
   const aiAssignment = location.state?.aiAssignment;
 
   const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
@@ -58,6 +60,22 @@ const Assignments = ({ isSubComponent = false }) => {
   } = useQuery({
     queryKey: ["assignments", "byCourses", courseIds],
     queryFn: async () => {
+      // If instructor, we might need a different way to fetch assignments if they are viewing this page
+      // But typically they view from StudentManagement or similar.
+      // If they are on this page, let's try to fetch assignments for their own courses.
+      if (isInstructor) {
+        const myCoursesRes = await api.get("/Course/instructor/me");
+        const myCourseIds = myCoursesRes.data.map(c => c._id);
+        const results = await Promise.all(
+          myCourseIds.map(async (courseId) => {
+            const response = await api.get(`/Assignment/course/${courseId}`);
+            const courseTitle = myCoursesRes.data.find(c => c._id === courseId)?.title;
+            return response.data.map(a => ({ ...a, courseTitle }));
+          })
+        );
+        return results.flat();
+      }
+
       const results = await Promise.all(
         courseIds.map(async (courseId) => {
           const response = await api.get(`/Assignment/course/${courseId}`);
@@ -77,11 +95,12 @@ const Assignments = ({ isSubComponent = false }) => {
       );
       return results.flat();
     },
-    enabled: user?.role === "Student" && courseIds.length > 0,
+    enabled: (user?.role === "Student" && courseIds.length > 0) || isInstructor,
   });
 
   const submitMutation = useMutation({
     mutationFn: async ({ assignmentId, file }) => {
+      if (isInstructor) return { message: "Instructor preview" };
       const formData = new FormData();
       formData.append("file", file);
       return await api.post(`/Assignment/${assignmentId}/submit`, formData, {
@@ -89,6 +108,7 @@ const Assignments = ({ isSubComponent = false }) => {
       });
     },
     onSuccess: () => {
+      if (isInstructor) return;
       queryClient.invalidateQueries(["assignments"]);
       queryClient.invalidateQueries(["enrollments", "me"]);
       toast.success("Assignment submitted successfully!");
@@ -112,12 +132,21 @@ const Assignments = ({ isSubComponent = false }) => {
   };
 
   return (
-    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''}`}>
+    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''} pb-10`}>
+      {isInstructor && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-center gap-3 mb-6">
+           <ShieldCheck className="text-amber-500 w-6 h-6" />
+           <div>
+              <p className="font-bold text-amber-800 uppercase text-xs">Instructor Preview Mode</p>
+              <p className="text-amber-700 text-sm">You are viewing assignments in preview mode. Submission is disabled.</p>
+           </div>
+        </div>
+      )}
       {!isSubComponent && (
         <div>
           <h1 className="text-3xl font-bold text-foreground">Assignments</h1>
           <p className="text-muted-foreground mt-1">
-            Track and submit your course work
+            {isInstructor ? "Preview how students see their course work" : "Track and submit your course work"}
           </p>
         </div>
       )}
@@ -206,12 +235,17 @@ const Assignments = ({ isSubComponent = false }) => {
                       </p>
                     </div>
                   </div>
-                  <Badge
-                    variant={assignment.isCompleted ? "success" : "secondary"}
-                    className="h-6"
-                  >
-                    {assignment.isCompleted ? "Completed" : "Pending"}
-                  </Badge>
+                  {!isInstructor && (
+                    <Badge
+                      variant={assignment.isCompleted ? "success" : "secondary"}
+                      className="h-6"
+                    >
+                      {assignment.isCompleted ? "Completed" : "Pending"}
+                    </Badge>
+                  )}
+                  {isInstructor && (
+                    <Badge variant="outline" className="h-6">Preview Only</Badge>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
@@ -228,101 +262,108 @@ const Assignments = ({ isSubComponent = false }) => {
                     </span>
                   </div>
 
-                  <Dialog
-                    open={
-                      isSubmitting && currentAssignment?._id === assignment._id
-                    }
-                    onOpenChange={(open) => {
-                      setIsSubmitting(open);
-                      if (!open) {
-                        setCurrentAssignment(null);
-                        setSelectedFile(null);
+                  {isInstructor ? (
+                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 text-center">
+                       <p className="text-sm font-bold text-primary">Student Submission Area</p>
+                       <p className="text-xs text-muted-foreground mt-1">This area is disabled in preview mode.</p>
+                    </div>
+                  ) : (
+                    <Dialog
+                      open={
+                        isSubmitting && currentAssignment?._id === assignment._id
                       }
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant={
-                          assignment.isCompleted ? "outline" : "gradient"
+                      onOpenChange={(open) => {
+                        setIsSubmitting(open);
+                        if (!open) {
+                          setCurrentAssignment(null);
+                          setSelectedFile(null);
                         }
-                        className="w-full h-11 text-base font-semibold"
-                        onClick={() => setCurrentAssignment(assignment)}
-                      >
-                        {assignment.isCompleted ? (
-                          <>
-                            <CheckCircle2 className="w-5 h-5 mr-2" />
-                            Resubmit Assignment
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-5 h-5 mr-2" />
-                            Submit Assignment
-                          </>
-                        )}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Submit: {assignment.title}</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="file"
-                            className="text-base font-semibold"
-                          >
-                            Choose File
-                          </Label>
-                          <div className="flex items-center gap-3">
-                            <Input
-                              id="file"
-                              type="file"
-                              onChange={(e) =>
-                                setSelectedFile(e.target.files[0])
-                              }
-                              className="cursor-pointer"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Accepted formats: PDF, ZIP, JPG, PNG (Max 10MB)
-                          </p>
-                        </div>
-
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                          <p className="text-sm font-medium flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-primary" />
-                            Important Note
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Ensure your work is complete before submitting. You
-                            can resubmit anytime before the deadline.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-3">
+                      }}
+                    >
+                      <DialogTrigger asChild>
                         <Button
-                          variant="ghost"
-                          onClick={() => setIsSubmitting(false)}
+                          variant={
+                            assignment.isCompleted ? "outline" : "gradient"
+                          }
+                          className="w-full h-11 text-base font-semibold"
+                          onClick={() => setCurrentAssignment(assignment)}
                         >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleSubmit}
-                          disabled={!selectedFile || submitMutation.isPending}
-                          className="min-w-[120px]"
-                        >
-                          {submitMutation.isPending ? (
+                          {assignment.isCompleted ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Submitting...
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                              Resubmit Assignment
                             </>
                           ) : (
-                            "Upload Work"
+                            <>
+                              <Upload className="w-5 h-5 mr-2" />
+                              Submit Assignment
+                            </>
                           )}
                         </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Submit: {assignment.title}</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-6 py-4">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="file"
+                              className="text-base font-semibold"
+                            >
+                              Choose File
+                            </Label>
+                            <div className="flex items-center gap-3">
+                              <Input
+                                id="file"
+                                type="file"
+                                onChange={(e) =>
+                                  setSelectedFile(e.target.files[0])
+                                }
+                                className="cursor-pointer"
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Accepted formats: PDF, ZIP, JPG, PNG (Max 10MB)
+                            </p>
+                          </div>
+
+                          <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                            <p className="text-sm font-medium flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-primary" />
+                              Important Note
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Ensure your work is complete before submitting. You
+                              can resubmit anytime before the deadline.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-3">
+                          <Button
+                            variant="ghost"
+                            onClick={() => setIsSubmitting(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleSubmit}
+                            disabled={!selectedFile || submitMutation.isPending}
+                            className="min-w-[120px]"
+                          >
+                            {submitMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Submitting...
+                              </>
+                            ) : (
+                              "Upload Work"
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </CardContent>
               </Card>
             ))
@@ -335,13 +376,14 @@ const Assignments = ({ isSubComponent = false }) => {
                 <h3 className="text-2xl font-bold text-foreground mb-3">
                   No Assignments Yet
                 </h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">
-                  Enroll in a course to access and submit assignments. When they
-                  appear, they'll show up right here.
+                <p className="text-muted-foreground max-sm mx-auto">
+                  {isInstructor ? "You haven't created any assignments for this course yet." : "Enroll in a course to access and submit assignments. When they appear, they'll show up right here."}
                 </p>
-                <Button variant="outline" className="mt-8" asChild>
-                  <a href="/courses">Browse Courses</a>
-                </Button>
+                {!isInstructor && (
+                  <Button variant="outline" className="mt-8" asChild>
+                    <a href="/courses">Browse Courses</a>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

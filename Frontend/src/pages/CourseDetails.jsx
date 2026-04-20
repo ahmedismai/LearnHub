@@ -588,14 +588,18 @@ const CourseDetails = () => {
                                 />
                               ) : content.contentType === "Quiz" ? (
                                 <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
-                                  <Link to={`/dashboard/exam/${content._id}`}>Take Quiz</Link>
+                                  <Link to={`/dashboard/exam/${content._id}`}>
+                                    {isInstructor ? "Preview Quiz" : "Take Quiz"}
+                                  </Link>
                                 </Button>
                               ) : (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                    <FileText className="w-5 h-5 text-muted-foreground/40" />
-                                   {isStudentEnrolled && <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
-                                      <Link to="/dashboard/assignments">Submit</Link>
-                                    </Button>}
+                                   <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
+                                      <Link to={isInstructor ? "/dashboard/assignments" : "/dashboard/assignments"}>
+                                        {isInstructor ? "View Assignments" : "Submit"}
+                                      </Link>
+                                    </Button>
                                 </div>
                               )}
                             </div>

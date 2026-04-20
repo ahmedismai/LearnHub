@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Trophy,
   BrainCircuit,
+  ShieldCheck,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ const QuizPage = () => {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
 
+  const isInstructor = user?.role === "Instructor";
   const isAiPractice = id === "ai-practice";
   const aiData = location.state?.quizData;
 
@@ -57,7 +59,7 @@ const QuizPage = () => {
         return response.data;
       }
     },
-    enabled: !isAiPractice || !!aiData,
+    enabled: (!isAiPractice || !!aiData),
     retry: 1,
   });
 
@@ -65,11 +67,11 @@ const QuizPage = () => {
 
   // 2. Set initial timer
   useEffect(() => {
-    if (quizData?.duration || isAiPractice) {
+    if ((quizData?.duration || isAiPractice) && !isInstructor) {
       const mins = parseInt(quizData?.duration) || 15;
       setTimeLeft(mins * 60);
     }
-  }, [quizData, isAiPractice]);
+  }, [quizData, isAiPractice, isInstructor]);
 
   // Handle case where AI Practice data is lost (e.g. refresh)
   if (isAiPractice && !aiData && !isLoading) {
@@ -95,6 +97,7 @@ const QuizPage = () => {
   // 3. Submit Mutation
   const submitMutation = useMutation({
     mutationFn: async (payload) => {
+      if (isInstructor) return { message: "Instructor preview - no data saved" };
       // Handle AI Practice locally
       if (isAiPractice) {
         let correct = 0;
@@ -141,6 +144,11 @@ const QuizPage = () => {
       return response.data;
     },
     onSuccess: (data) => {
+      if (isInstructor) {
+        toast.info("Preview Mode: No results were saved.");
+        navigate(-1);
+        return;
+      }
       if (isAiPractice || type === "exam") {
         setScore(data.score);
         setShowResults(true);
@@ -174,26 +182,26 @@ const QuizPage = () => {
 
   // 4. Timer Logic
   useEffect(() => {
-    if (timeLeft === null || isFinished) return;
+    if (timeLeft === null || isFinished || isInstructor) return;
     if (timeLeft <= 0) {
       handleSubmit();
       return;
     }
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, isFinished]);
+  }, [timeLeft, isFinished, isInstructor]);
 
   // 5. Prevent Refresh
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (!isFinished && timeLeft > 0) {
+      if (!isFinished && timeLeft > 0 && !isInstructor) {
         e.preventDefault();
         e.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isFinished, timeLeft]);
+  }, [isFinished, timeLeft, isInstructor]);
 
   const handleAnswerChange = (questionId, value) => {
     if (isFinished) return;
@@ -202,6 +210,11 @@ const QuizPage = () => {
 
   const handleSubmit = () => {
     if (isFinished || submitMutation.isPending) return;
+    if (isInstructor) {
+       toast.info("Exiting Instructor Preview Mode");
+       navigate(-1);
+       return;
+    }
 
     const questions = quizData?.questions || [];
     const payload = {
@@ -301,6 +314,15 @@ const QuizPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">
+      {isInstructor && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-center gap-3">
+           <ShieldCheck className="text-amber-500 w-6 h-6" />
+           <div>
+              <p className="font-bold text-amber-800 uppercase text-xs">Instructor Preview Mode</p>
+              <p className="text-amber-700 text-sm">You are viewing this quiz as a preview. No results will be saved.</p>
+           </div>
+        </div>
+      )}
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b py-4 px-6 flex justify-between items-center rounded-b-2xl shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -318,15 +340,17 @@ const QuizPage = () => {
             </p>
           </div>
         </div>
-        <div
-          className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
-        >
-          <Clock className="w-5 h-5" />
-          <span className="text-2xl font-mono font-black">
-            {Math.floor((timeLeft || 0) / 60)}:
-            {((timeLeft || 0) % 60).toString().padStart(2, "0")}
-          </span>
-        </div>
+        {!isInstructor && (
+          <div
+            className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
+          >
+            <Clock className="w-5 h-5" />
+            <span className="text-2xl font-mono font-black">
+              {Math.floor((timeLeft || 0) / 60)}:
+              {((timeLeft || 0) % 60).toString().padStart(2, "0")}
+            </span>
+          </div>
+        )}
       </header>
 
       <div className="px-4 space-y-8">
@@ -402,14 +426,14 @@ const QuizPage = () => {
               onClick={() => navigate(-1)}
               className="flex-1 sm:flex-initial"
             >
-              Quit
+              {isInstructor ? "Back" : "Quit"}
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={submitMutation.isPending || isFinished}
               className="flex-1 sm:flex-initial min-w-[160px] h-12 text-lg font-bold shadow-xl shadow-primary/30"
             >
-              {submitMutation.isPending ? "Processing..." : "Finish Assessment"}
+              {submitMutation.isPending ? "Processing..." : isInstructor ? "Exit Preview" : "Finish Assessment"}
             </Button>
           </div>
         </div>
