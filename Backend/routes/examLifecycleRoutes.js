@@ -13,10 +13,20 @@ const router = express.Router();
  */
 router.post("/submit", protect, async (req, res) => {
   const { examId, selectedAnswers } = req.body; // Array of { questionId, answer }
-  const studentId = req.user._id;
+  const studentId = req.user.id; // Corrected from req.user._id
 
   if (!examId || !Array.isArray(selectedAnswers)) {
     return res.status(400).json({ message: "Invalid submission format. examId and selectedAnswers are required." });
+  }
+
+  // Handle AI Practice sessions that aren't stored in the DB
+  if (examId === "ai-practice") {
+    return res.status(200).json({
+      success: true,
+      message: "AI Practice completed (not saved to history)",
+      score: 0, // Frontend handles calculation for AI Practice
+      isAiPractice: true
+    });
   }
 
   try {
