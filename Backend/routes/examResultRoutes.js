@@ -5,6 +5,7 @@ import { ExamResult } from "../models/ExamResult.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
+import { updateGrade } from "../utils/gradeUpdater.js";
 
 const router = express.Router();
 
@@ -22,7 +23,6 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
       return res.status(404).json({ message: "Exam not found" });
     }
 
-    const totalMarks = exam.totalMarks;
     const maxScore = exam.questions.length;
     const correctAnswers = exam.questions.reduce((acc, question) => {
       acc[String(question._id)] = question.correctAnswer;
@@ -46,12 +46,22 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
         examId,
         courseId: exam.courseId,
         score,
-        totalMarks,
+        totalMarks: maxScore,
         percentage,
         answers: answerRecords,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
+
+    // PERSIST TO GRADE MODEL
+    await updateGrade({
+      studentId: req.user.id,
+      courseId: exam.courseId,
+      examId,
+      type: "Exam",
+      score,
+      maxScore,
+    });
 
     await Enrollment.findOneAndUpdate(
       { studentId: req.user.id, courseId: exam.courseId },

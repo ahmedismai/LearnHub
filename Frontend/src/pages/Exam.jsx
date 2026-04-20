@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import api from "@/api/axios";
-import { Loader2, Clock, GraduationCap } from "lucide-react";
+import { Loader2, Clock, GraduationCap, ShieldCheck } from "lucide-react";
 
 const Exam = () => {
   const { id } = useParams();
@@ -20,22 +20,20 @@ const Exam = () => {
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
 
-  // Check if already submitted
+  const isInstructor = user?.role === "Instructor";
+
+  // Check if already submitted (only for students)
   const { data: existingResult, isLoading: isCheckingResult } = useQuery({
     queryKey: ["examResult", id, user?.id],
     queryFn: async () => {
       try {
-        const response = await api.get(`/ExamResult/StudentResults/${id}`); // This might need a specific endpoint to check by examId
-        // The endpoint /StudentResults/:courseId exists, let's see if we can use another one
-        // or just rely on the error or empty array from a new endpoint.
-        // Actually, let's add an endpoint to check result by examId.
         const res = await api.get(`/ExamResult/ByExam/${id}/me`);
         return res.data;
       } catch (e) {
         return null;
       }
     },
-    enabled: !!id && !!user,
+    enabled: !!id && !!user && user.role === "Student",
   });
 
   // Fetch Exam Details
@@ -45,32 +43,23 @@ const Exam = () => {
       const response = await api.get(`/Exam/${id}`);
       return response.data;
     },
-    onSuccess: (data) => {
-      if (!timeLeft && data.duration) {
-        const mins = parseInt(data.duration);
-        if (!isNaN(mins)) {
-          setTimeLeft(mins * 60);
-        } else {
-          setTimeLeft(3600); // Default 1 hour
-        }
-      }
-    },
   });
 
   useEffect(() => {
-    if (exam && !timeLeft) {
+    if (exam && timeLeft === null) {
       const mins = parseInt(exam.duration) || 30;
       setTimeLeft(mins * 60);
     }
-  }, [exam]);
+  }, [exam, timeLeft]);
 
   // Submit Exam Mutation
   const submitMutation = useMutation({
     mutationFn: async (examData) => {
+      if (isInstructor) return { message: "Instructor preview - no data saved" };
       return api.post("/ExamResult/Submit", examData);
     },
     onSuccess: () => {
-      toast({ title: "Exam submitted successfully!" });
+      toast({ title: isInstructor ? "Preview Mode: No data saved" : "Exam submitted successfully!" });
       navigate("/dashboard/quizzes", { replace: true });
     },
     onError: (error) => {
@@ -84,7 +73,7 @@ const Exam = () => {
 
   // Timer
   useEffect(() => {
-    if (timeLeft === null) return;
+    if (timeLeft === null || isInstructor) return;
 
     if (timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -96,14 +85,20 @@ const Exam = () => {
       });
       handleSubmit();
     }
-  }, [timeLeft]);
+  }, [timeLeft, isInstructor]);
 
   const handleAnswerChange = (questionId, answer) => {
+    if (isInstructor) return setAnswers({ ...answers, [questionId]: answer });
     setAnswers({ ...answers, [questionId]: answer });
   };
 
   const handleSubmit = () => {
     if (!exam || submitMutation.isPending) return;
+    if (isInstructor) {
+       toast({ title: "Preview Mode", description: "Instructors cannot submit exams." });
+       navigate("/dashboard/quizzes");
+       return;
+    }
     const examData = {
       examId: id,
       answers: Object.entries(answers).map(([questionId, answer]) => ({
@@ -117,28 +112,24 @@ const Exam = () => {
   if (isLoading || isCheckingResult) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (existingResult) {
-    return (
-      <div className="max-w-md mx-auto mt-20 text-center space-y-4 p-8 border rounded-2xl shadow-xl bg-background">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-           <GraduationCap className="w-10 h-10" />
-        </div>
-        <h2 className="text-2xl font-bold">Exam Already Submitted</h2>
-        <p className="text-muted-foreground">You have already completed this exam. You cannot take it multiple times.</p>
-        <Button onClick={() => navigate("/dashboard/quizzes")} className="w-full">
-          Back to Quizzes
-        </Button>
-      </div>
-    );
+  // Redirect if already submitted
+  if (existingResult && !isInstructor) {
+    navigate("/dashboard/quizzes", { replace: true });
+    return null;
   }
 
   if (!exam) {
-    return <div>Exam not found</div>;
+    return (
+      <div className="max-w-md mx-auto mt-20 text-center space-y-4 p-8 border rounded-2xl shadow-xl">
+        <h2 className="text-2xl font-bold">Exam Not Found</h2>
+        <Button onClick={() => navigate("/dashboard/quizzes")}>Back to Quizzes</Button>
+      </div>
+    );
   }
 
   const formatTime = (seconds) => {
@@ -148,40 +139,70 @@ const Exam = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{exam.title}</h1>
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          <span className="text-lg font-mono">{formatTime(timeLeft)}</span>
+    <div className="max-w-4xl mx-auto p-6 space-y-8 animate-fade-in pb-20">
+      {isInstructor && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-center gap-3">
+           <ShieldCheck className="text-amber-500 w-6 h-6" />
+           <div>
+              <p className="font-bold text-amber-800 uppercase text-xs">Instructor Preview Mode</p>
+              <p className="text-amber-700 text-sm">You are viewing this exam as a preview. No results will be saved.</p>
+           </div>
         </div>
+      )}
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-background/50 backdrop-blur-sm sticky top-0 z-10 py-4 border-b">
+        <div>
+           <Badge variant="outline" className="mb-2 uppercase tracking-wider text-[10px]">{exam.type || 'Final Exam'}</Badge>
+           <h1 className="text-3xl font-bold tracking-tight">{exam.title}</h1>
+        </div>
+        {!isInstructor && (
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border-2 ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-primary/5 border-primary/20'}`}>
+            <Clock className="w-5 h-5" />
+            <span className="text-2xl font-mono font-bold">{formatTime(timeLeft)}</span>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {exam.questions?.map((question, index) => (
-          <Card key={question._id}>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {index + 1}. {question.question}
+          <Card key={question._id} className="border-none shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+            <div className="h-2 bg-primary/10" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl leading-relaxed flex gap-4">
+                <span className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-sm">
+                  {index + 1}
+                </span>
+                {question.text}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <RadioGroup
                 value={answers[question._id] || ""}
                 onValueChange={(value) =>
                   handleAnswerChange(question._id, value)
                 }
+                className="grid grid-cols-1 md:grid-cols-2 gap-3"
               >
                 {question.options?.map((option, optIndex) => (
-                  <div key={optIndex} className="flex items-center space-x-2">
+                  <Label
+                    key={optIndex}
+                    htmlFor={`${question._id}-${optIndex}`}
+                    className={`flex items-center space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                       answers[question._id] === option 
+                       ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                       : 'border-muted hover:border-primary/30 hover:bg-muted/50'
+                    }`}
+                  >
                     <RadioGroupItem
                       value={option}
                       id={`${question._id}-${optIndex}`}
+                      className="sr-only"
                     />
-                    <Label htmlFor={`${question._id}-${optIndex}`}>
-                      {option}
-                    </Label>
-                  </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${answers[question._id] === option ? 'border-primary bg-primary' : 'border-muted-foreground/30'}`}>
+                       {answers[question._id] === option && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
+                    <span className="font-medium">{option}</span>
+                  </Label>
                 ))}
               </RadioGroup>
             </CardContent>
@@ -189,24 +210,34 @@ const Exam = () => {
         ))}
       </div>
 
-      <div className="flex justify-end mt-6">
-        <Button
-          onClick={handleSubmit}
-          disabled={submitMutation.isPending}
-          size="lg"
-        >
-          {submitMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              Submitting...
-            </>
-          ) : (
-            "Submit Exam"
-          )}
-        </Button>
+      <div className="flex justify-between items-center bg-background/80 backdrop-blur-md p-6 rounded-2xl border shadow-2xl sticky bottom-6">
+        <div className="text-sm text-muted-foreground">
+           {Object.keys(answers).length} of {exam.questions?.length} questions answered
+        </div>
+        <div className="flex gap-4">
+           <Button variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+           <Button
+             onClick={handleSubmit}
+             disabled={submitMutation.isPending}
+             size="lg"
+             className="px-10 font-bold shadow-xl shadow-primary/20"
+           >
+             {submitMutation.isPending ? (
+               <>
+                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                 Submitting...
+               </>
+             ) : (
+               isInstructor ? "Exit Preview" : "Finish & Submit Exam"
+             )}
+           </Button>
+        </div>
       </div>
     </div>
   );
 };
+
+export default Exam;
+
 
 export default Exam;

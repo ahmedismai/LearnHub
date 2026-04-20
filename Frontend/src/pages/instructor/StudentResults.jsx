@@ -11,26 +11,35 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, GraduationCap } from "lucide-react";
+import { Loader2, Search, GraduationCap, FileText, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 const StudentResults = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: results = [], isLoading } = useQuery({
-    queryKey: ["instructor", "student-results"],
+  const { data: grades = [], isLoading } = useQuery({
+    queryKey: ["instructor", "all-grades"],
     queryFn: async () => {
-      const response = await api.get("/ExamResult/Instructor/AllResults");
+      const response = await api.get("/Grade/Instructor/AllGrades");
       return response.data;
     },
   });
 
-  const filteredResults = results.filter((result) => 
-    result.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    result.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    result.examId?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredGrades = grades.filter((grade) => 
+    grade.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    grade.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (grade.quizId?.title || grade.examId?.title || grade.assignmentId?.title || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'Exam': return <GraduationCap className="w-4 h-4 text-purple-500" />;
+      case 'Quiz': return <FileText className="w-4 h-4 text-blue-500" />;
+      case 'Assignment': return <ClipboardList className="w-4 h-4 text-green-500" />;
+      default: return null;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,84 +53,89 @@ const StudentResults = () => {
     <div className="p-6 space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Student Results</h1>
-          <p className="text-muted-foreground mt-1">Monitor student performance across all your courses</p>
+          <h1 className="text-3xl font-bold tracking-tight">Gradebook</h1>
+          <p className="text-muted-foreground mt-1">View all student scores for quizzes, exams, and assignments</p>
         </div>
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search students, courses..."
-            className="pl-9"
+            className="pl-9 bg-background shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <Card className="border-none shadow-lg">
-        <CardHeader className="bg-primary/5 border-b pb-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Examination Reports</CardTitle>
-          </div>
+      <Card className="border-none shadow-xl overflow-hidden bg-background">
+        <CardHeader className="bg-muted/30 border-b pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-primary" />
+            Performance Records
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-bold">Student</TableHead>
-                <TableHead className="font-bold">Course</TableHead>
-                <TableHead className="font-bold">Exam</TableHead>
-                <TableHead className="font-bold text-center">Score</TableHead>
-                <TableHead className="font-bold text-center">Percentage</TableHead>
-                <TableHead className="font-bold text-center">Date</TableHead>
-                <TableHead className="font-bold text-right">Status</TableHead>
+              <TableRow className="bg-muted/20 hover:bg-muted/20 border-b">
+                <TableHead className="font-bold py-4">Student</TableHead>
+                <TableHead className="font-bold py-4">Course</TableHead>
+                <TableHead className="font-bold py-4">Assessment</TableHead>
+                <TableHead className="font-bold py-4 text-center">Type</TableHead>
+                <TableHead className="font-bold py-4 text-center">Score</TableHead>
+                <TableHead className="font-bold py-4 text-center">Result</TableHead>
+                <TableHead className="font-bold py-4 text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredResults.length > 0 ? (
-                filteredResults.map((result) => (
-                  <TableRow key={result._id} className="hover:bg-primary/5 transition-colors">
-                    <TableCell>
-                      <div className="font-medium">{result.studentId?.name || "N/A"}</div>
-                      <div className="text-xs text-muted-foreground">{result.studentId?.email}</div>
+              {filteredGrades.length > 0 ? (
+                filteredGrades.map((grade) => (
+                  <TableRow key={grade._id} className="hover:bg-primary/5 transition-colors border-b last:border-0">
+                    <TableCell className="py-4">
+                      <div className="font-bold text-foreground">{grade.studentId?.name || "N/A"}</div>
+                      <div className="text-xs text-muted-foreground">{grade.studentId?.email}</div>
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {result.courseId?.title || "N/A"}
+                    <TableCell className="py-4 max-w-[180px] truncate">
+                      {grade.courseId?.title || "N/A"}
                     </TableCell>
-                    <TableCell>{result.examId?.title || "N/A"}</TableCell>
-                    <TableCell className="text-center font-semibold">
-                      {result.score} / {result.totalMarks}
+                    <TableCell className="py-4 font-medium">
+                      {grade.quizId?.title || grade.examId?.title || grade.assignmentId?.title || "N/A"}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`text-sm font-bold ${result.percentage >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                          {result.percentage.toFixed(1)}%
-                        </span>
-                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${result.percentage >= 50 ? 'bg-green-500' : 'bg-red-500'}`}
-                            style={{ width: `${result.percentage}%` }}
-                          />
-                        </div>
+                    <TableCell className="py-4">
+                      <div className="flex justify-center">
+                        <Badge variant="outline" className="flex items-center gap-1.5 px-2 py-0.5">
+                          {getTypeIcon(grade.type)}
+                          {grade.type}
+                        </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-muted-foreground">
-                      {new Date(result.createdAt).toLocaleDateString()}
+                    <TableCell className="py-4">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-bold">{grade.score} / {grade.maxScore}</span>
+                        <span className={`text-[10px] px-1.5 rounded-full ${grade.percentage >= 50 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                           {grade.percentage}%
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={result.percentage >= 50 ? "success" : "destructive"}>
-                        {result.percentage >= 50 ? "Passed" : "Failed"}
-                      </Badge>
+                    <TableCell className="py-4 text-center">
+                       <Badge variant={grade.percentage >= 50 ? "success" : "destructive"} className="shadow-sm">
+                          {grade.percentage >= 50 ? "PASSED" : "FAILED"}
+                       </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 text-right text-sm text-muted-foreground">
+                      {new Date(grade.createdAt).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                       <GraduationCap className="w-10 h-10 opacity-20" />
-                       <p>No exam results found.</p>
+                  <TableCell colSpan={7} className="h-60 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                          <Search className="w-6 h-6 opacity-20" />
+                       </div>
+                       <p className="font-medium">No performance records found.</p>
+                       <p className="text-xs max-w-[200px] mx-auto opacity-70">Try adjusting your search or wait for students to complete assessments.</p>
                     </div>
                   </TableCell>
                 </TableRow>
