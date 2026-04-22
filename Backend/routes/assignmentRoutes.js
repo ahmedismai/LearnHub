@@ -171,7 +171,7 @@ router.patch(
   authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
   async (req, res) => {
     try {
-      const { score, feedback } = req.body;
+      const { score, feedback, aiFeedback, isReviewed } = req.body;
       const submission = await Submission.findById(req.params.submissionId);
       if (!submission) {
         return res.status(404).json({ message: "Submission not found" });
@@ -204,6 +204,8 @@ router.patch(
         type: "Assignment",
         score,
         maxScore: 100, // Assuming assignments are out of 100
+        aiFeedback,
+        isReviewed,
       });
 
       res.json({ message: "Submission graded successfully", submission });

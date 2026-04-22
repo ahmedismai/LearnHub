@@ -95,3 +95,79 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     throw error;
   }
 };
+
+/**
+ * Generates encouraging and educational feedback for assessments
+ */
+export const generateFeedback = async (assessmentType, assessmentData, submissionData) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("AI configuration missing.");
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    let prompt = "";
+
+    if (assessmentType === "Quiz" || assessmentType === "Exam") {
+      const wrongAnswers = submissionData.answers.filter(a => !a.isCorrect);
+      
+      if (wrongAnswers.length === 0) {
+        prompt = `
+          The student scored 100% on a ${assessmentType} titled "${assessmentData.title}".
+          Write a short, highly encouraging, and professional praise for their perfect score.
+          Keep it educational and briefly mention the importance of mastering these topics.
+        `;
+      } else {
+        // Map wrong answers to their questions if possible
+        // We need the question text and correct answer text
+        const analysisData = wrongAnswers.map(wa => {
+           const question = assessmentData.questions.find(q => q._id.toString() === wa.questionId || q.text === wa.text);
+           return {
+             question: question?.text || wa.questionId,
+             studentChoice: wa.selectedOption,
+             correctAnswer: question?.correctAnswer || "The correct one"
+           };
+        });
+
+        prompt = `
+          System: You are an encouraging AI Tutor. 
+          Task: Analyze the student's wrong answers in a ${assessmentType} titled "${assessmentData.title}".
+          
+          Data:
+          ${JSON.stringify(analysisData)}
+
+          Instructions:
+          1. For each wrong answer, explain WHY the student's choice might be wrong (logic gap).
+          2. Explain the logic behind the correct answer clearly.
+          3. Tone: Encouraging, professional, and educational.
+          4. Format: Plain text with clear sections.
+        `;
+      }
+    } else if (assessmentType === "Assignment") {
+      prompt = `
+        System: You are a professional AI Tutor evaluating an Assignment.
+        
+        Instructions for the Assignment:
+        ${assessmentData.description}
+
+        Student Submission (Text or Context):
+        ${submissionData.submittedFile || "Submitted as a file/external link."}
+
+        Task: Provide feedback based on the instructions.
+        Format:
+        - Positives: What the student did well.
+        - Gaps: What was missing according to the instructions.
+        - Growth Tip: Specific advice to improve their skill.
+        
+        Tone: Encouraging, professional, and educational.
+      `;
+    }
+
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error("[AI-FEEDBACK-ERROR]:", error.message);
+    return "I'm sorry, I couldn't generate feedback at this time. Keep up the great work!";
+  }
+};

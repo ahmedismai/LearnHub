@@ -71,7 +71,7 @@ router.post("/submit", protect, async (req, res) => {
     await submission.save();
 
     // Save/Update Grade record
-    await updateGrade({
+    const grade = await updateGrade({
       studentId,
       courseId: exam.courseId,
       examId: exam._id,
@@ -88,7 +88,8 @@ router.post("/submit", protect, async (req, res) => {
       score,
       correctCount,
       totalQuestions: questions.length,
-      passed: score >= 70
+      passed: score >= 70,
+      gradeId: grade._id,
     });
 
   } catch (error) {
@@ -113,6 +114,40 @@ router.get("/instructor/submissions", protect, authorize(ROLES.INSTRUCTOR), asyn
     res.json(submissions);
   } catch (error) {
     res.status(500).json({ message: "Fetch failed", error: error.message });
+  }
+});
+
+/**
+ * @route PATCH /api/Exam-Lifecycle/review/:submissionId
+ * @desc Instructor review and finalize score/feedback
+ */
+router.patch("/review/:submissionId", protect, authorize(ROLES.INSTRUCTOR), async (req, res) => {
+  try {
+    const { score, aiFeedback } = req.body;
+    const submission = await Submission.findById(req.params.submissionId);
+    
+    if (!submission) return res.status(404).json({ message: "Submission not found" });
+
+    submission.score = score;
+    submission.status = "Graded";
+    await submission.save();
+
+    await updateGrade({
+      studentId: submission.studentId,
+      courseId: submission.courseId,
+      quizId: submission.type === "Quiz" ? submission.contentId : undefined,
+      examId: submission.type === "Exam" ? submission.examId : undefined,
+      assignmentId: submission.type === "Assignment" ? submission.contentId : undefined,
+      type: submission.type,
+      score,
+      maxScore: 100,
+      aiFeedback,
+      isReviewed: true,
+    });
+
+    res.json({ message: "Review finalized successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Review failed", error: error.message });
   }
 });
 

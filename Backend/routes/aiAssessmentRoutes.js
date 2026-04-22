@@ -1,11 +1,63 @@
 import express from "express";
 import { Course } from "../models/Course.js";
-import { Content } from "../models/Content.js";
+import { Content, Assignment, Quiz } from "../models/Content.js";
+import { Grade } from "../models/Grade.js";
+import { Submission } from "../models/Submission.js";
+import { Exam } from "../models/Exam.js";
 import { calculateStudentLevel } from "../utils/studentLevel.js";
-import { generateAssessment } from "../utils/aiService.js";
+import { generateAssessment, generateFeedback } from "../utils/aiService.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
+
+/**
+ * @route POST /api/AI-Assessment/feedback
+ * @desc Generate and store AI feedback for a specific grade
+ */
+router.post("/feedback", protect, async (req, res) => {
+  const { gradeId } = req.body;
+
+  try {
+    const grade = await Grade.findById(gradeId);
+    if (!grade) return res.status(404).json({ message: "Grade not found" });
+
+    if (grade.aiFeedback) {
+      return res.status(200).json({ feedback: grade.aiFeedback });
+    }
+
+    // Find the submission to get answers/file
+    const filter = { studentId: grade.studentId };
+    if (grade.quizId) filter.contentId = grade.quizId;
+    if (grade.examId) filter.examId = grade.examId;
+    if (grade.assignmentId) filter.contentId = grade.assignmentId;
+
+    const submission = await Submission.findOne(filter);
+    if (!submission) return res.status(404).json({ message: "Submission not found" });
+
+    // Get assessment data
+    let assessmentData = null;
+    if (grade.type === "Exam") {
+      assessmentData = await Exam.findById(grade.examId);
+    } else if (grade.type === "Quiz") {
+      assessmentData = await Quiz.findById(grade.quizId);
+    } else if (grade.type === "Assignment") {
+      assessmentData = await Assignment.findById(grade.assignmentId);
+    }
+
+    if (!assessmentData) return res.status(404).json({ message: "Assessment data not found" });
+
+    const feedback = await generateFeedback(grade.type, assessmentData, submission);
+    
+    grade.aiFeedback = feedback;
+    await grade.save();
+
+    res.json({ feedback });
+  } catch (error) {
+    console.error("[AI-FEEDBACK-ERROR]:", error);
+    res.status(500).json({ message: "Failed to generate AI feedback" });
+  }
+});
+
 
 /**
  * @route POST /api/AI-Assessment/generate

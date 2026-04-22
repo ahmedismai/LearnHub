@@ -20,9 +20,11 @@ import {
   Trophy,
   BrainCircuit,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
+import AIFeedback from "@/components/AIFeedback";
 
 const QuizPage = () => {
   const { id } = useParams();
@@ -37,6 +39,8 @@ const QuizPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [gradeId, setGradeId] = useState(null);
+  const [gradeDataRecord, setGradeDataRecord] = useState(null);
 
   const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
@@ -62,6 +66,17 @@ const QuizPage = () => {
     },
     enabled: (!isAiPractice || !!aiData),
     retry: 1,
+  });
+
+  // Fetch grade record once we have a gradeId to get isReviewed status
+  const { data: gradeDetails } = useQuery({
+    queryKey: ["grade", gradeId],
+    queryFn: async () => {
+      // We don't have a single grade endpoint, but we can filter from /me
+      const res = await api.get("/Grade/me");
+      return res.data.find(g => g._id === gradeId);
+    },
+    enabled: !!gradeId,
   });
 
   const quizData = isAiPractice ? aiData : fetchedData;
@@ -150,18 +165,16 @@ const QuizPage = () => {
         navigate(-1);
         return;
       }
-      if (isAiPractice || type === "exam") {
-        setScore(data.score);
-        setShowResults(true);
-        setIsFinished(true);
-        if (!isAiPractice) {
-          toast.success("Exam submitted and graded!");
-        }
-      } else {
-        toast.success("Quiz submitted successfully!");
-        setIsFinished(true);
+      
+      setScore(data.score || (data.grade?.percentage));
+      setGradeId(data.gradeId || data.grade?._id);
+      setShowResults(true);
+      setIsFinished(true);
+      
+      if (!isAiPractice) {
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} submitted and graded!`);
         queryClient.invalidateQueries(["enrollments", "me"]);
-        navigate("/dashboard/quizzes");
+        queryClient.invalidateQueries(["grades", "me"]);
       }
     },
     onError: (error) => {
@@ -267,44 +280,59 @@ const QuizPage = () => {
     );
   }
 
-  if (showResults && isAiPractice) {
+  if (showResults && (isAiPractice || type === "exam" || type === "quiz")) {
     return (
-      <div className="max-w-2xl mx-auto mt-12 text-center space-y-8 p-8 bg-card rounded-2xl shadow-xl border border-primary/20">
-        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+      <div className="max-w-3xl mx-auto mt-12 text-center space-y-8 p-8 bg-card rounded-2xl shadow-xl border border-primary/20 animate-in fade-in zoom-in duration-500">
+        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary shadow-inner">
           <Trophy className="w-12 h-12" />
         </div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black">Practice Completed!</h2>
+          <h2 className="text-3xl font-black tracking-tight">{isAiPractice ? "Practice Completed!" : "Exam Completed!"}</h2>
           <div className="flex justify-center gap-4">
-            <div className="p-6 bg-muted rounded-2xl">
-              <p className="text-sm text-muted-foreground uppercase font-bold mb-1">
-                Your Score
+            <div className="p-6 bg-muted/50 rounded-2xl border">
+              <p className="text-xs text-muted-foreground uppercase font-black mb-1 tracking-widest">
+                Your Final Score
               </p>
               <p
-                className={`text-5xl font-black ${score >= 50 ? "text-green-500" : "text-destructive"}`}
+                className={`text-6xl font-black ${score >= 70 ? "text-green-500" : "text-destructive"}`}
               >
                 {score}%
               </p>
+              <Badge variant={score >= 70 ? "success" : "destructive"} className="mt-2">
+                 {score >= 70 ? "PASSED" : "FAILED"}
+              </Badge>
             </div>
           </div>
-          <p className="text-muted-foreground">
-            Great job! This AI-generated quiz was designed for your level. Keep
-            practicing to improve your skills.
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {score >= 70 
+              ? "Congratulations! You've demonstrated a solid understanding of the material." 
+              : "Don't discourage! Every attempt is a step closer to mastery. Review the feedback below to improve."}
           </p>
         </div>
-        <div className="flex gap-4 justify-center">
+
+        {/* AI Tutor Feedback Card */}
+        {!isAiPractice && gradeId && (
+           <div className="text-left max-w-2xl mx-auto">
+              <AIFeedback 
+                gradeId={gradeId} 
+                isReviewed={gradeDetails?.isReviewed}
+              />
+           </div>
+        )}
+
+        <div className="flex gap-4 justify-center pt-4">
           <Button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/dashboard/my-courses")}
             variant="outline"
-            className="h-12 px-8"
+            className="h-12 px-8 rounded-xl font-bold"
           >
             Return to Course
           </Button>
           <Button
             onClick={() => navigate("/dashboard/quizzes")}
-            className="h-12 px-8"
+            className="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20"
           >
-            View All Quizzes
+            All Assessments
           </Button>
         </div>
       </div>

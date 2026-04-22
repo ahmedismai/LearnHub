@@ -38,6 +38,8 @@ const gradeSchema = new mongoose.Schema(
     maxScore: { type: Number, required: true, min: 1 },
     percentage: { type: Number, required: true, min: 0, max: 100 },
     submittedAnswers: [{ type: Number }],
+    aiFeedback: { type: String },
+    isReviewed: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

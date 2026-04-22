@@ -4,9 +4,13 @@ import api from "@/api/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import AIFeedback from "@/components/AIFeedback";
+import { useState } from "react";
+import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 
 const Grades = () => {
   const { user } = useAuth();
+  const [expandedGrade, setExpandedGrade] = useState(null);
 
   const {
     data: grades = [],
@@ -139,33 +143,48 @@ const Grades = () => {
           <div className="space-y-4">
             {grades.length > 0 ? (
               grades.map((grade) => (
-                <div
-                  key={grade._id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/30"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <Badge variant="muted">Quiz</Badge>
-                      <h4 className="font-semibold text-foreground">
-                        {grade.quizId?.title || "Quiz"}
-                      </h4>
+                <div key={grade._id} className="space-y-2">
+                  <div
+                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 cursor-pointer hover:bg-secondary/50 transition-colors"
+                    onClick={() => setExpandedGrade(expandedGrade === grade._id ? null : grade._id)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <Badge variant="muted">{grade.type}</Badge>
+                        <h4 className="font-semibold text-foreground">
+                          {grade.quizId?.title || grade.examId?.title || grade.assignmentId?.title || "Assessment"}
+                        </h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {grade.courseId?.title || "Course"} • Graded on{" "}
+                        {new Date(grade.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {grade.courseId?.title || "Course"} • Graded on{" "}
-                      {new Date(grade.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <Badge
+                          variant={getGradeColor(grade.percentage || 0)}
+                          className="text-lg px-3 py-1"
+                        >
+                          {grade.score}/{grade.maxScore}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {grade.percentage}%
+                        </p>
+                      </div>
+                      {expandedGrade === grade._id ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge
-                      variant={getGradeColor(grade.percentage || 0)}
-                      className="text-lg px-3 py-1"
-                    >
-                      {grade.score}/{grade.maxScore}
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {grade.percentage}%
-                    </p>
-                  </div>
+                  
+                  {expandedGrade === grade._id && (
+                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
+                       <AIFeedback 
+                         gradeId={grade._id} 
+                         initialFeedback={grade.aiFeedback} 
+                         isReviewed={grade.isReviewed}
+                       />
+                    </div>
+                  )}
                 </div>
               ))
             ) : (

@@ -21,6 +21,8 @@ export const updateGrade = async ({
   type,
   score,
   maxScore,
+  aiFeedback,
+  isReviewed,
 }) => {
   try {
     const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
@@ -41,6 +43,9 @@ export const updateGrade = async ({
       maxScore,
       percentage,
     };
+
+    if (aiFeedback !== undefined) update.aiFeedback = aiFeedback;
+    if (isReviewed !== undefined) update.isReviewed = isReviewed;
 
     const grade = await Grade.findOneAndUpdate(
       filter,
