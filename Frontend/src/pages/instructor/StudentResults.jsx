@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import api from "@/api/axios";
 import {
   Table,
@@ -16,21 +17,33 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 const StudentResults = () => {
+  const { id } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: grades = [], isLoading } = useQuery({
-    queryKey: ["instructor", "all-grades"],
+    queryKey: ["instructor", "all-grades", id],
     queryFn: async () => {
       const response = await api.get("/Grade/Instructor/AllGrades");
       return response.data;
     },
   });
 
-  const filteredGrades = grades.filter((grade) => 
-    grade.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    grade.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (grade.quizId?.title || grade.examId?.title || grade.assignmentId?.title || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredGrades = grades.filter((grade) => {
+    const matchesSearch = 
+      grade.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (grade.quizId?.title || grade.examId?.title || grade.assignmentId?.title || "").toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (id) {
+      const matchesId = 
+        grade.quizId?._id === id || 
+        grade.examId?._id === id || 
+        grade.assignmentId?._id === id;
+      return matchesSearch && matchesId;
+    }
+    
+    return matchesSearch;
+  });
 
   const getTypeIcon = (type) => {
     switch (type) {

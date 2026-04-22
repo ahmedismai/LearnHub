@@ -1,5 +1,6 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import api from "@/api/axios";
 import {
   Card,
@@ -17,15 +18,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, User, BookOpen, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, User, BookOpen, CheckCircle2, XCircle, FileText, Download, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const InstructorSubmissions = () => {
+  const { id } = useParams();
+  const queryClient = useQueryClient();
+  const [gradingId, setGradingId] = useState(null);
+  const [gradeData, setGradeData] = useState({ score: 0, feedback: "" });
+
   const { data: submissions = [], isLoading } = useQuery({
-    queryKey: ["instructor", "submissions"],
+    queryKey: ["instructor", "submissions", id],
     queryFn: async () => {
-      const response = await api.get("/Exam-Lifecycle/instructor/submissions");
+      const endpoint = id 
+        ? `/Assignment/submissions/${id}` 
+        : "/Exam-Lifecycle/instructor/submissions";
+      const response = await api.get(endpoint);
       return response.data;
     },
+  });
+
+  const gradeMutation = useMutation({
+    mutationFn: async ({ submissionId, data }) => {
+      return await api.patch(`/Assignment/submissions/${submissionId}/grade`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["instructor", "submissions", id]);
+      toast.success("Submission graded successfully");
+      setGradingId(null);
+      setGradeData({ score: 0, feedback: "" });
+    },
+    onError: () => toast.error("Failed to grade submission"),
   });
 
   if (isLoading)
@@ -35,14 +61,16 @@ const InstructorSubmissions = () => {
       </div>
     );
 
+  const isAssignment = !!id;
+
   return (
-    <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-20">
+    <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-20 p-6">
       <div>
         <h1 className="text-3xl font-black tracking-tight">
-          Student Submissions
+          {isAssignment ? "Assignment Submissions" : "Student Submissions"}
         </h1>
         <p className="text-muted-foreground">
-          Monitor performance in AI-generated and official exams.
+          {isAssignment ? "Review and grade student assignment work." : "Monitor performance in AI-generated and official exams."}
         </p>
       </div>
 
@@ -50,11 +78,11 @@ const InstructorSubmissions = () => {
         <Card className="border-none shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
           <CardHeader className="bg-primary/5 border-b">
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Recent Exam Results
+              {isAssignment ? <FileText className="w-5 h-5 text-primary" /> : <BookOpen className="w-5 h-5 text-primary" />}
+              {isAssignment ? "Student Work" : "Recent Exam Results"}
             </CardTitle>
             <CardDescription>
-              Track who passed and who is eligible for graduation.
+              {isAssignment ? "Review file submissions and assign grades." : "Track who passed and who is eligible for graduation."}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -62,10 +90,10 @@ const InstructorSubmissions = () => {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead>Student</TableHead>
-                  <TableHead>Course & Exam</TableHead>
+                  <TableHead>{isAssignment ? "Submission" : "Course & Exam"}</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -91,27 +119,56 @@ const InstructorSubmissions = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="font-semibold text-sm">
-                          {sub.courseId?.title}
-                        </p>
-                        <p className="text-xs text-primary">
-                          {sub.examId?.title}
-                        </p>
+                        {isAssignment ? (
+                          <div className="flex flex-col gap-1">
+                            <Button variant="link" className="p-0 h-auto text-primary text-xs justify-start" asChild>
+                              <a href={sub.submittedFile} target="_blank" rel="noreferrer">
+                                <Download className="w-3 h-3 mr-1" /> View Submission
+                              </a>
+                            </Button>
+                            <span className="text-[10px] text-muted-foreground">
+                              Submitted: {new Date(sub.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-semibold text-sm">
+                              {sub.courseId?.title}
+                            </p>
+                            <p className="text-xs text-primary">
+                              {sub.examId?.title}
+                            </p>
+                          </>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span
-                            className={`text-lg font-black ${sub.score >= 70 ? "text-green-500" : "text-destructive"}`}
-                          >
-                            {sub.score}%
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {sub.correctCount} / {sub.totalQuestions} Correct
-                          </span>
-                        </div>
+                        {gradingId === sub._id ? (
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              className="w-16 h-8 text-xs" 
+                              value={gradeData.score}
+                              onChange={(e) => setGradeData({ ...gradeData, score: e.target.value })}
+                            />
+                            <span className="text-xs">/100</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col">
+                            <span
+                              className={`text-lg font-black ${(isAssignment ? (sub.score || 0) : sub.score) >= 70 ? "text-green-500" : "text-destructive"}`}
+                            >
+                              {sub.score || 0}%
+                            </span>
+                            {!isAssignment && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {sub.correctCount} / {sub.totalQuestions} Correct
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        {sub.score >= 70 ? (
+                        {(isAssignment ? (sub.score || 0) : sub.score) >= 70 ? (
                           <Badge className="bg-green-500/10 text-green-600 border-green-200 gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Passed
                           </Badge>
@@ -124,8 +181,46 @@ const InstructorSubmissions = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-xs text-muted-foreground">
-                        {new Date(sub.createdAt).toLocaleDateString()}
+                      <TableCell className="text-right">
+                        {isAssignment && (
+                          gradingId === sub._id ? (
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8"
+                                onClick={() => setGradingId(null)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="h-8"
+                                onClick={() => gradeMutation.mutate({ submissionId: sub._id, data: gradeData })}
+                                disabled={gradeMutation.isPending}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 gap-1"
+                              onClick={() => {
+                                setGradingId(sub._id);
+                                setGradeData({ score: sub.score || 0, feedback: sub.feedback || "" });
+                              }}
+                            >
+                              <Star className="w-3 h-3" /> Grade
+                            </Button>
+                          )
+                        )}
+                        {!isAssignment && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(sub.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

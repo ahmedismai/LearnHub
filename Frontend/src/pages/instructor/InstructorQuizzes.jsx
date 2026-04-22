@@ -106,8 +106,10 @@ const InstructorQuizzes = () => {
                       Edit Quiz
                     </Link>
                   </Button>
-                  <Button size="sm" className="flex-1" disabled>
-                    View Results
+                  <Button asChild size="sm" className="flex-1">
+                    <Link to={`/dashboard/student-results/${quiz._id}`}>
+                      View Results
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

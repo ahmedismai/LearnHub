@@ -137,8 +137,10 @@ const InstructorAssignments = () => {
                       Edit Assignment
                     </Link>
                   </Button>
-                  <Button size="sm" className="flex-1" disabled>
-                    Review Submissions
+                  <Button asChild size="sm" className="flex-1">
+                    <Link to={`/dashboard/review-submissions/${assignment._id}`}>
+                      Review Submissions
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

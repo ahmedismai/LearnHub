@@ -48,26 +48,31 @@ const Assignments = ({ isSubComponent = false }) => {
     queryKey: ["assignments", user?.role],
     queryFn: async () => {
       const response = await api.get("/Assignment");
-      if (isInstructor) {
-        return response.data.map(a => ({ ...a, courseTitle: a.courseId?.title }));
-      }
+      const allAssignments = response.data;
 
-      // For students, we need to check completion status
+      // For students, we only want assignments from courses they are enrolled in
       const enrollmentsRes = await api.get("/Enrollment/me");
       const enrollments = enrollmentsRes.data;
-      
-      return response.data.map((a) => {
-        const enrollment = enrollments.find(
-          (e) => e.courseId?._id === a.courseId?._id,
-        );
-        return {
-          ...a,
-          courseTitle: a.courseId?.title,
-          isCompleted: enrollment?.completedAssignments?.some(
-            (id) => id === a._id,
-          ),
-        };
-      });
+      const enrolledCourseIds = enrollments.map(e => (e.courseId?._id || e.courseId).toString());
+
+      if (isInstructor) {
+        return allAssignments.map(a => ({ ...a, courseTitle: a.courseId?.title }));
+      }
+
+      return allAssignments
+        .filter(a => enrolledCourseIds.includes((a.courseId?._id || a.courseId).toString()))
+        .map((a) => {
+          const enrollment = enrollments.find(
+            (e) => (e.courseId?._id || e.courseId).toString() === (a.courseId?._id || a.courseId).toString(),
+          );
+          return {
+            ...a,
+            courseTitle: a.courseId?.title,
+            isCompleted: enrollment?.completedAssignments?.some(
+              (id) => id.toString() === a._id.toString(),
+            ),
+          };
+        });
     },
     enabled: !!user,
   });

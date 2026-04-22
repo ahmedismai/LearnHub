@@ -120,7 +120,10 @@ const App = () => (
                 <Route path="exams" element={<Exams />} />
                 <Route path="exam/:id" element={<QuizPage />} />
                 <Route path="students" element={<StudentManagement />} />
-                <Route path="student-results" element={<StudentResults />} /> {/* New route */}
+                <Route path="student-results" element={<StudentResults />} />
+                <Route path="student-results/:id" element={<StudentResults />} />
+                <Route path="review-submissions" element={<InstructorSubmissions />} />
+                <Route path="review-submissions/:id" element={<InstructorSubmissions />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="admin-courses" element={<AdminCourses />} />
                 <Route path="reports" element={<AdminOverview />} />
