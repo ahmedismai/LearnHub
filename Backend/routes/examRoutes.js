@@ -6,9 +6,21 @@ import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
-    const exams = await Exam.find({ status: "Published" }).populate(
+    let query = { status: "Published" };
+    if (req.user.role === ROLES.INSTRUCTOR) {
+      query = { instructorId: req.user.id };
+    } else if (req.user.role === ROLES.ADMINISTRATOR) {
+      query = {};
+    } else if (req.user.role === ROLES.STUDENT) {
+      const { Enrollment } = await import("../models/Enrollment.js");
+      const enrollments = await Enrollment.find({ studentId: req.user.id });
+      const courseIds = enrollments.map((e) => e.courseId);
+      query = { courseId: { $in: courseIds }, status: "Published" };
+    }
+    
+    const exams = await Exam.find(query).populate(
       "courseId",
       "title",
     );

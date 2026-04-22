@@ -40,62 +40,36 @@ const Assignments = ({ isSubComponent = false }) => {
   const isInstructor = user?.role === "Instructor";
   const aiAssignment = location.state?.aiAssignment;
 
-  const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
-    queryKey: ["enrollments", "me"],
-    queryFn: async () => {
-      const response = await api.get("/Enrollment/me");
-      return response.data;
-    },
-    enabled: user?.role === "Student",
-  });
-
-  const courseIds = useMemo(() => {
-    return enrollments.map((e) => e.courseId?._id).filter(Boolean);
-  }, [enrollments]);
-
   const {
     data: assignments = [],
     isLoading: isAssignmentsLoading,
     isError,
   } = useQuery({
-    queryKey: ["assignments", "byCourses", courseIds],
+    queryKey: ["assignments", user?.role],
     queryFn: async () => {
-      // If instructor, we might need a different way to fetch assignments if they are viewing this page
-      // But typically they view from StudentManagement or similar.
-      // If they are on this page, let's try to fetch assignments for their own courses.
+      const response = await api.get("/Assignment");
       if (isInstructor) {
-        const myCoursesRes = await api.get("/Course/instructor/me");
-        const myCourseIds = myCoursesRes.data.map(c => c._id);
-        const results = await Promise.all(
-          myCourseIds.map(async (courseId) => {
-            const response = await api.get(`/Assignment/course/${courseId}`);
-            const courseTitle = myCoursesRes.data.find(c => c._id === courseId)?.title;
-            return response.data.map(a => ({ ...a, courseTitle }));
-          })
-        );
-        return results.flat();
+        return response.data.map(a => ({ ...a, courseTitle: a.courseId?.title }));
       }
 
-      const results = await Promise.all(
-        courseIds.map(async (courseId) => {
-          const response = await api.get(`/Assignment/course/${courseId}`);
-          return response.data.map((a) => {
-            const enrollment = enrollments.find(
-              (e) => e.courseId?._id === courseId,
-            );
-            return {
-              ...a,
-              courseTitle: enrollment?.courseId?.title,
-              isCompleted: enrollment?.completedAssignments?.some(
-                (id) => id === a._id,
-              ),
-            };
-          });
-        }),
-      );
-      return results.flat();
+      // For students, we need to check completion status
+      const enrollmentsRes = await api.get("/Enrollment/me");
+      const enrollments = enrollmentsRes.data;
+      
+      return response.data.map((a) => {
+        const enrollment = enrollments.find(
+          (e) => e.courseId?._id === a.courseId?._id,
+        );
+        return {
+          ...a,
+          courseTitle: a.courseId?.title,
+          isCompleted: enrollment?.completedAssignments?.some(
+            (id) => id === a._id,
+          ),
+        };
+      });
     },
-    enabled: (user?.role === "Student" && courseIds.length > 0) || isInstructor,
+    enabled: !!user,
   });
 
   const submitMutation = useMutation({
@@ -194,7 +168,7 @@ const Assignments = ({ isSubComponent = false }) => {
         </Card>
       )}
 
-      {(isEnrollmentsLoading || isAssignmentsLoading) && (
+      {isAssignmentsLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
             <Card key={i} className="h-48 animate-pulse bg-muted" />
@@ -211,7 +185,7 @@ const Assignments = ({ isSubComponent = false }) => {
         </Card>
       )}
 
-      {!isEnrollmentsLoading && !isAssignmentsLoading && !isError && (
+      {!isAssignmentsLoading && !isError && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {assignments.length > 0 ? (
             assignments.map((assignment) => (

@@ -10,60 +10,46 @@ import { Link } from "react-router-dom";
 
 const Quizzes = ({ isSubComponent = false }) => {
   const { user } = useAuth();
+  const isInstructor = user?.role === "Instructor";
 
   const {
-    data: enrollments = [],
-    isLoading: isEnrollmentsLoading,
-    isError: isEnrollmentsError,
+    data: quizzes = [],
+    isLoading,
+    isError,
   } = useQuery({
-    queryKey: ["enrollments", "me"],
+    queryKey: ["quizzes", user?.role],
     queryFn: async () => {
-      const response = await api.get("/Enrollment/me");
+      const response = await api.get("/Quiz");
       return response.data;
     },
-    enabled: user?.role === "Student",
+    enabled: !!user,
   });
-
-  const courseIds = useMemo(() => {
-    return enrollments.map((e) => e.courseId?._id).filter(Boolean);
-  }, [enrollments]);
-
-  const {
-    data: quizzesByCourse = [],
-    isLoading: isQuizzesLoading,
-    isError: isQuizzesError,
-  } = useQuery({
-    queryKey: ["quizzes", "byCourses", courseIds],
-    queryFn: async () => {
-      const results = await Promise.all(
-        courseIds.map(async (courseId) => {
-          const response = await api.get(`/Quiz/course/${courseId}`);
-          return response.data.map((quiz) => ({ ...quiz, courseId }));
-        }),
-      );
-      return results.flat();
-    },
-    enabled: user?.role === "Student" && courseIds.length > 0,
-  });
-
-  const quizzes = quizzesByCourse;
 
   return (
-    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto' : ''}`}>
+    <div className={`space-y-6 animate-fade-in ${!isSubComponent ? 'max-w-7xl mx-auto p-6' : ''}`}>
+      {isInstructor && !isSubComponent && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-center gap-3 mb-6">
+           <ClipboardList className="text-amber-500 w-6 h-6" />
+           <div>
+              <p className="font-bold text-amber-800 uppercase text-xs">Instructor View</p>
+              <p className="text-amber-700 text-sm">You are viewing all quizzes in your courses. Click to preview.</p>
+           </div>
+        </div>
+      )}
       {!isSubComponent && (
         <div>
           <h1 className="text-3xl font-bold text-foreground">Quizzes</h1>
           <p className="text-muted-foreground mt-1">
-            Practice and test your knowledge
+            {isInstructor ? "Monitor and preview your course quizzes" : "Practice and test your knowledge"}
           </p>
         </div>
       )}
 
-      {(isEnrollmentsLoading || isQuizzesLoading) && (
+      {isLoading && (
         <p className="text-muted-foreground">Loading quizzes...</p>
       )}
 
-      {(isEnrollmentsError || isQuizzesError) && (
+      {isError && (
         <Card>
           <CardContent className="p-6">
             <p className="text-destructive">Failed to load quizzes.</p>
@@ -71,10 +57,7 @@ const Quizzes = ({ isSubComponent = false }) => {
         </Card>
       )}
 
-      {!isEnrollmentsLoading &&
-        !isQuizzesLoading &&
-        !isEnrollmentsError &&
-        !isQuizzesError && (
+      {!isLoading && !isError && (
           <>
             {quizzes.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -93,7 +76,7 @@ const Quizzes = ({ isSubComponent = false }) => {
                             {quiz.title}
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            {quiz.questions?.length || 0} questions
+                            Course: {quiz.courseId?.title}
                           </p>
                         </div>
                       </div>
@@ -103,7 +86,7 @@ const Quizzes = ({ isSubComponent = false }) => {
                       <Button variant="gradient" className="w-full" asChild>
                         <Link to={`/dashboard/exam/${quiz._id}`}>
                           <Play className="w-4 h-4 mr-2" />
-                          Start Quiz
+                          {isInstructor ? "Preview Quiz" : "Start Quiz"}
                         </Link>
                       </Button>
                     </CardContent>
@@ -115,10 +98,10 @@ const Quizzes = ({ isSubComponent = false }) => {
                 <CardContent className="p-12 text-center">
                   <ClipboardList className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-xl font-bold text-foreground mb-2">
-                    No Quizzes Yet
+                    No Quizzes Found
                   </h3>
                   <p className="text-muted-foreground">
-                    Enroll in a course to access quizzes.
+                    {isInstructor ? "You haven't created any quizzes for your courses yet." : "Enroll in a course to access quizzes."}
                   </p>
                 </CardContent>
               </Card>

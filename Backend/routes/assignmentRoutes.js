@@ -25,6 +25,52 @@ const storage = new CloudinaryStorage({
 const router = express.Router();
 const upload = multer({ storage });
 
+// Get all assignments based on role
+router.get("/", protect, async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === ROLES.INSTRUCTOR) {
+      const courses = await Course.find({ instructorId: req.user.id });
+      const courseIds = courses.map((c) => c._id);
+      query = { courseId: { $in: courseIds } };
+    } else if (req.user.role === ROLES.STUDENT) {
+      const enrollments = await Enrollment.find({ studentId: req.user.id });
+      const courseIds = enrollments.map((e) => e.courseId);
+      query = { courseId: { $in: courseIds } };
+    } else if (req.user.role === ROLES.ADMINISTRATOR) {
+      query = {};
+    }
+
+    const assignments = await Assignment.find({
+      ...query,
+      contentType: "Assignment",
+    }).populate("courseId", "title");
+    res.json(assignments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all assignments for an instructor or admin
+router.get("/Instructor/AllAssignments", protect, authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR), async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === ROLES.INSTRUCTOR) {
+      const courses = await Course.find({ instructorId: req.user.id });
+      const courseIds = courses.map(c => c._id);
+      query = { courseId: { $in: courseIds } };
+    }
+    
+    const assignments = await Assignment.find({
+      ...query,
+      contentType: "Assignment",
+    }).populate("courseId", "title");
+    res.json(assignments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get assignments for a course
 router.get("/course/:courseId", protect, async (req, res) => {
   try {

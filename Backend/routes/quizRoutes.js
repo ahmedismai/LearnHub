@@ -1,6 +1,7 @@
 import express from "express";
 import { Content, Quiz } from "../models/Content.js";
 import { Question } from "../models/Question.js";
+import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Grade } from "../models/Grade.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
@@ -9,6 +10,52 @@ import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
+
+// Get all quizzes based on role
+router.get("/", protect, async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === ROLES.INSTRUCTOR) {
+      const courses = await Course.find({ instructorId: req.user.id });
+      const courseIds = courses.map((c) => c._id);
+      query = { courseId: { $in: courseIds } };
+    } else if (req.user.role === ROLES.STUDENT) {
+      const enrollments = await Enrollment.find({ studentId: req.user.id });
+      const courseIds = enrollments.map((e) => e.courseId);
+      query = { courseId: { $in: courseIds } };
+    } else if (req.user.role === ROLES.ADMINISTRATOR) {
+      query = {};
+    }
+
+    const quizzes = await Quiz.find({
+      ...query,
+      contentType: "Quiz",
+    }).populate("courseId", "title");
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all quizzes for an instructor or admin
+router.get("/Instructor/AllQuizzes", protect, authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR), async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === ROLES.INSTRUCTOR) {
+      const courses = await Course.find({ instructorId: req.user.id });
+      const courseIds = courses.map(c => c._id);
+      query = { courseId: { $in: courseIds } };
+    }
+    
+    const quizzes = await Quiz.find({
+      ...query,
+      contentType: "Quiz",
+    }).populate("courseId", "title");
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Get quizzes for a course
 router.get("/course/:courseId", protect, async (req, res) => {
