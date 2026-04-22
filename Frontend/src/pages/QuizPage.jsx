@@ -38,6 +38,7 @@ const QuizPage = () => {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
 
+  const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const isAiPractice = id === "ai-practice";
   const aiData = location.state?.quizData;
