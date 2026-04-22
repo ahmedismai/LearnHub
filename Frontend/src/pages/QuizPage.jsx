@@ -25,6 +25,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import AIFeedback from "@/components/AIFeedback";
+import { Badge } from "@/components/ui/badge";
 
 const QuizPage = () => {
   const { id } = useParams();
@@ -64,7 +65,7 @@ const QuizPage = () => {
         return response.data;
       }
     },
-    enabled: (!isAiPractice || !!aiData),
+    enabled: !isAiPractice || !!aiData,
     retry: 1,
   });
 
@@ -74,7 +75,7 @@ const QuizPage = () => {
     queryFn: async () => {
       // We don't have a single grade endpoint, but we can filter from /me
       const res = await api.get("/Grade/me");
-      return res.data.find(g => g._id === gradeId);
+      return res.data.find((g) => g._id === gradeId);
     },
     enabled: !!gradeId,
   });
@@ -113,7 +114,8 @@ const QuizPage = () => {
   // 3. Submit Mutation
   const submitMutation = useMutation({
     mutationFn: async (payload) => {
-      if (isInstructor) return { message: "Instructor preview - no data saved" };
+      if (isInstructor)
+        return { message: "Instructor preview - no data saved" };
       // Handle AI Practice locally
       if (isAiPractice) {
         let correct = 0;
@@ -165,14 +167,16 @@ const QuizPage = () => {
         navigate(-1);
         return;
       }
-      
-      setScore(data.score || (data.grade?.percentage));
+
+      setScore(data.score || data.grade?.percentage);
       setGradeId(data.gradeId || data.grade?._id);
       setShowResults(true);
       setIsFinished(true);
-      
+
       if (!isAiPractice) {
-        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} submitted and graded!`);
+        toast.success(
+          `${type.charAt(0).toUpperCase() + type.slice(1)} submitted and graded!`,
+        );
         queryClient.invalidateQueries(["enrollments", "me"]);
         queryClient.invalidateQueries(["grades", "me"]);
       }
@@ -225,9 +229,9 @@ const QuizPage = () => {
   const handleSubmit = () => {
     if (isFinished || submitMutation.isPending) return;
     if (isInstructor) {
-       toast.info("Exiting Instructor Preview Mode");
-       navigate(-1);
-       return;
+      toast.info("Exiting Instructor Preview Mode");
+      navigate(-1);
+      return;
     }
 
     const questions = quizData?.questions || [];
@@ -287,7 +291,9 @@ const QuizPage = () => {
           <Trophy className="w-12 h-12" />
         </div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black tracking-tight">{isAiPractice ? "Practice Completed!" : "Exam Completed!"}</h2>
+          <h2 className="text-3xl font-black tracking-tight">
+            {isAiPractice ? "Practice Completed!" : "Exam Completed!"}
+          </h2>
           <div className="flex justify-center gap-4">
             <div className="p-6 bg-muted/50 rounded-2xl border">
               <p className="text-xs text-muted-foreground uppercase font-black mb-1 tracking-widest">
@@ -298,26 +304,29 @@ const QuizPage = () => {
               >
                 {score}%
               </p>
-              <Badge variant={score >= 70 ? "success" : "destructive"} className="mt-2">
-                 {score >= 70 ? "PASSED" : "FAILED"}
+              <Badge
+                variant={score >= 70 ? "success" : "destructive"}
+                className="mt-2"
+              >
+                {score >= 70 ? "PASSED" : "FAILED"}
               </Badge>
             </div>
           </div>
           <p className="text-muted-foreground max-w-md mx-auto">
-            {score >= 70 
-              ? "Congratulations! You've demonstrated a solid understanding of the material." 
+            {score >= 70
+              ? "Congratulations! You've demonstrated a solid understanding of the material."
               : "Don't discourage! Every attempt is a step closer to mastery. Review the feedback below to improve."}
           </p>
         </div>
 
         {/* AI Tutor Feedback Card */}
         {!isAiPractice && gradeId && (
-           <div className="text-left max-w-2xl mx-auto">
-              <AIFeedback 
-                gradeId={gradeId} 
-                isReviewed={gradeDetails?.isReviewed}
-              />
-           </div>
+          <div className="text-left max-w-2xl mx-auto">
+            <AIFeedback
+              gradeId={gradeId}
+              isReviewed={gradeDetails?.isReviewed}
+            />
+          </div>
         )}
 
         <div className="flex gap-4 justify-center pt-4">
@@ -345,11 +354,15 @@ const QuizPage = () => {
     <div className="max-w-4xl mx-auto space-y-8 pb-32">
       {isInstructor && (
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-center gap-3">
-           <ShieldCheck className="text-amber-500 w-6 h-6" />
-           <div>
-              <p className="font-bold text-amber-800 uppercase text-xs">Instructor Preview Mode</p>
-              <p className="text-amber-700 text-sm">You are viewing this quiz as a preview. No results will be saved.</p>
-           </div>
+          <ShieldCheck className="text-amber-500 w-6 h-6" />
+          <div>
+            <p className="font-bold text-amber-800 uppercase text-xs">
+              Instructor Preview Mode
+            </p>
+            <p className="text-amber-700 text-sm">
+              You are viewing this quiz as a preview. No results will be saved.
+            </p>
+          </div>
         </div>
       )}
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b py-4 px-6 flex justify-between items-center rounded-b-2xl shadow-sm">
@@ -462,7 +475,11 @@ const QuizPage = () => {
               disabled={submitMutation.isPending || isFinished}
               className="flex-1 sm:flex-initial min-w-[160px] h-12 text-lg font-bold shadow-xl shadow-primary/30"
             >
-              {submitMutation.isPending ? "Processing..." : isInstructor ? "Exit Preview" : "Finish Assessment"}
+              {submitMutation.isPending
+                ? "Processing..."
+                : isInstructor
+                  ? "Exit Preview"
+                  : "Finish Assessment"}
             </Button>
           </div>
         </div>
