@@ -23,6 +23,15 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
       return res.status(404).json({ message: "Exam not found" });
     }
 
+    // Check if already submitted
+    const existingResult = await ExamResult.findOne({
+      studentId: req.user.id,
+      examId,
+    });
+    if (existingResult) {
+      return res.status(403).json({ message: "Assessment already completed" });
+    }
+
     const maxScore = exam.questions.length;
     const correctAnswers = exam.questions.reduce((acc, question) => {
       acc[String(question._id)] = question.correctAnswer;
@@ -39,19 +48,16 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
 
     const percentage = maxScore ? (score / maxScore) * 100 : 0;
 
-    const examResult = await ExamResult.findOneAndUpdate(
-      { studentId: req.user.id, examId },
-      {
-        studentId: req.user.id,
-        examId,
-        courseId: exam.courseId,
-        score,
-        totalMarks: maxScore,
-        percentage,
-        answers: answerRecords,
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
+    const examResult = new ExamResult({
+      studentId: req.user.id,
+      examId,
+      courseId: exam.courseId,
+      score,
+      totalMarks: maxScore,
+      percentage,
+      answers: answerRecords,
+    });
+    await examResult.save();
 
     // PERSIST TO GRADE MODEL
     await updateGrade({

@@ -1,6 +1,7 @@
 import express from "express";
 import { Exam } from "../models/Exam.js";
 import { Course } from "../models/Course.js";
+import { ExamResult } from "../models/ExamResult.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
@@ -107,12 +108,24 @@ router.get("/Details/:examId", async (req, res) => {
 });
 
 // Alias route for frontend compatibility
-router.get("/:id", async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id);
     if (!exam) {
       return res.status(404).json({ message: "Exam not found" });
     }
+
+    // Check if already submitted
+    if (req.user.role === ROLES.STUDENT) {
+      const existingResult = await ExamResult.findOne({
+        studentId: req.user.id,
+        examId: exam._id,
+      });
+      if (existingResult) {
+        return res.status(403).json({ message: "Assessment already completed" });
+      }
+    }
+
     res.json(exam);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,6 +143,15 @@ router.post(
         return res
           .status(404)
           .json({ message: "Exam not found or not published" });
+      }
+
+      // Check if already submitted
+      const existingResult = await ExamResult.findOne({
+        studentId: req.user.id,
+        examId: exam._id,
+      });
+      if (existingResult) {
+        return res.status(403).json({ message: "Assessment already completed" });
       }
 
       const examPayload = exam.toObject();

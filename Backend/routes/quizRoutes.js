@@ -79,6 +79,17 @@ router.get("/:quizId", protect, async (req, res) => {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
+    // Check if already submitted (One-Submission Only Policy)
+    if (req.user.role === ROLES.STUDENT) {
+      const existingSubmission = await Submission.findOne({
+        studentId: req.user.id,
+        contentId: quiz._id,
+      });
+      if (existingSubmission) {
+        return res.status(403).json({ message: "Assessment already completed" });
+      }
+    }
+
     const questions = await Question.find({ quizId: quiz._id }).select(
       "-correctAnswer",
     );
@@ -100,6 +111,15 @@ router.post(
       const quiz = await Quiz.findById(req.params.quizId);
       if (!quiz || quiz.contentType !== "Quiz") {
         return res.status(404).json({ message: "Quiz not found" });
+      }
+
+      // Check if already submitted
+      const existingSubmission = await Submission.findOne({
+        studentId: req.user.id,
+        contentId: quiz._id,
+      });
+      if (existingSubmission) {
+        return res.status(403).json({ message: "Assessment already completed" });
       }
 
       const questions = await Question.find({ quizId: quiz._id });

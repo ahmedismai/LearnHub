@@ -53,6 +53,7 @@ const QuizPage = () => {
     data: fetchedData,
     isLoading,
     isError,
+    error: fetchError,
   } = useQuery({
     queryKey: ["assessment", type, id],
     queryFn: async () => {
@@ -68,6 +69,14 @@ const QuizPage = () => {
     enabled: !isAiPractice || !!aiData,
     retry: 1,
   });
+
+  // Navigation Guard for already completed assessments
+  useEffect(() => {
+    if (fetchError?.response?.status === 403) {
+      alert("Assessment already completed. Redirecting to dashboard...");
+      navigate("/dashboard");
+    }
+  }, [fetchError, navigate]);
 
   // Fetch grade record once we have a gradeId to get isReviewed status
   const { data: gradeDetails } = useQuery({
@@ -226,7 +235,7 @@ const QuizPage = () => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (finalAnswers = answers) => {
     if (isFinished || submitMutation.isPending) return;
     if (isInstructor) {
       toast.info("Exiting Instructor Preview Mode");
@@ -238,7 +247,7 @@ const QuizPage = () => {
     const payload = {
       answers: questions.map((q, idx) => ({
         questionId: q._id || idx,
-        answer: answers[q._id || idx] || "",
+        answer: finalAnswers[q._id || idx] || "",
       })),
     };
 

@@ -84,6 +84,31 @@ router.get("/course/:courseId", protect, async (req, res) => {
   }
 });
 
+// Get assignment details by ID
+router.get("/:assignmentId", protect, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment || assignment.contentType !== "Assignment") {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    // Check if already submitted
+    if (req.user.role === ROLES.STUDENT) {
+      const existingSubmission = await Submission.findOne({
+        studentId: req.user.id,
+        contentId: assignment._id,
+      });
+      if (existingSubmission) {
+        return res.status(403).json({ message: "Assessment already completed" });
+      }
+    }
+
+    res.json(assignment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Submit an assignment (Student)
 router.post(
   "/:assignmentId/submit",
@@ -92,21 +117,35 @@ router.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const fileUrl = req.file ? req.file.path : req.body.fileUrl;
-      if (!fileUrl) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
       const assignment = await Assignment.findById(req.params.assignmentId);
       if (!assignment || assignment.contentType !== "Assignment") {
         return res.status(404).json({ message: "Assignment not found" });
       }
 
-      const submission = await Submission.findOneAndUpdate(
-        { studentId: req.user.id, contentId: assignment._id },
-        { submittedFile: fileUrl, status: "Submitted", date: Date.now(), type: "Assignment", courseId: assignment.courseId },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
+      // Check if already submitted
+      const existingSubmission = await Submission.findOne({
+        studentId: req.user.id,
+        contentId: assignment._id,
+      });
+      if (existingSubmission) {
+        return res.status(403).json({ message: "Assessment already completed" });
+      }
+
+      const fileUrl = req.file ? req.file.path : req.body.fileUrl;
+      if (!fileUrl) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const submission = new Submission({
+        studentId: req.user.id,
+        contentId: assignment._id,
+        courseId: assignment.courseId,
+        submittedFile: fileUrl,
+        status: "Submitted",
+        type: "Assignment",
+        date: Date.now(),
+      });
+      await submission.save();
 
       const enrollment = await Enrollment.findOne({
         studentId: req.user.id,
