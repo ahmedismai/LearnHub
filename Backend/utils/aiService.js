@@ -44,7 +44,7 @@ export const generateAssessment = async (context, level, type, count = 5) => {
       throw new Error("AI configuration missing on server.");
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: "v1" });
     const model = genAI.getGenerativeModel({
       model: AI_MODEL,
       generationConfig: { responseMimeType: "application/json" },
@@ -146,7 +146,7 @@ export const generateFeedback = async (
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("AI configuration missing.");
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: "v1" });
     const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
     let prompt = "";
