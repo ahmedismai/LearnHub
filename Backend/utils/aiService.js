@@ -8,22 +8,30 @@ dotenv.config();
 // Define Zod schemas for validation
 const QuizSchema = z.object({
   title: z.string(),
-  questions: z.array(z.object({
-    text: z.string(),
-    options: z.array(z.string()).min(2),
-    correctAnswer: z.string()
-  })).min(1)
+  questions: z
+    .array(
+      z.object({
+        text: z.string(),
+        options: z.array(z.string()).min(2),
+        correctAnswer: z.string(),
+      }),
+    )
+    .min(1),
 });
 
 const AssignmentSchema = z.object({
   title: z.string(),
-  tasks: z.array(z.object({
-    description: z.string(),
-    criteria: z.string()
-  })).min(1)
+  tasks: z
+    .array(
+      z.object({
+        description: z.string(),
+        criteria: z.string(),
+      }),
+    )
+    .min(1),
 });
 
-const AI_MODEL = process.env.AI_MODEL || "gemini-1.5-flash";
+const AI_MODEL = "gemini-2.5-flash";
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
 
 /**
@@ -37,9 +45,9 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: AI_MODEL,
-      generationConfig: { responseMimeType: "application/json" }
+      generationConfig: { responseMimeType: "application/json" },
     });
 
     const prompt = `
@@ -80,15 +88,15 @@ export const generateAssessment = async (context, level, type, count = 5) => {
       }
     `;
 
-    // Implement timeout using AbortController if supported by the client, 
+    // Implement timeout using AbortController if supported by the client,
     // but the library might not support it directly in generateContent.
     // We'll wrap it in a Promise for timeout.
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("AI_TIMEOUT")), AI_TIMEOUT)
+      setTimeout(() => reject(new Error("AI_TIMEOUT")), AI_TIMEOUT),
     );
 
     const resultPromise = model.generateContent(prompt);
-    
+
     const result = await Promise.race([resultPromise, timeoutPromise]);
 
     if (!result || !result.response) {
@@ -96,7 +104,7 @@ export const generateAssessment = async (context, level, type, count = 5) => {
     }
 
     const rawText = result.response.text();
-    
+
     // Defensive Sanitization
     const startIdx = rawText.indexOf("{");
     const endIdx = rawText.lastIndexOf("}");
@@ -118,9 +126,11 @@ export const generateAssessment = async (context, level, type, count = 5) => {
 
   return pRetry(runAction, {
     retries: 2,
-    onFailedAttempt: error => {
-      console.warn(`[AI-RETRY] Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
-    }
+    onFailedAttempt: (error) => {
+      console.warn(
+        `[AI-RETRY] Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`,
+      );
+    },
   });
 };
 
@@ -142,7 +152,9 @@ export const generateFeedback = async (
     let prompt = "";
 
     if (assessmentType === "Quiz" || assessmentType === "Exam") {
-      const wrongAnswers = (submissionData.answers || []).filter((a) => !a.isCorrect);
+      const wrongAnswers = (submissionData.answers || []).filter(
+        (a) => !a.isCorrect,
+      );
 
       if (wrongAnswers.length === 0 && submissionData.score >= 100) {
         prompt = `
@@ -153,7 +165,9 @@ export const generateFeedback = async (
       } else {
         const analysisData = wrongAnswers.map((wa) => {
           const question = (assessmentData.questions || []).find(
-            (q) => (q._id && q._id.toString() === wa.questionId) || q.text === wa.text,
+            (q) =>
+              (q._id && q._id.toString() === wa.questionId) ||
+              q.text === wa.text,
           );
           return {
             question: question?.text || wa.questionId || "Unknown Question",

@@ -15,12 +15,11 @@ const levelCache = new NodeCache({ stdTTL: 600 }); // Cache level for 10 minutes
 
 // Rate limiter for AI generation (expensive)
 const aiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs
-  message: { message: "Too many AI requests from this IP, please try again after 15 minutes" },
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false }, // Avoid some validation errors in certain environments
+  validate: { trustProxy: false }, // This bypasses the Forwarded header error on Vercel
 });
 
 /**
