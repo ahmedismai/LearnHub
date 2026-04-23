@@ -1,5 +1,6 @@
 import { Enrollment } from "../models/Enrollment.js";
 import { Submission } from "../models/Submission.js";
+import mongoose from "mongoose";
 
 /**
  * Checks if a student is eligible for graduation and certificate.
@@ -16,20 +17,30 @@ export const checkGraduationStatus = async (studentId, courseId) => {
       return;
     }
 
-    // 2. Check Average Exam Score (Must be >= 70%)
-    const submissions = await Submission.find({ 
-      studentId, 
-      courseId, 
-      type: "Exam" 
-    });
+    // 2. Check Average Exam Score (Must be >= 70%) using aggregation for efficiency
+    const result = await Submission.aggregate([
+      { 
+        $match: { 
+          studentId: new mongoose.Types.ObjectId(studentId), 
+          courseId: new mongoose.Types.ObjectId(courseId), 
+          type: "Exam" 
+        } 
+      },
+      { 
+        $group: { 
+          _id: null, 
+          averageScore: { $avg: "$score" },
+          count: { $sum: 1 }
+        } 
+      }
+    ]);
 
-    if (submissions.length === 0) {
+    if (!result || result.length === 0) {
       console.log(`[GRADUATION] Student ${studentId} has no exam submissions.`);
       return;
     }
 
-    const totalScore = submissions.reduce((acc, curr) => acc + curr.score, 0);
-    const averageScore = totalScore / submissions.length;
+    const { averageScore } = result[0];
 
     // Update the record with the latest average
     enrollment.averageExamScore = Math.round(averageScore);

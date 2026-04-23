@@ -31,7 +31,10 @@ submissionSchema.virtual('submissionId').get(function() {
   return this._id.toHexString();
 });
 
-// Allow multiple submissions if it's an AI practice, but unique for official IDs
-submissionSchema.index({ studentId: 1, contentId: 1, examId: 1 });
+// Performance Indexes
+submissionSchema.index({ studentId: 1, courseId: 1 });
+submissionSchema.index({ studentId: 1, type: 1 });
+submissionSchema.index({ examId: 1 });
+submissionSchema.index({ contentId: 1 });
 
 export const Submission = mongoose.model('Submission', submissionSchema);

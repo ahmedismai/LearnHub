@@ -27,6 +27,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import examLifecycleRoutes from "./routes/examLifecycleRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
+import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 
@@ -66,6 +67,10 @@ app.use("/api/Exam-Lifecycle", examLifecycleRoutes);
 app.get("/", (req, res) => {
   res.send("LearnHub Server is Running Successfully! 🚀");
 });
+
+// Error Handling Middleware
+app.use(notFound);
+app.use(errorHandler);
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

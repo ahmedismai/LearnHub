@@ -30,10 +30,11 @@ router.get("/", async (req, res) => {
   try {
     const courses = await Course.find({ status: "Approved" })
       .populate("instructorId", "name")
-      .populate("categoryId", "name");
+      .populate("categoryId", "name")
+      .lean();
     res.json(courses);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -43,7 +44,8 @@ router.get("/list", async (req, res) => {
     const courses = await Course.find()
       .populate("instructorId", "name email")
       .populate("categoryId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     const validCourses = courses.filter((c) => c.instructorId !== null);
     res.json(validCourses);
@@ -61,7 +63,8 @@ router.get("/ByCategory/:categoryId", async (req, res) => {
       status: "Approved",
     })
       .populate("instructorId", "name email")
-      .populate("categoryId", "name");
+      .populate("categoryId", "name")
+      .lean();
     res.json(courses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -75,7 +78,8 @@ router.get("/ByInstructor/:instructorId", async (req, res) => {
       status: "Approved",
     })
       .populate("instructorId", "name email")
-      .populate("categoryId", "name");
+      .populate("categoryId", "name")
+      .lean();
     res.json(courses);
   } catch (error) {
     res.status(500).json({ error: error.message });

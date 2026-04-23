@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { User } from "../models/User.js";
@@ -13,14 +14,21 @@ router.get(
   authorize(ROLES.ADMINISTRATOR),
   async (req, res) => {
     try {
-      const totalUsers = await User.countDocuments();
-      const totalCourses = await Course.countDocuments();
-      const totalEnrollments = await Enrollment.countDocuments();
-      const pendingCourses = await Course.countDocuments({ status: "Pending" });
-      const totalStudents = await User.countDocuments({ role: ROLES.STUDENT });
-      const totalInstructors = await User.countDocuments({
-        role: ROLES.INSTRUCTOR,
-      });
+      const [
+        totalUsers,
+        totalCourses,
+        totalEnrollments,
+        pendingCourses,
+        totalStudents,
+        totalInstructors
+      ] = await Promise.all([
+        User.countDocuments(),
+        Course.countDocuments(),
+        Enrollment.countDocuments(),
+        Course.countDocuments({ status: "Pending" }),
+        User.countDocuments({ role: ROLES.STUDENT }),
+        User.countDocuments({ role: ROLES.INSTRUCTOR }),
+      ]);
 
       res.json({
         totalUsers,
@@ -31,7 +39,7 @@ router.get(
         totalInstructors,
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ success: false, message: error.message });
     }
   },
 );
@@ -42,26 +50,35 @@ router.get(
   authorize(ROLES.INSTRUCTOR),
   async (req, res) => {
     try {
-      const courses = await Course.find({ instructorId: req.user.id });
-      const totalCourses = courses.length;
-      const pendingCourses = courses.filter(
-        (course) => course.status === "Pending",
-      ).length;
-      const approvedCourses = courses.filter(
-        (course) => course.status === "Approved",
-      ).length;
-      const enrollments = await Enrollment.find({
-        courseId: { $in: courses.map((course) => course._id) },
-      });
+      const instructorId = req.user.id;
+      
+      const [courses, stats] = await Promise.all([
+        Course.find({ instructorId }).select("_id status").lean(),
+        Course.aggregate([
+          { $match: { instructorId: new mongoose.Types.ObjectId(instructorId) } },
+          { $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }}
+        ])
+      ]);
+
+      const courseIds = courses.map(c => c._id);
+      const totalEnrollments = await Enrollment.countDocuments({ courseId: { $in: courseIds } });
+
+      const statsMap = stats.reduce((acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      }, {});
 
       res.json({
-        totalCourses,
-        pendingCourses,
-        approvedCourses,
-        totalEnrollments: enrollments.length,
+        totalCourses: courses.length,
+        pendingCourses: statsMap["Pending"] || 0,
+        approvedCourses: statsMap["Approved"] || 0,
+        totalEnrollments,
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ success: false, message: error.message });
     }
   },
 );
@@ -72,17 +89,17 @@ router.get(
   authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
-      const enrollments = await Enrollment.find({ studentId: req.user.id });
+      const enrollments = await Enrollment.find({ studentId: req.user.id }).lean();
+      
       const activeCourses = enrollments.filter(
         (item) => item.status === "Active",
       ).length;
       const completedCourses = enrollments.filter(
         (item) => item.status === "Completed",
       ).length;
-      const averageProgress = enrollments.length
-        ? enrollments.reduce((sum, item) => sum + (item.progress || 0), 0) /
-          enrollments.length
-        : 0;
+      
+      const totalProgress = enrollments.reduce((sum, item) => sum + (item.progress || 0), 0);
+      const averageProgress = enrollments.length ? totalProgress / enrollments.length : 0;
 
       res.json({
         totalEnrollments: enrollments.length,
@@ -91,7 +108,7 @@ router.get(
         averageProgress,
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ success: false, message: error.message });
     }
   },
 );

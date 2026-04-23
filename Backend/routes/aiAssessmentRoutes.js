@@ -1,4 +1,6 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
+import NodeCache from "node-cache";
 import { Course } from "../models/Course.js";
 import { Content, Assignment, Quiz } from "../models/Content.js";
 import { Grade } from "../models/Grade.js";
@@ -9,12 +11,22 @@ import { generateAssessment, generateFeedback } from "../utils/aiService.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
+const levelCache = new NodeCache({ stdTTL: 600 }); // Cache level for 10 minutes
+
+// Rate limiter for AI generation (expensive)
+const aiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: { message: "Too many AI requests from this IP, please try again after 15 minutes" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * @route POST /api/AI-Assessment/feedback
  * @desc Generate and store AI feedback for a specific grade
  */
-router.post("/feedback", protect, async (req, res) => {
+router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
   const { gradeId } = req.body;
 
   try {
@@ -31,17 +43,17 @@ router.post("/feedback", protect, async (req, res) => {
     if (grade.examId) filter.examId = grade.examId;
     if (grade.assignmentId) filter.contentId = grade.assignmentId;
 
-    const submission = await Submission.findOne(filter);
+    const submission = await Submission.findOne(filter).lean();
     if (!submission) return res.status(404).json({ message: "Submission not found" });
 
     // Get assessment data
     let assessmentData = null;
     if (grade.type === "Exam") {
-      assessmentData = await Exam.findById(grade.examId);
+      assessmentData = await Exam.findById(grade.examId).lean();
     } else if (grade.type === "Quiz") {
-      assessmentData = await Quiz.findById(grade.quizId);
+      assessmentData = await Quiz.findById(grade.quizId).lean();
     } else if (grade.type === "Assignment") {
-      assessmentData = await Assignment.findById(grade.assignmentId);
+      assessmentData = await Assignment.findById(grade.assignmentId).lean();
     }
 
     if (!assessmentData) return res.status(404).json({ message: "Assessment data not found" });
@@ -63,7 +75,7 @@ router.post("/feedback", protect, async (req, res) => {
  * @route POST /api/AI-Assessment/generate
  * @desc Generate an AI-powered assessment with robust RAG and error handling
  */
-router.post("/generate", protect, async (req, res) => {
+router.post("/generate", protect, aiRateLimiter, async (req, res) => {
   const { courseId, type, count } = req.body;
   const studentId = req.user._id;
 
@@ -75,12 +87,18 @@ router.post("/generate", protect, async (req, res) => {
 
     console.log(`[AI-CONTROLLER] Request: Type=${type}, Course=${courseId}`);
 
-    // 2. Student Level (Graceful default)
-    let level = "Beginner";
-    try {
-      level = await calculateStudentLevel(studentId, courseId);
-    } catch (lvlErr) {
-      console.warn(`[AI-CONTROLLER] Level calculation failed, using default: ${level}`);
+    // 2. Student Level (With caching)
+    const cacheKey = `level_${studentId}_${courseId}`;
+    let level = levelCache.get(cacheKey);
+    
+    if (!level) {
+      try {
+        level = await calculateStudentLevel(studentId, courseId);
+        levelCache.set(cacheKey, level);
+      } catch (lvlErr) {
+        console.warn(`[AI-CONTROLLER] Level calculation failed, using default: Beginner`);
+        level = "Beginner";
+      }
     }
 
     // 3. Robust Context Retrieval (RAG)
@@ -117,7 +135,6 @@ router.post("/generate", protect, async (req, res) => {
 
     } catch (aiError) {
       console.error("[AI-CONTROLLER] AI Service Error:", aiError.message);
-      // Return 502 (Bad Gateway) indicating the AI provider failed
       return res.status(502).json({ 
         message: "The AI service is currently unable to fulfill the request.",
         error: aiError.message 

@@ -1,21 +1,46 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+import { z } from "zod";
+import pRetry from "p-retry";
 
 dotenv.config();
 
+// Define Zod schemas for validation
+const QuizSchema = z.object({
+  title: z.string(),
+  questions: z.array(z.object({
+    text: z.string(),
+    options: z.array(z.string()).min(2),
+    correctAnswer: z.string()
+  })).min(1)
+});
+
+const AssignmentSchema = z.object({
+  title: z.string(),
+  tasks: z.array(z.object({
+    description: z.string(),
+    criteria: z.string()
+  })).min(1)
+});
+
+const AI_MODEL = process.env.AI_MODEL || "gemini-1.5-flash";
+const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
+
 /**
- * Hardened Gemini interaction service with defensive parsing
+ * Hardened Gemini interaction service with defensive parsing, retry logic, and validation.
  */
 export const generateAssessment = async (context, level, type, count = 5) => {
-  try {
+  const runAction = async () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("[CRITICAL] GEMINI_API_KEY is not defined in environment.");
       throw new Error("AI configuration missing on server.");
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: AI_MODEL,
+      generationConfig: { responseMimeType: "application/json" }
+    });
 
     const prompt = `
       System: You are an expert academic professor specialized in ${type} design.
@@ -53,81 +78,88 @@ export const generateAssessment = async (context, level, type, count = 5) => {
           }
         ]
       }
-
-      Important: Return ONLY the raw JSON object. Do not include markdown blocks or conversational text.
     `;
 
-    console.log(
-      `[AI-LOG] Sending Context to Gemini (${context.length} chars)...`,
+    // Implement timeout using AbortController if supported by the client, 
+    // but the library might not support it directly in generateContent.
+    // We'll wrap it in a Promise for timeout.
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI_TIMEOUT")), AI_TIMEOUT)
     );
 
-    const result = await model.generateContent(prompt);
+    const resultPromise = model.generateContent(prompt);
+    
+    const result = await Promise.race([resultPromise, timeoutPromise]);
 
     if (!result || !result.response) {
       throw new Error("Gemini API returned an empty or invalid response.");
     }
 
     const rawText = result.response.text();
-    console.log("[AI-LOG] Raw Response Received from Gemini.");
-
-    // Defensive Sanitization: Find the first { and last } to extract JSON
+    
+    // Defensive Sanitization
     const startIdx = rawText.indexOf("{");
     const endIdx = rawText.lastIndexOf("}");
 
     if (startIdx === -1 || endIdx === -1) {
-      console.error("[AI-LOG] Invalid AI Output Format. Raw text:", rawText);
       throw new Error("AI response did not contain a valid JSON object.");
     }
 
     const sanitizedJson = rawText.substring(startIdx, endIdx + 1);
+    const parsedData = JSON.parse(sanitizedJson);
 
-    try {
-      return JSON.parse(sanitizedJson);
-    } catch (parseError) {
-      console.error(
-        "[AI-LOG] JSON Parse Error. Sanitized String:",
-        sanitizedJson,
-      );
-      throw new Error("Failed to parse AI output as JSON.");
+    // Validate with Zod
+    if (type === "Assignment") {
+      return AssignmentSchema.parse(parsedData);
+    } else {
+      return QuizSchema.parse(parsedData);
     }
-  } catch (error) {
-    console.error("[AI-SERVICE-ERROR]:", error.message);
-    throw error;
-  }
+  };
+
+  return pRetry(runAction, {
+    retries: 2,
+    onFailedAttempt: error => {
+      console.warn(`[AI-RETRY] Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
+    }
+  });
 };
 
 /**
  * Generates encouraging and educational feedback for assessments
  */
-export const generateFeedback = async (assessmentType, assessmentData, submissionData) => {
+export const generateFeedback = async (
+  assessmentType,
+  assessmentData,
+  submissionData,
+) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("AI configuration missing.");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
     let prompt = "";
 
     if (assessmentType === "Quiz" || assessmentType === "Exam") {
-      const wrongAnswers = submissionData.answers.filter(a => !a.isCorrect);
-      
-      if (wrongAnswers.length === 0) {
+      const wrongAnswers = (submissionData.answers || []).filter((a) => !a.isCorrect);
+
+      if (wrongAnswers.length === 0 && submissionData.score >= 100) {
         prompt = `
           The student scored 100% on a ${assessmentType} titled "${assessmentData.title}".
           Write a short, highly encouraging, and professional praise for their perfect score.
           Keep it educational and briefly mention the importance of mastering these topics.
         `;
       } else {
-        // Map wrong answers to their questions if possible
-        // We need the question text and correct answer text
-        const analysisData = wrongAnswers.map(wa => {
-           const question = assessmentData.questions.find(q => q._id.toString() === wa.questionId || q.text === wa.text);
-           return {
-             question: question?.text || wa.questionId,
-             studentChoice: wa.selectedOption,
-             correctAnswer: question?.correctAnswer || "The correct one"
-           };
+        const analysisData = wrongAnswers.map((wa) => {
+          const question = (assessmentData.questions || []).find(
+            (q) => (q._id && q._id.toString() === wa.questionId) || q.text === wa.text,
+          );
+          return {
+            question: question?.text || wa.questionId || "Unknown Question",
+            studentChoice: wa.selectedOption,
+            correctAnswer: question?.correctAnswer || "The correct answer",
+          };
         });
 
         prompt = `
@@ -149,10 +181,10 @@ export const generateFeedback = async (assessmentType, assessmentData, submissio
         System: You are a professional AI Tutor evaluating an Assignment.
         
         Instructions for the Assignment:
-        ${assessmentData.description}
+        ${assessmentData.description || assessmentData.title}
 
         Student Submission (Text or Context):
-        ${submissionData.submittedFile || "Submitted as a file/external link."}
+        ${submissionData.submittedFile || submissionData.text || "Submitted work."}
 
         Task: Provide feedback based on the instructions.
         Format:
@@ -163,6 +195,8 @@ export const generateFeedback = async (assessmentType, assessmentData, submissio
         Tone: Encouraging, professional, and educational.
       `;
     }
+
+    if (!prompt) return "Great job on completing your assessment!";
 
     const result = await model.generateContent(prompt);
     return result.response.text();
