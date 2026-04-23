@@ -4,6 +4,7 @@ import { Question } from "../models/Question.js";
 import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Grade } from "../models/Grade.js";
+import { Submission } from "../models/Submission.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
 import { protect, authorize } from "../middleware/auth.js";
@@ -115,6 +116,29 @@ router.post(
       });
 
       const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+      // Create Submission record for history and AI feedback
+      const gradedAnswers = questions.map((q) => {
+        const studentAns = answers.find(a => String(a.questionId) === String(q._id));
+        return {
+          questionId: q._id,
+          selectedOption: studentAns?.answer || "No Answer",
+          isCorrect: studentAns?.answer === q.correctAnswer
+        };
+      });
+
+      const submission = new Submission({
+        contentId: quiz._id,
+        courseId: quiz.courseId,
+        studentId: req.user.id,
+        type: "Quiz",
+        answers: gradedAnswers,
+        score: percentage,
+        totalQuestions: maxScore,
+        correctCount: score,
+        status: "Graded"
+      });
+      await submission.save();
 
       const grade = await updateGrade({
         studentId: req.user.id,

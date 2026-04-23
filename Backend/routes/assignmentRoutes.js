@@ -103,8 +103,8 @@ router.post(
       }
 
       const submission = await Submission.findOneAndUpdate(
-        { studentId: req.user.id, assignmentId: assignment._id },
-        { submittedFile: fileUrl, status: "Submitted", date: Date.now() },
+        { studentId: req.user.id, contentId: assignment._id },
+        { submittedFile: fileUrl, status: "Submitted", date: Date.now(), type: "Assignment", courseId: assignment.courseId },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
 
@@ -153,7 +153,7 @@ router.get(
       }
 
       const submissions = await Submission.find({
-        assignmentId: assignment._id,
+        contentId: assignment._id,
       })
         .populate("studentId", "name email")
         .sort({ date: -1 });
