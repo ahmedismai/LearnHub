@@ -19,7 +19,6 @@ const aiRateLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false }, // This bypasses the Forwarded header error on Vercel
 });
 
 /**
