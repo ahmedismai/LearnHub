@@ -20,6 +20,7 @@ const aiRateLimiter = rateLimit({
   message: { message: "Too many AI requests from this IP, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false }, // Avoid some validation errors in certain environments
 });
 
 /**
