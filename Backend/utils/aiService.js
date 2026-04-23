@@ -31,7 +31,7 @@ const AssignmentSchema = z.object({
     .min(1),
 });
 
-const AI_MODEL = "gemini-1.5-flash";
+const AI_MODEL = "gemini-2.5-flash";
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
 
 /**
