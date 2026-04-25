@@ -124,9 +124,9 @@ router.post("/generate", protect, aiRateLimiter, async (req, res) => {
 
     // 4. Generation with specific error handling
     try {
-      const assessment = await generateAssessment(ragContext, level, type, count || 5);
+      const assessment = await generateAssessment(ragContext, level, type, count);
       
-      console.log(`[AI-CONTROLLER] Successfully generated ${type}.`);
+      console.log(`[AI-CONTROLLER] Successfully generated ${type} with ${count} items.`);
       return res.status(200).json({
         success: true,
         studentLevel: level,

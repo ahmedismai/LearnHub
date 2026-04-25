@@ -56,12 +56,13 @@ export const generateAssessment = async (context, level, type, count = 5) => {
       Context:
       ${context}
 
-      Task: Generate a ${type} in ENGLISH for a student at the ${level} proficiency level.
-      Quantity: ${count} items.
+      Task: Generate ${count} questions. Mix Multiple Choice and True/False questions based on the context. Ensure the JSON structure remains consistent, where True/False questions have only two options: ["True", "False"].
+      
+      Target Audience: Student at the ${level} proficiency level.
 
       Output Requirements:
       1. Format: STRICT JSON ONLY.
-      2. Content: Questions/Tasks must be directly derived from the provided Context.
+      2. Quantity: Exactly ${count} questions/tasks.
       3. Language: ALL output must be in English.
 
       Expected JSON Structure (Quiz/Exam):
@@ -72,6 +73,11 @@ export const generateAssessment = async (context, level, type, count = 5) => {
             "text": "The question text?",
             "options": ["Option A", "Option B", "Option C", "Option D"],
             "correctAnswer": "The exact text of the correct option"
+          },
+          {
+            "text": "Statement to evaluate as True or False?",
+            "options": ["True", "False"],
+            "correctAnswer": "True"
           }
         ]
       }

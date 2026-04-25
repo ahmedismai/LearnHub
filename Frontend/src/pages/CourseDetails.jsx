@@ -48,6 +48,7 @@ const CourseDetails = () => {
   // AI Generation State for Quick Add Content (existing)
   const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState([]);
   const [isAiGenerating, setIsAiGenerating] = useState(false); // Used for quick add
+  const [quickAddCount, setQuickAddCount] = useState(5);
 
   // New AI Assessment Generation State
   const [isAIGenerationModalOpen, setIsAIGenerationModalOpen] = useState(false);
@@ -204,7 +205,7 @@ const CourseDetails = () => {
       const response = await api.post("/AI-Assessment/generate", {
         courseId: id,
         type: contentType,
-        count: 5,
+        count: quickAddCount,
       });
 
       const { assessment } = response.data;
@@ -227,7 +228,7 @@ const CourseDetails = () => {
 
       toast({
         title: "AI Generation Success! ✨",
-        description: `Generated details for your ${contentType}. You can now save it.`,
+        description: `Generated details for your ${contentType} with ${quickAddCount} items. You can now save it.`,
       });
     } catch (error) {
       console.error("AI Gen Error:", error);
@@ -751,16 +752,26 @@ const CourseDetails = () => {
                       <div className="flex justify-between items-center">
                          <DialogTitle>Add New Content</DialogTitle>
                          {(contentType === "Quiz" || contentType === "Assignment") && (
-                           <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={handleAIGenerate}
-                            disabled={isAiGenerating}
-                            className="text-xs border-primary text-primary"
-                           >
-                              {isAiGenerating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                              AI Smart Fill
-                           </Button>
+                           <div className="flex items-center gap-2">
+                             <Input 
+                                type="number"
+                                min="1"
+                                max="15"
+                                value={quickAddCount}
+                                onChange={(e) => setQuickAddCount(parseInt(e.target.value) || 1)}
+                                className="w-16 h-8 text-center text-xs border-primary/30"
+                             />
+                             <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleAIGenerate}
+                              disabled={isAiGenerating}
+                              className="text-xs border-primary text-primary"
+                             >
+                                {isAiGenerating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                AI Smart Fill
+                             </Button>
+                           </div>
                          )}
                       </div>
                     </DialogHeader>

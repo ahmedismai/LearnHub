@@ -56,6 +56,7 @@ const CreateExam = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiCount, setAiCount] = useState(5);
   const [courses, setCourses] = useState([]);
 
   const form = useForm({
@@ -118,7 +119,7 @@ const CreateExam = () => {
       const response = await api.post("/AI-Assessment/generate", {
         courseId,
         type: "Exam",
-        count: 5,
+        count: aiCount,
       });
 
       const { assessment } = response.data;
@@ -140,7 +141,7 @@ const CreateExam = () => {
       
       toast({
         title: "AI Generation Successful!",
-        description: "Generated 5 smart questions based on your course content.",
+        description: `Generated ${aiCount} smart questions based on your course content.`,
       });
     } catch (error) {
       console.error("AI Generation Error:", error);
@@ -224,20 +225,30 @@ const CreateExam = () => {
           </div>
         </div>
         
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={generateWithAI}
-          disabled={isGenerating}
-          className="border-primary/50 text-primary hover:bg-primary/5 h-12 px-6"
-        >
-          {isGenerating ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <Sparkles className="w-4 h-4 mr-2" />
-          )}
-          AI Smart Generate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input 
+            type="number" 
+            min="1" 
+            max="20" 
+            value={aiCount} 
+            onChange={(e) => setAiCount(parseInt(e.target.value) || 1)}
+            className="w-20 h-12 text-center font-bold border-primary/30"
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={generateWithAI}
+            disabled={isGenerating}
+            className="border-primary/50 text-primary hover:bg-primary/5 h-12 px-6"
+          >
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
+            AI Smart Generate
+          </Button>
+        </div>
       </div>
 
       <Form {...form}>

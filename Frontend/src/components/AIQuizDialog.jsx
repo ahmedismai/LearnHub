@@ -20,11 +20,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const AIQuizDialog = ({ courseId, buttonText, mode = "student" }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("Quiz");
+  const [count, setCount] = useState(5);
   const [generatedAssessment, setGeneratedAssessment] = useState(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ const AIQuizDialog = ({ courseId, buttonText, mode = "student" }) => {
       const response = await api.post("/AI-Assessment/generate", {
         courseId,
         type: type,
-        count: type === "Assignment" ? 3 : 5,
+        count: parseInt(count) || 5,
       });
 
       const { assessment, studentLevel } = response.data;
@@ -188,6 +190,19 @@ const AIQuizDialog = ({ courseId, buttonText, mode = "student" }) => {
                 </Label>
               </div>
             </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="count" className="text-sm font-bold">Number of Questions</Label>
+            <Input 
+              id="count"
+              type="number" 
+              min="1" 
+              max="20" 
+              value={count} 
+              onChange={(e) => setCount(e.target.value)}
+              className="rounded-xl border-muted"
+            />
           </div>
 
           <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
