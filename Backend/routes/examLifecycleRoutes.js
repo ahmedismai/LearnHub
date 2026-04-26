@@ -49,8 +49,9 @@ router.post("/submit", protect, async (req, res) => {
         console.warn(`[EXAM-SUBMISSION]: Question ${qId} not found in user answers.`);
       }
 
-      // Use type-safe comparison
-      const isCorrect = studentAns?.answer?.toString() === q.correctAnswer?.toString();
+      // Use robust String conversion and trimming
+      const isCorrect = studentAns?.answer && q.correctAnswer && 
+                        String(studentAns.answer).trim() === String(q.correctAnswer).trim();
       if (isCorrect) correctCount++;
 
       return {
@@ -96,7 +97,8 @@ router.post("/submit", protect, async (req, res) => {
       correctCount,
       totalQuestions: questions.length,
       passed: score >= 70,
-      gradeId: grade._id,
+      gradeId: grade?._id,
+      message: "Exam submitted successfully"
     });
 
   } catch (error) {

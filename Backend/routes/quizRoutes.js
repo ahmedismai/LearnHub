@@ -136,8 +136,9 @@ router.post(
         }
 
         const studentAnswer = studentAnsObj?.answer;
-        // Use type-safe comparison
-        if (studentAnswer?.toString() === q.correctAnswer?.toString()) {
+        // Use robust String conversion and trimming
+        if (studentAnswer && q.correctAnswer && 
+            String(studentAnswer).trim() === String(q.correctAnswer).trim()) {
           score += 1;
         }
       });
@@ -149,10 +150,12 @@ router.post(
       // Create Submission record for history and AI feedback
       const gradedAnswers = questions.map((q) => {
         const studentAns = answers.find(a => String(a.questionId) === String(q._id));
+        const isCorrect = studentAns?.answer && q.correctAnswer && 
+                          String(studentAns.answer).trim() === String(q.correctAnswer).trim();
         return {
           questionId: q._id,
           selectedOption: studentAns?.answer || "No Answer",
-          isCorrect: studentAns?.answer?.toString() === q.correctAnswer?.toString()
+          isCorrect
         };
       });
 
@@ -192,7 +195,13 @@ router.post(
         await updateEnrollmentProgress(enrollment);
       }
 
-      res.status(201).json({ message: "Quiz submitted successfully", grade });
+      res.status(201).json({ 
+        message: "Quiz submitted successfully", 
+        grade,
+        score: percentage,
+        correctCount: score,
+        totalQuestions: maxScore
+      });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
