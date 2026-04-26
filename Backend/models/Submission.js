@@ -12,7 +12,7 @@ const submissionSchema = new mongoose.Schema({
   answers: [{
     questionId: String,
     selectedOption: String,
-    isCorrect: Boolean
+    isCorrect: { type: Boolean, default: false }
   }], // For Quizzes and Exams
 
   status: { type: String, enum: ['Submitted', 'Graded'], default: 'Submitted' },
