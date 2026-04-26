@@ -43,29 +43,24 @@ router.post("/submit", protect, async (req, res) => {
 
     const gradedAnswers = questions.map((q, idx) => {
       const qId = q._id ? q._id.toString() : idx.toString();
-      const studentAns = selectedAnswers.find(a => a.questionId === qId);
+      // Try to find by ID or fallback to the same index
+      const studentAns = selectedAnswers.find(a => String(a.questionId) === qId) || selectedAnswers[idx];
       
-      if (!studentAns) {
-        console.warn(`[EXAM-SUBMISSION]: Question ${qId} not found in user answers.`);
-      }
-
-      // Aggressive comparison logging
-      console.log(`[COMPARISON]: Question ${qId} | DB Answer: "${q.correctAnswer}" | Student Answer: "${studentAns?.answer}"`);
-
+      const studentAnswer = studentAns?.answer;
+      
       // Use aggressive String conversion and trimming
-      const isCorrect = !!(studentAns?.answer !== undefined && studentAns?.answer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
-                        String(studentAns.answer).trim() === String(q.correctAnswer).trim());
+      const isCorrect = !!(studentAnswer && q.correctAnswer && 
+                        String(studentAnswer).trim() === String(q.correctAnswer).trim());
       
       if (isCorrect) {
         correctCount++;
-        console.log(`[COMPARISON-RESULT]: Correct!`);
-      } else {
-        console.log(`[COMPARISON-RESULT]: Incorrect.`);
       }
+
+      console.log(`[EXAM-DEBUG] Q#${idx}: DB_ID=${qId} | DB_Ans="${q.correctAnswer}" | Student_Ans="${studentAnswer}" | Result=${isCorrect}`);
 
       return {
         questionId: qId,
-        selectedOption: studentAns?.answer || "No Answer",
+        selectedOption: studentAnswer || "No Answer",
         isCorrect
       };
     });

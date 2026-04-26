@@ -115,13 +115,15 @@ router.get("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Exam not found" });
     }
 
-    // Check if already submitted
+    // Check if already submitted - Specific to this Exam ID
     if (req.user.role === ROLES.STUDENT) {
-      const existingResult = await ExamResult.findOne({
+      const { Submission } = await import("../models/Submission.js");
+      const existingSubmission = await Submission.findOne({
         studentId: req.user.id,
         examId: exam._id,
+        type: "Exam"
       });
-      if (existingResult) {
+      if (existingSubmission) {
         return res.status(403).json({ message: "Assessment already completed" });
       }
     }
@@ -145,12 +147,14 @@ router.post(
           .json({ message: "Exam not found or not published" });
       }
 
-      // Check if already submitted
-      const existingResult = await ExamResult.findOne({
+      // Check if already submitted - Specific to this Exam ID
+      const { Submission } = await import("../models/Submission.js");
+      const existingSubmission = await Submission.findOne({
         studentId: req.user.id,
         examId: exam._id,
+        type: "Exam"
       });
-      if (existingResult) {
+      if (existingSubmission) {
         return res.status(403).json({ message: "Assessment already completed" });
       }
 

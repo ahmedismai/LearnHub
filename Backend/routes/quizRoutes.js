@@ -79,11 +79,12 @@ router.get("/:quizId", protect, async (req, res) => {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
-    // Check if already submitted (One-Submission Only Policy)
+    // Check if already submitted - STRICTLY for this Quiz ID
     if (req.user.role === ROLES.STUDENT) {
       const existingSubmission = await Submission.findOne({
         studentId: req.user.id,
         contentId: quiz._id,
+        type: "Quiz" // Ensure we only block if THIS quiz was submitted
       });
       if (existingSubmission) {
         return res.status(403).json({ message: "Assessment already completed" });
@@ -107,64 +108,38 @@ router.post(
   authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
-      const { answers = [] } = req.body; // Array of { questionId, answer }
+      const { answers = [] } = req.body; 
       const quiz = await Quiz.findById(req.params.quizId);
       if (!quiz || quiz.contentType !== "Quiz") {
         return res.status(404).json({ message: "Quiz not found" });
-      }
-
-      // Check if already submitted
-      const existingSubmission = await Submission.findOne({
-        studentId: req.user.id,
-        contentId: quiz._id,
-      });
-      if (existingSubmission) {
-        return res.status(403).json({ message: "Assessment already completed" });
       }
 
       const questions = await Question.find({ quizId: quiz._id });
       let score = 0;
       const maxScore = questions.length;
 
-      questions.forEach((q) => {
+      const gradedAnswers = questions.map((q, idx) => {
+        // Aggressive matching: find by ID or by Index
         const studentAnsObj = answers.find(
-          (a) => String(a.questionId) === String(q._id),
-        );
+          (a) => String(a.questionId) === String(q._id)
+        ) || answers[idx];
         
-        if (!studentAnsObj) {
-          console.warn(`[QUIZ-SUBMISSION]: Question ${q._id} not found in user answers.`);
-        }
-
         const studentAnswer = studentAnsObj?.answer;
+        const isCorrect = !!(studentAnswer && q.correctAnswer && 
+                          String(studentAnswer).trim() === String(q.correctAnswer).trim());
         
-        // Detailed comparison logging
-        console.log(`[COMPARISON]: Question ${q._id} | DB Answer: "${q.correctAnswer}" | Student Answer: "${studentAnswer}"`);
+        if (isCorrect) score += 1;
 
-        // Use aggressive String conversion and trimming
-        if (studentAnswer !== undefined && studentAnswer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
-            String(studentAnswer).trim() === String(q.correctAnswer).trim()) {
-          score += 1;
-          console.log(`[COMPARISON-RESULT]: Correct!`);
-        } else {
-          console.log(`[COMPARISON-RESULT]: Incorrect.`);
-        }
-      });
-
-      console.log(`[QUIZ-SCORE]: Calculated score for student ${req.user.id}: ${score}/${maxScore}`);
-
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-
-      // Create Submission record for history and AI feedback
-      const gradedAnswers = questions.map((q) => {
-        const studentAns = answers.find(a => String(a.questionId) === String(q._id));
-        const isCorrect = !!(studentAns?.answer && q.correctAnswer && 
-                          String(studentAns.answer).trim() === String(q.correctAnswer).trim());
         return {
           questionId: q._id,
-          selectedOption: studentAns?.answer || "No Answer",
+          selectedOption: studentAnswer || "No Answer",
           isCorrect
         };
       });
+
+      console.log(`[QUIZ-SCORE]: Student ${req.user.id} scored ${score}/${maxScore}`);
+
+      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
       const submission = new Submission({
         contentId: quiz._id,
@@ -188,15 +163,13 @@ router.post(
         maxScore,
       });
 
+      // Update enrollment...
       const enrollment = await Enrollment.findOne({
         studentId: req.user.id,
         courseId: quiz.courseId,
       });
-
       if (enrollment) {
-        const completedQuizzes = new Set(
-          (enrollment.completedQuizzes || []).map((id) => String(id)),
-        );
+        const completedQuizzes = new Set((enrollment.completedQuizzes || []).map(id => String(id)));
         completedQuizzes.add(String(quiz._id));
         enrollment.completedQuizzes = Array.from(completedQuizzes);
         await updateEnrollmentProgress(enrollment);
@@ -204,10 +177,10 @@ router.post(
 
       res.status(201).json({ 
         message: "Quiz submitted successfully", 
-        grade,
         score: percentage,
         correctCount: score,
-        totalQuestions: maxScore
+        totalQuestions: maxScore,
+        grade 
       });
     } catch (error) {
       res.status(400).json({ message: error.message });

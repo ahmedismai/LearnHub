@@ -253,9 +253,9 @@ const QuizPage = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isFinished, timeLeft, isInstructor]);
 
-  const handleAnswerChange = (questionId, value) => {
+  const handleAnswerChange = (qId, value) => {
     if (isFinished) return;
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setAnswers((prev) => ({ ...prev, [qId]: value }));
   };
 
   const handleSubmit = (finalAnswers = answers) => {
@@ -268,10 +268,13 @@ const QuizPage = () => {
 
     const questions = quizData?.questions || [];
     const payload = {
-      answers: questions.map((q, idx) => ({
-        questionId: q._id || idx,
-        answer: finalAnswers[q._id || idx] || "",
-      })),
+      answers: questions.map((q, idx) => {
+        const qId = q._id || idx;
+        return {
+          questionId: qId,
+          answer: finalAnswers[qId] || "",
+        };
+      }),
     };
 
     if (!isAiPractice) {
@@ -428,46 +431,49 @@ const QuizPage = () => {
       </header>
 
       <div className="px-4 space-y-8">
-        {questions.map((q, idx) => (
-          <Card
-            key={q._id || idx}
-            className="border-none shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-          >
-            <CardHeader className="bg-muted/30 border-b border-border/50">
-              <div className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                  {idx + 1}
-                </span>
-                <p className="text-lg font-semibold leading-relaxed pt-0.5">
-                  {q.text || q.question}
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8">
-              <RadioGroup
-                value={answers[q._id] || ""}
-                onValueChange={(val) => handleAnswerChange(q._id, val)}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-              >
-                {q.options?.map((opt, optIdx) => (
-                  <div
-                    key={optIdx}
-                    className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${answers[q._id] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
-                    onClick={() => handleAnswerChange(q._id, opt)}
-                  >
-                    <RadioGroupItem value={opt} id={`q-${idx}-o-${optIdx}`} />
-                    <Label
-                      htmlFor={`q-${idx}-o-${optIdx}`}
-                      className="flex-1 cursor-pointer text-base font-medium"
+        {questions.map((q, idx) => {
+          const questionIdentifier = q._id || idx;
+          return (
+            <Card
+              key={questionIdentifier}
+              className="border-none shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+            >
+              <CardHeader className="bg-muted/30 border-b border-border/50">
+                <div className="flex gap-4">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                    {idx + 1}
+                  </span>
+                  <p className="text-lg font-semibold leading-relaxed pt-0.5">
+                    {q.text || q.question}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8">
+                <RadioGroup
+                  value={answers[questionIdentifier] || ""}
+                  onValueChange={(val) => handleAnswerChange(questionIdentifier, val)}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                >
+                  {q.options?.map((opt, optIdx) => (
+                    <div
+                      key={optIdx}
+                      className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${answers[questionIdentifier] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
+                      onClick={() => handleAnswerChange(questionIdentifier, opt)}
                     >
-                      {opt}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </CardContent>
-          </Card>
-        ))}
+                      <RadioGroupItem value={opt} id={`q-${idx}-o-${optIdx}`} />
+                      <Label
+                        htmlFor={`q-${idx}-o-${optIdx}`}
+                        className="flex-1 cursor-pointer text-base font-medium"
+                      >
+                        {opt}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <footer className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-lg border-t p-6 shadow-2xl z-40">
