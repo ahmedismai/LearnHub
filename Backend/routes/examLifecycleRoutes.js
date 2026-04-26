@@ -48,15 +48,15 @@ router.post("/submit", protect, async (req, res) => {
       
       const studentAnswer = studentAns?.answer;
       
-      // Use aggressive String conversion and trimming
+      // Use aggressive String conversion, trimming, and case-insensitivity
       const isCorrect = !!(studentAnswer && q.correctAnswer && 
-                        String(studentAnswer).trim() === String(q.correctAnswer).trim());
+                        String(studentAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
       
       if (isCorrect) {
         correctCount++;
       }
 
-      console.log(`[EXAM-DEBUG] Q#${idx}: DB_ID=${qId} | DB_Ans="${q.correctAnswer}" | Student_Ans="${studentAnswer}" | Result=${isCorrect}`);
+      console.log(`[EXAM-MATCH] Q#${idx+1}: DB="${q.correctAnswer}" VS Student="${studentAnswer}" | Result=${isCorrect}`);
 
       return {
         questionId: qId,
@@ -91,6 +91,21 @@ router.post("/submit", protect, async (req, res) => {
       score,
       maxScore: 100,
     });
+
+    // Update Enrollment's completedExams
+    const enrollment = await Enrollment.findOne({
+      studentId,
+      courseId: exam.courseId,
+    });
+
+    if (enrollment) {
+      const completedExams = new Set(
+        (enrollment.completedExams || []).map((id) => String(id)),
+      );
+      completedExams.add(String(exam._id));
+      enrollment.completedExams = Array.from(completedExams);
+      await updateEnrollmentProgress(enrollment);
+    }
 
     // Run graduation check logic
     await checkGraduationStatus(studentId, exam.courseId);

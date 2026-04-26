@@ -38,7 +38,10 @@ router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
     }
 
     // Find the submission to get answers/file
-    const filter = { studentId: grade.studentId };
+    const filter = { 
+      studentId: grade.studentId,
+      type: grade.type
+    };
     if (grade.quizId) filter.contentId = grade.quizId;
     if (grade.examId) filter.examId = grade.examId;
     if (grade.assignmentId) filter.contentId = grade.assignmentId;

@@ -216,7 +216,7 @@ router.patch(
         return res.status(404).json({ message: "Submission not found" });
       }
 
-      const assignment = await Assignment.findById(submission.assignmentId);
+      const assignment = await Assignment.findById(submission.contentId);
       if (!assignment || assignment.contentType !== "Assignment") {
         return res.status(404).json({ message: "Assignment not found" });
       }

@@ -37,7 +37,7 @@ export const updateGrade = async ({
 
     const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     
-    const filter = { studentId };
+    const filter = { studentId, type };
     // Only include IDs that are truthy (not null/undefined)
     if (quizId) filter.quizId = quizId;
     else if (examId) filter.examId = examId;

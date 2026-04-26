@@ -79,21 +79,21 @@ router.get("/:quizId", protect, async (req, res) => {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
-    // Check if already submitted - STRICTLY for this Quiz ID
+    // Check if already submitted - STRICTLY for this Quiz ID and Type
     if (req.user.role === ROLES.STUDENT) {
       const existingSubmission = await Submission.findOne({
         studentId: req.user.id,
         contentId: quiz._id,
-        type: "Quiz" // Ensure we only block if THIS quiz was submitted
+        type: "Quiz" 
       });
       if (existingSubmission) {
         return res.status(403).json({ message: "Assessment already completed" });
       }
     }
 
-    const questions = await Question.find({ quizId: quiz._id }).select(
-      "-correctAnswer",
-    );
+    const questions = await Question.find({ quizId: quiz._id })
+      .sort({ _id: 1 })
+      .select("-correctAnswer");
 
     res.json({ ...quiz.toObject(), questions });
   } catch (error) {
@@ -109,12 +109,14 @@ router.post(
   async (req, res) => {
     try {
       const { answers = [] } = req.body; 
+      console.log(`[QUIZ-SUBMIT] Received answers for quiz ${req.params.quizId}:`, JSON.stringify(answers));
+      
       const quiz = await Quiz.findById(req.params.quizId);
       if (!quiz || quiz.contentType !== "Quiz") {
         return res.status(404).json({ message: "Quiz not found" });
       }
 
-      const questions = await Question.find({ quizId: quiz._id });
+      const questions = await Question.find({ quizId: quiz._id }).sort({ _id: 1 });
       let score = 0;
       const maxScore = questions.length;
 
@@ -125,10 +127,14 @@ router.post(
         ) || answers[idx];
         
         const studentAnswer = studentAnsObj?.answer;
+        
+        // Match logic
         const isCorrect = !!(studentAnswer && q.correctAnswer && 
-                          String(studentAnswer).trim() === String(q.correctAnswer).trim());
+                          String(studentAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
         
         if (isCorrect) score += 1;
+
+        console.log(`[QUIZ-MATCH] Q#${idx+1}: DB="${q.correctAnswer}" VS Student="${studentAnswer}" | Result=${isCorrect}`);
 
         return {
           questionId: q._id,
