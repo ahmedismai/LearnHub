@@ -19,22 +19,39 @@ const Exam = () => {
 
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
 
   const isInstructor = user?.role === "Instructor";
 
-  // Check if already submitted (only for students)
-  const { data: existingResult, isLoading: isCheckingResult } = useQuery({
-    queryKey: ["examResult", id, user?.id],
-    queryFn: async () => {
-      try {
-        const res = await api.get(`/ExamResult/ByExam/${id}/me`);
-        return res.data;
-      } catch (e) {
-        return null;
+  // Pre-fetch Guard: Check for prior submission
+  useEffect(() => {
+    const verifyAccess = async () => {
+      if (isInstructor) {
+        setIsVerifying(false);
+        return;
       }
-    },
-    enabled: !!id && !!user && user.role === "Student",
-  });
+
+      try {
+        await api.get(`/Exam/${id}`);
+        setIsVerifying(false);
+      } catch (error) {
+        if (error.response?.status === 403) {
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "You have already completed this assessment",
+          });
+          setHasSubmitted(true);
+          navigate("/dashboard", { replace: true });
+        } else {
+          setIsVerifying(false);
+        }
+      }
+    };
+
+    verifyAccess();
+  }, [id, isInstructor, navigate, toast]);
 
   // Fetch Exam Details
   const { data: exam, isLoading } = useQuery({
@@ -43,6 +60,7 @@ const Exam = () => {
       const response = await api.get(`/Exam/${id}`);
       return response.data;
     },
+    enabled: !isVerifying && !hasSubmitted,
   });
 
   useEffect(() => {
@@ -109,7 +127,7 @@ const Exam = () => {
     submitMutation.mutate(examData);
   };
 
-  if (isLoading || isCheckingResult) {
+  if (isVerifying || isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -117,9 +135,7 @@ const Exam = () => {
     );
   }
 
-  // Redirect if already submitted
-  if (existingResult && !isInstructor) {
-    navigate("/dashboard/quizzes", { replace: true });
+  if (hasSubmitted && !isInstructor) {
     return null;
   }
 
@@ -236,8 +252,5 @@ const Exam = () => {
     </div>
   );
 };
-
-export default Exam;
-
 
 export default Exam;

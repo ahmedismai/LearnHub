@@ -41,12 +41,39 @@ const QuizPage = () => {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [gradeId, setGradeId] = useState(null);
-  const [gradeDataRecord, setGradeDataRecord] = useState(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
 
   const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const isAiPractice = id === "ai-practice";
   const aiData = location.state?.quizData;
+
+  // Pre-fetch Guard: Check for prior submission
+  useEffect(() => {
+    const verifyAccess = async () => {
+      if (isInstructor || isAiPractice) {
+        setIsVerifying(false);
+        return;
+      }
+
+      try {
+        const endpoint = type === "exam" ? `/Exam/${id}` : `/Quiz/${id}`;
+        await api.get(endpoint);
+        setIsVerifying(false);
+      } catch (error) {
+        if (error.response?.status === 403) {
+          toast.error("You have already completed this assessment");
+          setHasSubmitted(true);
+          navigate("/dashboard", { replace: true });
+        } else {
+          setIsVerifying(false);
+        }
+      }
+    };
+
+    verifyAccess();
+  }, [id, type, isInstructor, isAiPractice, navigate]);
 
   // 1. Fetch Quiz/Exam Data
   const {
@@ -58,23 +85,19 @@ const QuizPage = () => {
     queryKey: ["assessment", type, id],
     queryFn: async () => {
       if (isAiPractice) return aiData;
-      if (type === "exam") {
-        const response = await api.get(`/Exam/${id}`);
-        return response.data;
-      } else {
-        const response = await api.get(`/Quiz/${id}`);
-        return response.data;
-      }
+      const endpoint = type === "exam" ? `/Exam/${id}` : `/Quiz/${id}`;
+      const response = await api.get(endpoint);
+      return response.data;
     },
-    enabled: !isAiPractice || !!aiData,
+    enabled: (!isAiPractice || !!aiData) && !isVerifying && !hasSubmitted,
     retry: 1,
   });
 
   // Navigation Guard for already completed assessments
   useEffect(() => {
     if (fetchError?.response?.status === 403) {
-      alert("Assessment already completed. Redirecting to dashboard...");
-      navigate("/dashboard");
+      toast.error("You have already completed this assessment");
+      navigate("/dashboard", { replace: true });
     }
   }, [fetchError, navigate]);
 
