@@ -614,13 +614,39 @@ const CourseDetails = () => {
                                     </Link>
                                   )}
                                 </Button>
+                              ) : content.contentType === "Exam" ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  asChild={!currentEnrollment?.completedExams?.includes(content._id)}
+                                  disabled={currentEnrollment?.completedExams?.includes(content._id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {currentEnrollment?.completedExams?.includes(content._id) ? (
+                                    "Exam Completed"
+                                  ) : (
+                                    <Link to={`/dashboard/exam/${content._id}?type=exam`}>
+                                      {isInstructor ? "Preview Exam" : "Take Exam"}
+                                    </Link>
+                                  )}
+                                </Button>
                               ) : (
                                 <div className="flex items-center gap-3">
                                    <FileText className="w-5 h-5 text-muted-foreground/40" />
-                                   <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
-                                      <Link to={isInstructor ? "/dashboard/assignments" : "/dashboard/assignments"}>
-                                        {isInstructor ? "View Assignments" : "Submit"}
-                                      </Link>
+                                   <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      asChild={!currentEnrollment?.completedAssignments?.includes(content._id)}
+                                      disabled={currentEnrollment?.completedAssignments?.includes(content._id)}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {currentEnrollment?.completedAssignments?.includes(content._id) ? (
+                                        "Submitted"
+                                      ) : (
+                                        <Link to={isInstructor ? "/dashboard/assignments" : "/dashboard/assignments"}>
+                                          {isInstructor ? "View Assignments" : "Submit"}
+                                        </Link>
+                                      )}
                                     </Button>
                                 </div>
                               )}
