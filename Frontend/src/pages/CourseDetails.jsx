@@ -599,10 +599,20 @@ const CourseDetails = () => {
                                   className={`w-5 h-5 ${activeLesson?._id === content._id ? "text-primary animate-pulse" : "text-muted-foreground/40"}`}
                                 />
                               ) : content.contentType === "Quiz" ? (
-                                <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
-                                  <Link to={`/dashboard/exam/${content._id}`}>
-                                    {isInstructor ? "Preview Quiz" : "Take Quiz"}
-                                  </Link>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  asChild={!currentEnrollment?.completedQuizzes?.includes(content._id)}
+                                  disabled={currentEnrollment?.completedQuizzes?.includes(content._id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {currentEnrollment?.completedQuizzes?.includes(content._id) ? (
+                                    "Assessment Completed"
+                                  ) : (
+                                    <Link to={`/dashboard/exam/${content._id}`}>
+                                      {isInstructor ? "Preview Quiz" : "Take Quiz"}
+                                    </Link>
+                                  )}
                                 </Button>
                               ) : (
                                 <div className="flex items-center gap-3">
