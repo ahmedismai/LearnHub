@@ -117,55 +117,58 @@ const BrowseCourses = () => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCourses.map((course) => (
             <Card
               key={course._id}
-              className="overflow-hidden group hover:shadow-xl transition-all duration-300"
+              className="overflow-hidden group hover:shadow-2xl transition-all duration-500 border-none bg-white"
             >
-              <div className="aspect-video relative overflow-hidden bg-accent/10">
+              <div className="aspect-video relative overflow-hidden">
                 {course.thumbnail ? (
                   <img
                     src={course.thumbnail}
                     alt={course.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <BookOpen className="w-12 h-12 text-muted-foreground/20" />
+                  <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                    <BookOpen className="w-12 h-12 text-slate-300" />
                   </div>
                 )}
-                <Badge className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm text-foreground">
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-500" />
+                <Badge className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-slate-900 border-none shadow-sm hover:bg-white">
                   {course.categoryId?.name || "General"}
                 </Badge>
               </div>
               <CardHeader className="p-6">
-                <CardTitle className="text-xl line-clamp-1 group-hover:text-primary transition-colors">
+                <CardTitle className="text-xl font-bold line-clamp-1 group-hover:text-primary transition-colors duration-300">
                   {course.title}
                 </CardTitle>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                  <User className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-sm text-slate-500 mt-2 font-medium">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-3 h-3 text-primary" />
+                  </div>
                   <span>{course.instructorId?.name || "Instructor"}</span>
                 </div>
               </CardHeader>
               <CardContent className="px-6 py-0">
-                <p className="text-muted-foreground text-sm line-clamp-2">
+                <p className="text-slate-600 text-sm line-clamp-2 leading-relaxed">
                   {course.description}
                 </p>
               </CardContent>
-              <CardFooter className="p-6 flex items-center justify-between">
-                <span className="text-xl font-bold text-primary">
+              <CardFooter className="p-6 flex items-center justify-between border-t border-slate-50 mt-4">
+                <span className="text-2xl font-bold text-primary">
                   ${course.price}
                 </span>
                 {isEnrolled(course._id) ? (
-                  <Button asChild variant="secondary" className="gap-2">
+                  <Button asChild variant="secondary" className="gap-2 rounded-full px-6">
                     <Link to={`/dashboard/courses/${course._id}`}>
                       <PlayCircle className="w-4 h-4" />
                       Continue
                     </Link>
                   </Button>
                 ) : (
-                  <Button asChild>
+                  <Button asChild className="rounded-full px-6 shadow-glow hover:shadow-none transition-all">
                     <Link to={`/courses/${course._id}`}>View Details</Link>
                   </Button>
                 )}

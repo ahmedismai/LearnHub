@@ -88,21 +88,25 @@ const MyCourses = () => {
       </div>
 
       {isStudent && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {enrolledCourses.map((enrollment) => (
             <Card
               key={enrollment.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
+              className="overflow-hidden hover:shadow-2xl transition-all duration-500 border-none bg-white group"
             >
-              <div className="relative">
+              <div className="relative aspect-video overflow-hidden">
                 <img
                   src={enrollment.course?.thumbnail}
                   alt={enrollment.course?.title}
-                  className="w-full h-40 object-cover"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
-
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-500" />
                 <Badge
-                  className={`absolute top-3 right-3 ${getProgressColor(enrollment.progress)}`}
+                  className={`absolute top-4 right-4 shadow-sm border-none backdrop-blur-sm ${
+                    enrollment.status === "completed" 
+                      ? "bg-green-500/90 text-white" 
+                      : "bg-white/90 text-slate-900"
+                  }`}
                 >
                   {enrollment.status === "completed" ? (
                     <>
@@ -114,44 +118,47 @@ const MyCourses = () => {
                   )}
                 </Badge>
               </div>
-              <CardContent className="p-5">
-                <h3 className="font-bold text-foreground mb-2 line-clamp-2">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-primary transition-colors">
                   {enrollment.course?.title}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  By {enrollment.course?.instructorName}
+                <p className="text-sm font-medium text-slate-500 mb-6 flex items-center gap-2">
+                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                   {enrollment.course?.instructorName}
                 </p>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold text-foreground">
-                      {enrollment.progress}%
-                    </span>
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span>Progress</span>
+                    <span className="text-primary">{enrollment.progress}%</span>
                   </div>
-                  <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full transition-all duration-500 ${getProgressColor(enrollment.progress)}`}
+                      className={`h-full transition-all duration-1000 ease-out rounded-full ${getProgressColor(enrollment.progress)}`}
                       style={{ width: `${enrollment.progress}%` }}
                     />
                   </div>
                 </div>
 
                 <Button
-                  className="w-full mt-4 p-0"
+                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all ${
+                    enrollment.status === "completed" 
+                      ? "hover:bg-primary hover:text-white" 
+                      : "shadow-glow hover:shadow-none"
+                  }`}
                   variant={
-                    enrollment.status === "completed" ? "outline" : "gradient"
+                    enrollment.status === "completed" ? "outline" : "default"
                   }
                   asChild
                 >
                   <Link
                     to={`/dashboard/courses/${enrollment.course?.id}`}
-                    className="w-full h-full flex items-center justify-center"
+                    className="flex items-center justify-center gap-2"
                   >
-                    <Play className="w-4 h-4 mr-2" />
+                    <Play className={`w-4 h-4 ${enrollment.status !== "completed" ? "fill-current" : ""}`} />
                     {enrollment.status === "completed"
                       ? "Review Course"
-                      : "Continue"}
+                      : "Continue Learning"}
                   </Link>
                 </Button>
               </CardContent>
