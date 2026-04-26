@@ -157,8 +157,8 @@ router.post(
       // Create Submission record for history and AI feedback
       const gradedAnswers = questions.map((q) => {
         const studentAns = answers.find(a => String(a.questionId) === String(q._id));
-        const isCorrect = studentAns?.answer && q.correctAnswer && 
-                          String(studentAns.answer).trim() === String(q.correctAnswer).trim();
+        const isCorrect = !!(studentAns?.answer && q.correctAnswer && 
+                          String(studentAns.answer).trim() === String(q.correctAnswer).trim());
         return {
           questionId: q._id,
           selectedOption: studentAns?.answer || "No Answer",

@@ -53,8 +53,8 @@ router.post("/submit", protect, async (req, res) => {
       console.log(`[COMPARISON]: Question ${qId} | DB Answer: "${q.correctAnswer}" | Student Answer: "${studentAns?.answer}"`);
 
       // Use aggressive String conversion and trimming
-      const isCorrect = studentAns?.answer !== undefined && studentAns?.answer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
-                        String(studentAns.answer).trim() === String(q.correctAnswer).trim();
+      const isCorrect = !!(studentAns?.answer !== undefined && studentAns?.answer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
+                        String(studentAns.answer).trim() === String(q.correctAnswer).trim());
       
       if (isCorrect) {
         correctCount++;
