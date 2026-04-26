@@ -11,9 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/api/axios";
 import { Link } from "react-router-dom";
-import { BookOpen, Search, User } from "lucide-react";
+import { BookOpen, Search, User, PlayCircle } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
 const BrowseCourses = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -32,6 +35,22 @@ const BrowseCourses = () => {
       return response.data;
     },
   });
+
+  // Enrollment Logic for Smart Navigation
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ["enrollments", "me"],
+    queryFn: async () => {
+      const response = await api.get("/Enrollment/me");
+      return response.data;
+    },
+    enabled: !!user && user?.role === "Student",
+  });
+
+  const isEnrolled = (courseId) => {
+    return enrollments.some(
+      (e) => (e.courseId?._id || e.courseId) === courseId
+    );
+  };
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -101,7 +120,7 @@ const BrowseCourses = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
             <Card
-              key={course.id}
+              key={course._id}
               className="overflow-hidden group hover:shadow-xl transition-all duration-300"
             >
               <div className="aspect-video relative overflow-hidden bg-accent/10">
@@ -138,9 +157,18 @@ const BrowseCourses = () => {
                 <span className="text-xl font-bold text-primary">
                   ${course.price}
                 </span>
-                <Button asChild>
-                  <Link to={`/courses/${course.id}`}>View Details</Link>
-                </Button>
+                {isEnrolled(course._id) ? (
+                  <Button asChild variant="secondary" className="gap-2">
+                    <Link to={`/dashboard/courses/${course._id}`}>
+                      <PlayCircle className="w-4 h-4" />
+                      Continue
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link to={`/courses/${course._id}`}>View Details</Link>
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}

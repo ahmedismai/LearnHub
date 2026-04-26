@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +35,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const DashboardSidebar = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
 
   const getInitials = (name) => {
     return (name || "U")
@@ -132,14 +134,30 @@ const DashboardSidebar = () => {
             <SidebarMenu>
               {links.map((link) => {
                 const Icon = link.icon;
+                const isCustomActive = (url) => {
+                  if (url === "/browse-courses" && (location.pathname === "/browse-courses" || location.pathname.startsWith("/courses/"))) {
+                    return true;
+                  }
+                  if (url === "/dashboard/my-courses" && location.pathname.startsWith("/dashboard/courses/")) {
+                    return true;
+                  }
+                  if (url === "/dashboard" && location.pathname === "/dashboard") {
+                    return true;
+                  }
+                  return location.pathname === url;
+                };
+
                 return (
                   <SidebarMenuItem key={link.title}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={link.url}
-                        end={link.url === "/dashboard"}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                        activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className={({ isActive }) => 
+                          cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+                            (isActive || isCustomActive(link.url)) && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                          )
+                        }
                       >
                         <Icon className="w-5 h-5" />
                         <span className="font-medium">{link.title}</span>
@@ -163,8 +181,12 @@ const DashboardSidebar = () => {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to="/dashboard/profile"
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                      activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                      className={({ isActive }) => 
+                        cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+                          isActive && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                        )
+                      }
                     >
                       <Users className="w-5 h-5" />
                       <span className="font-medium">My Profile</span>
@@ -175,8 +197,12 @@ const DashboardSidebar = () => {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to="/dashboard/settings"
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                      activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                      className={({ isActive }) => 
+                        cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+                          isActive && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                        )
+                      }
                     >
                       <Settings className="w-5 h-5" />
                       <span className="font-medium">Settings</span>
