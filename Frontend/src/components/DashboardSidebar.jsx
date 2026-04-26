@@ -113,8 +113,8 @@ const DashboardSidebar = () => {
   const links = getLinks();
 
   return (
-    <Sidebar className="w-64 bg-slate-900 border-r border-slate-800 z-50 [&>[data-sidebar=sidebar]]:bg-slate-900">
-      <SidebarHeader className="p-4 border-b border-slate-800 bg-slate-900">
+    <Sidebar className="w-64 bg-[#0f172a] border-r border-slate-800 z-50 [&>[data-sidebar=sidebar]]:bg-[#0f172a] fixed h-full">
+      <SidebarHeader className="p-4 border-b border-slate-800 bg-[#0f172a]">
         <Link to="/" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-white" />
@@ -125,7 +125,7 @@ const DashboardSidebar = () => {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 bg-slate-900">
+      <SidebarContent className="px-2 bg-[#0f172a]">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
             Menu
@@ -216,7 +216,7 @@ const DashboardSidebar = () => {
       </SidebarContent>
 
       {user ? (
-        <SidebarFooter className="p-4 border-t border-slate-800 bg-slate-900">
+        <SidebarFooter className="p-4 border-t border-slate-800 bg-[#0f172a]">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary text-white font-semibold">
@@ -242,7 +242,7 @@ const DashboardSidebar = () => {
           </Button>
         </SidebarFooter>
       ) : (
-        <SidebarFooter className="p-4 border-t border-slate-800 bg-slate-900">
+        <SidebarFooter className="p-4 border-t border-slate-800 bg-[#0f172a]">
           <Button asChild className="w-full gap-2">
             <Link to="/login">
               <LogOut className="w-4 h-4 rotate-180" />
