@@ -154,13 +154,13 @@ const DashboardSidebar = () => {
                         to={link.url}
                         className={({ isActive }) => 
                           cn(
-                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
-                            (isActive || isCustomActive(link.url)) && "bg-primary text-white hover:bg-primary/90 shadow-sm"
+                            "flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white transition-all duration-300",
+                            (isActive || isCustomActive(link.url)) && "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
                           )
                         }
                       >
                         <Icon className="w-5 h-5" />
-                        <span className="font-medium">{link.title}</span>
+                        <span className="font-medium tracking-wide">{link.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

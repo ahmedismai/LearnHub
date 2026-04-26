@@ -66,21 +66,23 @@ const BrowseCourses = () => {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-10 animate-fade-in max-w-7xl mx-auto">
+      <div className="bg-white p-8 rounded-3xl shadow-soft border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            Explore Courses
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
+            Explore <span className="text-teal-600">Courses</span>
           </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
+          <p className="text-slate-500 mt-2 text-lg font-medium">
             Master new skills with our expert-led programs
           </p>
         </div>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative w-full md:w-[400px] group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="w-5 h-5 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+          </div>
           <Input
-            placeholder="Search by course, instructor or category..."
-            className="pl-12 h-12 text-base shadow-sm"
+            placeholder="Search courses, instructors..."
+            className="pl-12 h-14 bg-slate-50 border-none rounded-2xl text-base focus-visible:ring-2 focus-visible:ring-teal-600/20 shadow-inner"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
