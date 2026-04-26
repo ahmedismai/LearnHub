@@ -60,6 +60,12 @@ const Dashboard = () => {
     },
   ];
 
+  const getProgressColor = (progress) => {
+    if (progress > 80) return "bg-green-500";
+    if (progress >= 50) return "bg-yellow-500";
+    return "bg-blue-500";
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -180,40 +186,34 @@ const Dashboard = () => {
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" /> Last accessed today
                           </span>
-                        const getProgressColor = (progress) => {
-                          if (progress > 80) return "bg-green-500";
-                          if (progress >= 50) return "bg-yellow-500";
-                          return "bg-blue-500";
-                        };
-
-                        const statCards = [
-                        ...
-                                            <Badge
-                                              className={`h-6 ${
-                                                enrollment.progress > 80 
-                                                  ? "bg-green-500" 
-                                                  : enrollment.progress >= 50 
-                                                  ? "bg-yellow-500" 
-                                                  : "bg-blue-500"
-                                              }`}
-                                            >
-                                              {enrollment.progress === 100 ? "Done" : "Active"}
-                                            </Badge>
-                                          </div>
-                                          <div className="space-y-3">
-                                            <div className="flex justify-between text-xs font-bold uppercase text-muted-foreground">
-                                              <span>Course Progress</span>
-                                              <span className="text-primary">
-                                                {enrollment.progress}%
-                                              </span>
-                                            </div>
-                                            <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-                                              <div 
-                                                className={`h-full transition-all duration-500 ${getProgressColor(enrollment.progress)}`}
-                                                style={{ width: `${enrollment.progress}%` }}
-                                              />
-                                            </div>
-                                          </div>
+                        </div>
+                      </div>
+                      <Badge
+                        className={`h-6 ${
+                          enrollment.progress > 80 
+                            ? "bg-green-500" 
+                            : enrollment.progress >= 50 
+                            ? "bg-yellow-500" 
+                            : "bg-blue-500"
+                        }`}
+                      >
+                        {enrollment.progress === 100 ? "Done" : "Active"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-xs font-bold uppercase text-muted-foreground">
+                        <span>Course Progress</span>
+                        <span className="text-primary">
+                          {enrollment.progress}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 ${getProgressColor(enrollment.progress)}`}
+                          style={{ width: `${enrollment.progress}%` }}
+                        />
+                      </div>
+                    </div>
                     <Button asChild className="w-full mt-6" variant="outline">
                       <Link
                         to={`/dashboard/courses/${enrollment.courseId?._id}`}
