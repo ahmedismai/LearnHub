@@ -113,21 +113,21 @@ const DashboardSidebar = () => {
   const links = getLinks();
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+    <Sidebar className="w-64 bg-slate-900 border-r border-slate-800 z-50 [&>[data-sidebar=sidebar]]:bg-slate-900">
+      <SidebarHeader className="p-4 border-b border-slate-800 bg-slate-900">
         <Link to="/" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-primary-foreground" />
+            <GraduationCap className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-bold text-sidebar-foreground">
+          <span className="text-xl font-bold text-white">
             LearnHub
           </span>
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 bg-slate-900">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <SidebarGroupLabel className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -154,8 +154,8 @@ const DashboardSidebar = () => {
                         to={link.url}
                         className={({ isActive }) => 
                           cn(
-                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-                            (isActive || isCustomActive(link.url)) && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
+                            (isActive || isCustomActive(link.url)) && "bg-primary text-white hover:bg-primary/90 shadow-sm"
                           )
                         }
                       >
@@ -172,7 +172,7 @@ const DashboardSidebar = () => {
 
         {user && (
           <SidebarGroup className="mt-auto">
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <SidebarGroupLabel className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Account
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -183,8 +183,8 @@ const DashboardSidebar = () => {
                       to="/dashboard/profile"
                       className={({ isActive }) => 
                         cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-                          isActive && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
+                          isActive && "bg-primary text-white hover:bg-primary/90 shadow-sm"
                         )
                       }
                     >
@@ -199,8 +199,8 @@ const DashboardSidebar = () => {
                       to="/dashboard/settings"
                       className={({ isActive }) => 
                         cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-                          isActive && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
+                          isActive && "bg-primary text-white hover:bg-primary/90 shadow-sm"
                         )
                       }
                     >
@@ -216,25 +216,25 @@ const DashboardSidebar = () => {
       </SidebarContent>
 
       {user ? (
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
+        <SidebarFooter className="p-4 border-t border-slate-800 bg-slate-900">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+              <AvatarFallback className="bg-primary text-white font-semibold">
                 {getInitials(user.name || user.username)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-sidebar-foreground truncate">
+              <p className="font-semibold text-sm text-white truncate">
                 {user.name || user.username}
               </p>
-              <p className="text-xs text-muted-foreground capitalize">
+              <p className="text-xs text-slate-400 capitalize">
                 {user.role}
               </p>
             </div>
           </div>
           <Button
             variant="outline"
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
             onClick={logout}
           >
             <LogOut className="w-4 h-4" />
@@ -242,7 +242,7 @@ const DashboardSidebar = () => {
           </Button>
         </SidebarFooter>
       ) : (
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
+        <SidebarFooter className="p-4 border-t border-slate-800 bg-slate-900">
           <Button asChild className="w-full gap-2">
             <Link to="/login">
               <LogOut className="w-4 h-4 rotate-180" />

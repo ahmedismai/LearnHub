@@ -8,13 +8,17 @@ const NavLink = forwardRef(
       <RouterNavLink
         ref={ref}
         to={to}
-        className={({ isActive, isPending }) =>
-          cn(
-            className,
-            isActive && activeClassName,
-            isPending && pendingClassName,
-          )
-        }
+        className={(navLinkProps) => {
+          const resolvedClassName =
+            typeof className === "function"
+              ? className(navLinkProps)
+              : className;
+          return cn(
+            resolvedClassName,
+            navLinkProps.isActive && activeClassName,
+            navLinkProps.isPending && pendingClassName,
+          );
+        }}
         {...props}
       />
     );

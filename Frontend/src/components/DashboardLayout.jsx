@@ -27,7 +27,7 @@ const DashboardLayout = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <DashboardSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 md:ml-64">
           <header className="h-16 flex items-center justify-between border-b border-border bg-card px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="-ml-2" />
