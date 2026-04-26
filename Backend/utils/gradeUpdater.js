@@ -32,7 +32,8 @@ export const updateGrade = async ({
     else if (examId) filter.examId = examId;
     else if (assignmentId) filter.assignmentId = assignmentId;
 
-    const update = {
+    // Use a clean update object to avoid unique index conflicts with null/undefined values
+    const updateData = {
       studentId,
       courseId,
       type,
@@ -41,16 +42,19 @@ export const updateGrade = async ({
       percentage,
     };
 
-    if (quizId) update.quizId = quizId;
-    if (examId) update.examId = examId;
-    if (assignmentId) update.assignmentId = assignmentId;
+    if (quizId) updateData.quizId = quizId;
+    if (examId) updateData.examId = examId;
+    if (assignmentId) updateData.assignmentId = assignmentId;
 
-    if (aiFeedback !== undefined) update.aiFeedback = aiFeedback;
-    if (isReviewed !== undefined) update.isReviewed = isReviewed;
+    if (aiFeedback !== undefined) updateData.aiFeedback = aiFeedback;
+    if (isReviewed !== undefined) updateData.isReviewed = isReviewed;
+
+    console.log(`[GRADE-UPDATER]: Final filter for student ${studentId}:`, JSON.stringify(filter));
+    console.log(`[GRADE-UPDATER]: Final update data:`, JSON.stringify(updateData));
 
     const grade = await Grade.findOneAndUpdate(
       filter,
-      update,
+      { $set: updateData },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 

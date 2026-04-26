@@ -127,13 +127,22 @@ router.post(
       const maxScore = questions.length;
 
       questions.forEach((q) => {
-        const studentAnswer = answers.find(
+        const studentAnsObj = answers.find(
           (a) => String(a.questionId) === String(q._id),
-        )?.answer;
-        if (studentAnswer === q.correctAnswer) {
+        );
+        
+        if (!studentAnsObj) {
+          console.warn(`[QUIZ-SUBMISSION]: Question ${q._id} not found in user answers.`);
+        }
+
+        const studentAnswer = studentAnsObj?.answer;
+        // Use type-safe comparison
+        if (studentAnswer?.toString() === q.correctAnswer?.toString()) {
           score += 1;
         }
       });
+
+      console.log(`[QUIZ-SCORE]: Calculated score for student ${req.user.id}: ${score}/${maxScore}`);
 
       const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
@@ -143,7 +152,7 @@ router.post(
         return {
           questionId: q._id,
           selectedOption: studentAns?.answer || "No Answer",
-          isCorrect: studentAns?.answer === q.correctAnswer
+          isCorrect: studentAns?.answer?.toString() === q.correctAnswer?.toString()
         };
       });
 

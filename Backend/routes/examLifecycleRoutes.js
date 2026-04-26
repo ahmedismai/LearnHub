@@ -44,7 +44,13 @@ router.post("/submit", protect, async (req, res) => {
     const gradedAnswers = questions.map((q, idx) => {
       const qId = q._id ? q._id.toString() : idx.toString();
       const studentAns = selectedAnswers.find(a => a.questionId === qId);
-      const isCorrect = studentAns?.answer === q.correctAnswer;
+      
+      if (!studentAns) {
+        console.warn(`[EXAM-SUBMISSION]: Question ${qId} not found in user answers.`);
+      }
+
+      // Use type-safe comparison
+      const isCorrect = studentAns?.answer?.toString() === q.correctAnswer?.toString();
       if (isCorrect) correctCount++;
 
       return {
@@ -55,6 +61,7 @@ router.post("/submit", protect, async (req, res) => {
     });
 
     const score = Math.round((correctCount / questions.length) * 100);
+    console.log(`[EXAM-SCORE]: Calculated score for student ${studentId}: ${score} (Correct: ${correctCount}/${questions.length})`);
     
     const submission = new Submission({
       examId,
