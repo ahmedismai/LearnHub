@@ -5,6 +5,9 @@ import { Course } from "../models/Course.js";
 import { Category } from "../models/Category.js";
 import { Content, Lesson, Quiz, Assignment } from "../models/Content.js";
 import { Question } from "../models/Question.js";
+import { Enrollment } from "../models/Enrollment.js";
+import { Submission } from "../models/Submission.js";
+import { updateEnrollmentProgress } from "../utils/progress.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -276,6 +279,71 @@ router.patch(
     }
   },
 );
+
+// Get course progress for current student
+router.get("/:id/progress", protect, async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      courseId: req.params.id,
+      studentId: req.user.id,
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found" });
+    }
+
+    // Recalculate to be sure it's up to date
+    await updateEnrollmentProgress(enrollment);
+    res.json({ percentage: enrollment.progress });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mark video as completed
+router.post("/:id/video-complete", protect, async (req, res) => {
+  try {
+    const { contentId } = req.body;
+    const courseId = req.params.id;
+    const studentId = req.user.id;
+
+    // 1. Check if submission already exists to avoid duplicates
+    const existingSubmission = await Submission.findOne({
+      courseId,
+      studentId,
+      contentId,
+      type: "video",
+    });
+
+    if (existingSubmission) {
+      return res.json({ message: "Video already marked as completed" });
+    }
+
+    // 2. Create submission record
+    const submission = new Submission({
+      courseId,
+      studentId,
+      contentId,
+      type: "video",
+      status: "Graded", // Videos don't need manual grading
+      score: 100,
+    });
+    await submission.save();
+
+    // 3. Update enrollment record
+    const enrollment = await Enrollment.findOne({ courseId, studentId });
+    if (enrollment) {
+      if (!enrollment.completedLessons.includes(contentId)) {
+        enrollment.completedLessons.push(contentId);
+        await updateEnrollmentProgress(enrollment);
+      }
+    }
+
+    res.status(201).json({ success: true, progress: enrollment?.progress });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get course details
 router.get("/:id", async (req, res) => {

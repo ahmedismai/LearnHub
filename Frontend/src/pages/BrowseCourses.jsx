@@ -13,7 +13,7 @@ import api from "@/api/axios";
 import { Link } from "react-router-dom";
 import { BookOpen, Search, User } from "lucide-react";
 import { useState } from "react";
-const Courses = () => {
+const BrowseCourses = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -150,4 +150,4 @@ const Courses = () => {
   );
 };
 
-export default Courses;
+export default BrowseCourses;

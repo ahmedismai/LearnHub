@@ -13,10 +13,11 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Courses from "./pages/Courses";
+import BrowseCourses from "./pages/BrowseCourses";
 import CourseDetails from "./pages/CourseDetails";
 import Payment from "./pages/Payment";
 import DashboardLayout from "./components/DashboardLayout";
+import MainLayout from "./components/MainLayout";
 import MyCourses from "./pages/MyCourses";
 import CreateCourse from "./pages/CreateCourse";
 import CreateExam from "./pages/CreateExam";
@@ -92,8 +93,13 @@ const App = () => (
           <Routes>
             {/* --- الصفحات المتاحة للجميع (Public) --- */}
             <Route path="/" element={<Index />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:id" element={<CourseDetails />} />
+            
+            <Route element={<MainLayout />}>
+              <Route path="/browse-courses" element={<BrowseCourses />} />
+              <Route path="/courses" element={<BrowseCourses />} />
+              <Route path="/courses/:id" element={<CourseDetails />} />
+            </Route>
+
             <Route path="/confirm-email" element={<ConfirmEmail />} />
 
             {/* --- صفحات تفتح فقط إذا لم تكن مسجل دخول (Public Only) --- */}

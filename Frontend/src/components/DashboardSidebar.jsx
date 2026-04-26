@@ -35,8 +35,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const DashboardSidebar = () => {
   const { user, logout } = useAuth();
 
-  if (!user) return null;
-
   const getInitials = (name) => {
     return (name || "U")
       .split(" ")
@@ -45,6 +43,11 @@ const DashboardSidebar = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const guestLinks = [
+    { title: "Home", url: "/", icon: LayoutDashboard },
+    { title: "Browse Courses", url: "/browse-courses", icon: GraduationCap },
+  ];
 
   const adminLinks = [
     { title: "Overview", url: "/dashboard/reports", icon: LayoutDashboard },
@@ -81,7 +84,7 @@ const DashboardSidebar = () => {
   const studentLinks = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "My Courses", url: "/dashboard/my-courses", icon: BookOpen },
-    { title: "Browse Courses", url: "/courses", icon: GraduationCap },
+    { title: "Browse Courses", url: "/browse-courses", icon: GraduationCap },
     {
       title: "Smart Assessments",
       url: "/dashboard/quizzes",
@@ -92,6 +95,7 @@ const DashboardSidebar = () => {
   ];
 
   const getLinks = () => {
+    if (!user) return guestLinks;
     switch (user.role) {
       case "Administrator":
         return adminLinks;
@@ -100,7 +104,7 @@ const DashboardSidebar = () => {
       case "Student":
         return studentLinks;
       default:
-        return [];
+        return guestLinks;
     }
   };
 
@@ -148,66 +152,79 @@ const DashboardSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Account
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/profile"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                    activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Users className="w-5 h-5" />
-                    <span className="font-medium">My Profile</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/settings"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                    activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Settings className="w-5 h-5" />
-                    <span className="font-medium">Settings</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {user && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Account
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/profile"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                      activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">My Profile</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/settings"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                      activeClassName="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span className="font-medium">Settings</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 mb-4">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-              {getInitials(user.name || user.username)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-sidebar-foreground truncate">
-              {user.name || user.username}
-            </p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {user.role}
-            </p>
+      {user ? (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 mb-4">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                {getInitials(user.name || user.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-sidebar-foreground truncate">
+                {user.name || user.username}
+              </p>
+              <p className="text-xs text-muted-foreground capitalize">
+                {user.role}
+              </p>
+            </div>
           </div>
-        </div>
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-2"
-          onClick={logout}
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </Button>
-      </SidebarFooter>
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={logout}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </Button>
+        </SidebarFooter>
+      ) : (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
+          <Button asChild className="w-full gap-2">
+            <Link to="/login">
+              <LogOut className="w-4 h-4 rotate-180" />
+              Sign In
+            </Link>
+          </Button>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 };

@@ -7,7 +7,7 @@ const submissionSchema = new mongoose.Schema({
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   
-  type: { type: String, enum: ['Assignment', 'Quiz', 'Exam'], required: true },
+  type: { type: String, enum: ['Assignment', 'Quiz', 'Exam', 'video'], required: true },
   submittedFile: { type: String }, // For Assignments
   answers: [{
     questionId: String,

@@ -63,6 +63,12 @@ const MyCourses = () => {
   }, [isStudent, isInstructor]);
   const enrolledCourses = studentEnrollments.filter((e) => e.course);
 
+  const getProgressColor = (progress) => {
+    if (progress > 80) return "bg-green-500";
+    if (progress >= 50) return "bg-yellow-500";
+    return "bg-blue-500";
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -96,10 +102,7 @@ const MyCourses = () => {
                 />
 
                 <Badge
-                  className="absolute top-3 right-3"
-                  variant={
-                    enrollment.status === "completed" ? "success" : "secondary"
-                  }
+                  className={`absolute top-3 right-3 ${getProgressColor(enrollment.progress)}`}
                 >
                   {enrollment.status === "completed" ? (
                     <>
@@ -126,7 +129,12 @@ const MyCourses = () => {
                       {enrollment.progress}%
                     </span>
                   </div>
-                  <Progress value={enrollment.progress} className="h-2" />
+                  <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${getProgressColor(enrollment.progress)}`}
+                      style={{ width: `${enrollment.progress}%` }}
+                    />
+                  </div>
                 </div>
 
                 <Button

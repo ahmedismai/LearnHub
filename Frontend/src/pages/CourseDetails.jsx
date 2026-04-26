@@ -460,6 +460,11 @@ const CourseDetails = () => {
                 className="w-full h-full"
                 autoPlay
                 poster={course.thumbnail}
+                onEnded={() => {
+                  if (!isLessonCompleted(activeLesson._id)) {
+                    completeLessonMutation.mutate(activeLesson._id);
+                  }
+                }}
               />
             ) : (
               <div className="relative w-full h-full">
@@ -502,7 +507,13 @@ const CourseDetails = () => {
                 </div>
                 <div className="h-3 w-full bg-primary/10 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-primary transition-all duration-500" 
+                    className={`h-full transition-all duration-500 ${
+                      calculateProgress() > 80 
+                        ? "bg-green-500" 
+                        : calculateProgress() >= 50 
+                        ? "bg-yellow-500" 
+                        : "bg-blue-500"
+                    }`} 
                     style={{ width: `${calculateProgress()}%` }}
                   />
                 </div>
