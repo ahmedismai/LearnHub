@@ -29,20 +29,21 @@ export const updateGrade = async ({
     
     const filter = { studentId };
     if (quizId) filter.quizId = quizId;
-    if (examId) filter.examId = examId;
-    if (assignmentId) filter.assignmentId = assignmentId;
+    else if (examId) filter.examId = examId;
+    else if (assignmentId) filter.assignmentId = assignmentId;
 
     const update = {
       studentId,
       courseId,
-      quizId,
-      examId,
-      assignmentId,
       type,
       score,
       maxScore,
       percentage,
     };
+
+    if (quizId) update.quizId = quizId;
+    if (examId) update.examId = examId;
+    if (assignmentId) update.assignmentId = assignmentId;
 
     if (aiFeedback !== undefined) update.aiFeedback = aiFeedback;
     if (isReviewed !== undefined) update.isReviewed = isReviewed;
