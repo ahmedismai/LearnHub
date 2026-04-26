@@ -136,10 +136,17 @@ router.post(
         }
 
         const studentAnswer = studentAnsObj?.answer;
-        // Use robust String conversion and trimming
-        if (studentAnswer && q.correctAnswer && 
+        
+        // Detailed comparison logging
+        console.log(`[COMPARISON]: Question ${q._id} | DB Answer: "${q.correctAnswer}" | Student Answer: "${studentAnswer}"`);
+
+        // Use aggressive String conversion and trimming
+        if (studentAnswer !== undefined && studentAnswer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
             String(studentAnswer).trim() === String(q.correctAnswer).trim()) {
           score += 1;
+          console.log(`[COMPARISON-RESULT]: Correct!`);
+        } else {
+          console.log(`[COMPARISON-RESULT]: Incorrect.`);
         }
       });
 

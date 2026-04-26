@@ -45,8 +45,30 @@ const gradeSchema = new mongoose.Schema(
 );
 
 // Ensure a student has only one grade per specific assessment
-gradeSchema.index({ studentId: 1, quizId: 1 }, { unique: true, partialFilterExpression: { quizId: { $exists: true } } });
-gradeSchema.index({ studentId: 1, examId: 1 }, { unique: true, partialFilterExpression: { examId: { $exists: true } } });
-gradeSchema.index({ studentId: 1, assignmentId: 1 }, { unique: true, partialFilterExpression: { assignmentId: { $exists: true } } });
+// Using sparse: true to allow multiple documents where these fields are missing
+gradeSchema.index(
+  { studentId: 1, quizId: 1 },
+  { 
+    unique: true, 
+    sparse: true,
+    partialFilterExpression: { quizId: { $exists: true } } 
+  }
+);
+gradeSchema.index(
+  { studentId: 1, examId: 1 },
+  { 
+    unique: true, 
+    sparse: true,
+    partialFilterExpression: { examId: { $exists: true } } 
+  }
+);
+gradeSchema.index(
+  { studentId: 1, assignmentId: 1 },
+  { 
+    unique: true, 
+    sparse: true,
+    partialFilterExpression: { assignmentId: { $exists: true } } 
+  }
+);
 
 export const Grade = mongoose.model("Grade", gradeSchema);

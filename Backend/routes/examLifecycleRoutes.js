@@ -49,10 +49,19 @@ router.post("/submit", protect, async (req, res) => {
         console.warn(`[EXAM-SUBMISSION]: Question ${qId} not found in user answers.`);
       }
 
-      // Use robust String conversion and trimming
-      const isCorrect = studentAns?.answer && q.correctAnswer && 
+      // Aggressive comparison logging
+      console.log(`[COMPARISON]: Question ${qId} | DB Answer: "${q.correctAnswer}" | Student Answer: "${studentAns?.answer}"`);
+
+      // Use aggressive String conversion and trimming
+      const isCorrect = studentAns?.answer !== undefined && studentAns?.answer !== null && q.correctAnswer !== undefined && q.correctAnswer !== null && 
                         String(studentAns.answer).trim() === String(q.correctAnswer).trim();
-      if (isCorrect) correctCount++;
+      
+      if (isCorrect) {
+        correctCount++;
+        console.log(`[COMPARISON-RESULT]: Correct!`);
+      } else {
+        console.log(`[COMPARISON-RESULT]: Incorrect.`);
+      }
 
       return {
         questionId: qId,
