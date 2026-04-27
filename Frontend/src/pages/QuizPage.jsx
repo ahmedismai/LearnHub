@@ -258,7 +258,8 @@ const QuizPage = () => {
     setAnswers((prev) => ({ ...prev, [qId]: value }));
   };
 
-  const handleSubmit = (finalAnswers = answers) => {
+  const handleSubmit = () => {
+    const finalAnswers = answers;
     if (isFinished || submitMutation.isPending) return;
     if (isInstructor) {
       toast.info("Exiting Instructor Preview Mode");
@@ -271,13 +272,13 @@ const QuizPage = () => {
       answers: questions.map((q, idx) => {
         const qId = q._id || idx;
         return {
-          questionId: qId,
-          answer: finalAnswers[qId] || "",
+          questionId: String(qId),
+          answer: String(finalAnswers[qId] || "").trim(),
         };
       }),
     };
 
-    console.log('User Answers:', payload.answers);
+    console.log('User Answers Prepared for Submission:', payload.answers);
 
     if (!isAiPractice) {
       if (type === "exam") {

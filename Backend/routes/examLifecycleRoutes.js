@@ -16,10 +16,11 @@ const router = express.Router();
  * @desc Submit exam answers, calculate score, and check graduation
  */
 router.post("/submit", protect, async (req, res) => {
-  const { examId, selectedAnswers } = req.body; // Array of { questionId, answer }
+  const { examId, selectedAnswers } = req.body; 
   const studentId = req.user.id; 
 
-  console.log('User Answers:', selectedAnswers);
+  console.log(`[EXAM-SUBMIT] Start: student=${studentId}, exam=${examId}`);
+  console.log('[EXAM-SUBMIT] Received answers:', JSON.stringify(selectedAnswers));
 
   if (!examId || !Array.isArray(selectedAnswers)) {
     return res.status(400).json({ message: "Invalid submission format. examId and selectedAnswers are required." });
@@ -30,21 +31,27 @@ router.post("/submit", protect, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "AI Practice completed (not saved to history)",
-      score: 0, // Frontend handles calculation for AI Practice
+      score: 0, 
       isAiPractice: true
     });
   }
 
   try {
-    // SPECIFIC CHECK: Change from general check to specific one
+    console.log('[EXAM-SUBMIT] Checking existing grade...');
     const existingGrade = await Grade.findOne({ studentId, examId });
     if (existingGrade) {
+      console.log('[EXAM-SUBMIT] Assessment already completed.');
       return res.status(403).json({ message: "Assessment already completed" });
     }
 
+    console.log('[EXAM-SUBMIT] Fetching exam...');
     const exam = await Exam.findById(examId);
-    if (!exam) return res.status(404).json({ message: "Exam not found" });
+    if (!exam) {
+      console.log('[EXAM-SUBMIT] Exam not found.');
+      return res.status(404).json({ message: "Exam not found" });
+    }
 
+    console.log('[EXAM-SUBMIT] Grading answers...');
     let correctCount = 0;
     const questions = exam.questions || [];
 
@@ -54,20 +61,13 @@ router.post("/submit", protect, async (req, res) => {
 
     const gradedAnswers = questions.map((q, idx) => {
       const qId = q._id ? q._id.toString() : idx.toString();
-      // Try to find by ID or fallback to the same index
       const studentAns = selectedAnswers.find(a => String(a.questionId) === qId) || selectedAnswers[idx];
-      
       const studentAnswer = studentAns?.answer;
       
-      // Match logic: use requested comparison
       const isCorrect = !!(studentAnswer && q.correctAnswer && 
                         String(q.correctAnswer).trim() === String(studentAnswer).trim());
       
-      if (isCorrect) {
-        correctCount++;
-      }
-
-      console.log(`[EXAM-MATCH] Q#${idx+1}: DB="${q.correctAnswer}" VS Student="${studentAnswer}" | Result=${isCorrect}`);
+      if (isCorrect) correctCount++;
 
       return {
         questionId: qId,
@@ -77,8 +77,9 @@ router.post("/submit", protect, async (req, res) => {
     });
 
     const score = Math.round((correctCount / questions.length) * 100);
-    console.log(`[EXAM-SCORE]: Calculated score for student ${studentId}: ${score} (Correct: ${correctCount}/${questions.length})`);
+    console.log(`[EXAM-SUBMIT] Score calculated: ${score}% (${correctCount}/${questions.length})`);
     
+    console.log('[EXAM-SUBMIT] Creating submission...');
     const submission = new Submission({
       examId,
       courseId: exam.courseId,
@@ -92,8 +93,9 @@ router.post("/submit", protect, async (req, res) => {
     });
 
     await submission.save();
+    console.log('[EXAM-SUBMIT] Submission saved.');
 
-    // Save/Update Grade record
+    console.log('[EXAM-SUBMIT] Updating grade...');
     const grade = await updateGrade({
       studentId,
       courseId: exam.courseId,
@@ -102,25 +104,26 @@ router.post("/submit", protect, async (req, res) => {
       score,
       maxScore: 100,
     });
+    console.log('[EXAM-SUBMIT] Grade updated.');
 
-    // Update Enrollment's completedExams
+    console.log('[EXAM-SUBMIT] Updating enrollment...');
     const enrollment = await Enrollment.findOne({
       studentId,
       courseId: exam.courseId,
     });
 
     if (enrollment) {
-      const completedExams = new Set(
-        (enrollment.completedExams || []).map((id) => String(id)),
-      );
+      const completedExams = new Set((enrollment.completedExams || []).map((id) => String(id)));
       completedExams.add(String(exam._id));
       enrollment.completedExams = Array.from(completedExams);
       await updateEnrollmentProgress(enrollment);
+      console.log('[EXAM-SUBMIT] Enrollment progress updated.');
     }
 
-    // Run graduation check logic
+    console.log('[EXAM-SUBMIT] Checking graduation status...');
     await checkGraduationStatus(studentId, exam.courseId);
 
+    console.log('[EXAM-SUBMIT] All steps completed successfully.');
     res.status(201).json({
       success: true,
       score,
@@ -133,7 +136,12 @@ router.post("/submit", protect, async (req, res) => {
 
   } catch (error) {
     console.error("[SUBMIT-EXAM-ERROR]:", error);
-    res.status(500).json({ message: "Submission failed", error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: "Submission failed", 
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 });
 

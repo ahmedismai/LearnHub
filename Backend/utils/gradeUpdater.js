@@ -25,25 +25,13 @@ export const updateGrade = async ({
   isReviewed,
 }) => {
   try {
-    // ONE-TIME PURGE: Remove old corrupted data with null IDs
-    // This helps resolve index conflicts from previous failed attempts
-    await Grade.deleteMany({
-      $or: [
-        { quizId: null },
-        { examId: null },
-        { assignmentId: null }
-      ]
-    });
-
     const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     
     const filter = { studentId, type };
-    // Only include IDs that are truthy (not null/undefined)
     if (quizId) filter.quizId = quizId;
     else if (examId) filter.examId = examId;
     else if (assignmentId) filter.assignmentId = assignmentId;
 
-    // Use a clean update object
     const updateData = {
       studentId,
       courseId,
@@ -53,7 +41,6 @@ export const updateGrade = async ({
       percentage,
     };
 
-    // Explicitly set IDs ONLY if they have values, otherwise leave them undefined
     if (quizId) updateData.quizId = quizId;
     if (examId) updateData.examId = examId;
     if (assignmentId) updateData.assignmentId = assignmentId;
@@ -61,8 +48,7 @@ export const updateGrade = async ({
     if (aiFeedback !== undefined) updateData.aiFeedback = aiFeedback;
     if (isReviewed !== undefined) updateData.isReviewed = isReviewed;
 
-    console.log(`[GRADE-UPDATER]: Filter for student ${studentId}:`, JSON.stringify(filter));
-    console.log(`[GRADE-UPDATER]: Update data:`, JSON.stringify(updateData));
+    console.log(`[GRADE-UPDATER]: Updating grade for student ${studentId}, type ${type}`);
 
     const grade = await Grade.findOneAndUpdate(
       filter,
