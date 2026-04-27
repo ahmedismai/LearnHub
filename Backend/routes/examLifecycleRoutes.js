@@ -96,7 +96,6 @@ router.post("/submit", protect, async (req, res) => {
     console.log('[EXAM-SUBMIT] Submission saved.');
 
     console.log('[EXAM-SUBMIT] Updating grade...');
-    await Grade.init(); // Ensure indexes are built
     const grade = await updateGrade({
       studentId: String(studentId),
       courseId: String(exam.courseId),

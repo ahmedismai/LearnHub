@@ -45,29 +45,29 @@ const gradeSchema = new mongoose.Schema(
 );
 
 // Ensure a student has only one grade per specific assessment
-// Renamed to _v2 to force creation of correct partial indexes
+// Added type and courseId to the key to avoid collision with old indexes
 gradeSchema.index(
-  { studentId: 1, quizId: 1 },
+  { studentId: 1, courseId: 1, type: 1, quizId: 1 },
   { 
     unique: true, 
     partialFilterExpression: { quizId: { $exists: true } },
-    name: "studentId_1_quizId_1_v2" 
+    name: "grade_student_course_quiz_unique" 
   }
 );
 gradeSchema.index(
-  { studentId: 1, examId: 1 },
+  { studentId: 1, courseId: 1, type: 1, examId: 1 },
   { 
     unique: true, 
     partialFilterExpression: { examId: { $exists: true } },
-    name: "studentId_1_examId_1_v2" 
+    name: "grade_student_course_exam_unique" 
   }
 );
 gradeSchema.index(
-  { studentId: 1, assignmentId: 1 },
+  { studentId: 1, courseId: 1, type: 1, assignmentId: 1 },
   { 
     unique: true, 
     partialFilterExpression: { assignmentId: { $exists: true } },
-    name: "studentId_1_assignmentId_1_v2" 
+    name: "grade_student_course_assignment_unique" 
   }
 );
 
