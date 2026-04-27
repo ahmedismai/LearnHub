@@ -277,6 +277,8 @@ const QuizPage = () => {
       }),
     };
 
+    console.log('User Answers:', payload.answers);
+
     if (!isAiPractice) {
       if (type === "exam") {
         payload.examId = id;

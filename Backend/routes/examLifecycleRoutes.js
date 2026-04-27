@@ -1,6 +1,9 @@
 import express from "express";
 import { Exam } from "../models/Exam.js";
 import { Submission } from "../models/Submission.js";
+import { Grade } from "../models/Grade.js";
+import { Enrollment } from "../models/Enrollment.js";
+import { updateEnrollmentProgress } from "../utils/progress.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
@@ -14,7 +17,9 @@ const router = express.Router();
  */
 router.post("/submit", protect, async (req, res) => {
   const { examId, selectedAnswers } = req.body; // Array of { questionId, answer }
-  const studentId = req.user.id; // Corrected from req.user._id
+  const studentId = req.user.id; 
+
+  console.log('User Answers:', selectedAnswers);
 
   if (!examId || !Array.isArray(selectedAnswers)) {
     return res.status(400).json({ message: "Invalid submission format. examId and selectedAnswers are required." });
@@ -31,6 +36,12 @@ router.post("/submit", protect, async (req, res) => {
   }
 
   try {
+    // SPECIFIC CHECK: Change from general check to specific one
+    const existingGrade = await Grade.findOne({ studentId, examId });
+    if (existingGrade) {
+      return res.status(403).json({ message: "Assessment already completed" });
+    }
+
     const exam = await Exam.findById(examId);
     if (!exam) return res.status(404).json({ message: "Exam not found" });
 
@@ -48,9 +59,9 @@ router.post("/submit", protect, async (req, res) => {
       
       const studentAnswer = studentAns?.answer;
       
-      // Use aggressive String conversion, trimming, and case-insensitivity
+      // Match logic: use requested comparison
       const isCorrect = !!(studentAnswer && q.correctAnswer && 
-                        String(studentAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
+                        String(q.correctAnswer).trim() === String(studentAnswer).trim());
       
       if (isCorrect) {
         correctCount++;
@@ -160,18 +171,21 @@ router.patch("/review/:submissionId", protect, authorize(ROLES.INSTRUCTOR), asyn
     submission.status = "Graded";
     await submission.save();
 
-    await updateGrade({
+    const gradeData = {
       studentId: submission.studentId,
       courseId: submission.courseId,
-      quizId: submission.type === "Quiz" ? submission.contentId : undefined,
-      examId: submission.type === "Exam" ? submission.examId : undefined,
-      assignmentId: submission.type === "Assignment" ? submission.contentId : undefined,
       type: submission.type,
       score,
       maxScore: 100,
       aiFeedback,
       isReviewed: true,
-    });
+    };
+
+    if (submission.type === "Quiz") gradeData.quizId = submission.contentId;
+    else if (submission.type === "Exam") gradeData.examId = submission.examId;
+    else if (submission.type === "Assignment") gradeData.assignmentId = submission.contentId;
+
+    await updateGrade(gradeData);
 
     res.json({ message: "Review finalized successfully" });
   } catch (error) {

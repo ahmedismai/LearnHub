@@ -81,12 +81,11 @@ router.get("/:quizId", protect, async (req, res) => {
 
     // Check if already submitted - STRICTLY for this Quiz ID and Type
     if (req.user.role === ROLES.STUDENT) {
-      const existingSubmission = await Submission.findOne({
+      const existingGrade = await Grade.findOne({
         studentId: req.user.id,
-        contentId: quiz._id,
-        type: "Quiz" 
+        quizId: quiz._id
       });
-      if (existingSubmission) {
+      if (existingGrade) {
         return res.status(403).json({ message: "Assessment already completed" });
       }
     }
@@ -109,9 +108,18 @@ router.post(
   async (req, res) => {
     try {
       const { answers = [] } = req.body; 
-      console.log(`[QUIZ-SUBMIT] Received answers for quiz ${req.params.quizId}:`, JSON.stringify(answers));
+      console.log('User Answers:', answers);
       
-      const quiz = await Quiz.findById(req.params.quizId);
+      const quizId = req.params.quizId;
+      const studentId = req.user.id;
+
+      // SPECIFIC CHECK: Change from general check to specific one
+      const existingGrade = await Grade.findOne({ studentId, quizId });
+      if (existingGrade) {
+        return res.status(403).json({ message: "Assessment already completed" });
+      }
+
+      const quiz = await Quiz.findById(quizId);
       if (!quiz || quiz.contentType !== "Quiz") {
         return res.status(404).json({ message: "Quiz not found" });
       }
@@ -128,9 +136,9 @@ router.post(
         
         const studentAnswer = studentAnsObj?.answer;
         
-        // Match logic
+        // Match logic: use requested comparison
         const isCorrect = !!(studentAnswer && q.correctAnswer && 
-                          String(studentAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
+                          String(q.correctAnswer).trim() === String(studentAnswer).trim());
         
         if (isCorrect) score += 1;
 
@@ -143,14 +151,14 @@ router.post(
         };
       });
 
-      console.log(`[QUIZ-SCORE]: Student ${req.user.id} scored ${score}/${maxScore}`);
+      console.log(`[QUIZ-SCORE]: Student ${studentId} scored ${score}/${maxScore}`);
 
       const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
       const submission = new Submission({
         contentId: quiz._id,
         courseId: quiz.courseId,
-        studentId: req.user.id,
+        studentId,
         type: "Quiz",
         answers: gradedAnswers,
         score: percentage,
@@ -161,7 +169,7 @@ router.post(
       await submission.save();
 
       const grade = await updateGrade({
-        studentId: req.user.id,
+        studentId,
         courseId: quiz.courseId,
         quizId: quiz._id,
         type: "Quiz",
@@ -171,7 +179,7 @@ router.post(
 
       // Update enrollment...
       const enrollment = await Enrollment.findOne({
-        studentId: req.user.id,
+        studentId,
         courseId: quiz.courseId,
       });
       if (enrollment) {
