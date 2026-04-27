@@ -1,112 +1,98 @@
-# 🎓 LearnHub – Full-Stack Online Courses Platform
+# 🎓 LearnHub – Professional E-Learning Ecosystem
 
-LearnHub is a professional, full-stack online learning platform designed to provide a seamless experience for both instructors and students. This project is strictly aligned with the architectural design specified in its UML Class and Sequence diagrams.
+[![React](https://img.shields.io/badge/Frontend-React%2018-blue)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js%20Express-green)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/Database-MongoDB%20Atlas-brightgreen)](https://www.mongodb.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+LearnHub is a high-performance, full-stack online learning platform. It is engineered with a focus on **Database Integrity**, **Scalable Architecture**, and a **Seamless User Experience** for students, instructors, and administrators.
+
+---
+
+## 🚀 Recent Enhancements & Stability
+We have recently implemented critical updates to ensure system reliability:
+- **🛠️ Smart Database Cleanup:** Automatic legacy index management to prevent submission conflicts.
+- **🎯 Precision Assessment Tracking:** Refined Grade model to allow multiple assessment types (Quizzes/Exams) to coexist without interference.
+- **🧪 Robust Error Handling:** Step-by-step transaction logging for assessment submissions.
+- **✨ Normalized UI State:** Enhanced frontend state management for 100% accurate answer capturing.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-
-- **Framework:** React 18 (Vite)
-- **State Management:** TanStack Query (React Query)
-- **Styling:** Tailwind CSS + shadcn/ui + Lucide Icons
-- **Routing:** React Router DOM
-- **Authentication:** JWT + Context API
+- **Core:** React 18 (Vite) with Functional Components & Hooks.
+- **Data Fetching:** TanStack Query (v5) for caching and server-state sync.
+- **UI Architecture:** Tailwind CSS + shadcn/ui + Lucide Icons.
+- **State Management:** Context API for Global Auth & Theme.
 
 ### Backend
-
-- **Runtime:** Node.js + Express.js
-- **Database:** MongoDB Atlas (Mongoose)
-- **Inheritance Pattern:** Mongoose Discriminators (for Users, Content, and Payments)
-- **Media Management:** Cloudinary API
-- **Security:** bcryptjs + JSON Web Tokens
+- **Engine:** Node.js + Express.js (ES Modules).
+- **ORM/ODM:** Mongoose with **Discriminator Patterns** for optimized inheritance.
+- **Storage:** Cloudinary integration for media and assignment uploads.
+- **Security:** JWT Authentication, Bcrypt password hashing, and CORS protection.
 
 ---
 
-## 🏗️ System Architecture (Database Schema)
+## 🏗️ System Architecture
 
-The system utilizes an advanced inheritance-based schema for 100% alignment with the UML design.
+### 👥 User Roles (RBAC)
+- **Student:** Course enrollment, progress tracking, and certificate generation.
+- **Instructor:** Course creation, curriculum management, and student assessment.
+- **Administrator:** Platform-wide oversight, category management, and user auditing.
 
-### 👥 User Inheritance System
-
-- **Base User:** `id`, `name`, `email`, `passwordHash`, `role`.
-- **Admin:** Inherits User, adds `adminId`.
-- **Instructor:** Inherits User, adds `instructorId`, `bio`.
-- **Student:** Inherits User, adds `studentId`, `enrollmentDate`.
-
-### 📚 Course & Content System
-
-- **Category:** `categoryId`, `name`, `description`.
-- **Course:** `courseId`, `title`, `description`, `price`, `level`. (Linked to Category and Instructor).
-- **Content (Base):** `contentId`, `title`, `description`, `type`, `duration`.
-  - **Lesson:** Inherits Content, adds `contentUrl`.
-  - **Quiz:** Inherits Content, adds `totalMarks`. (Linked to Questions).
-  - **Assignment:** Inherits Content, adds `dueDate`.
-
-### 💳 Enrollment & Payment System
-
-- **Enrollment:** `enrollmentId`, `date`, `status`, `progress`. (Links Student to Course).
-- **Payment (Base):** `paymentId`, `amount`, `date`, `method`.
-  - **Visa:** Inherits Payment, adds `status`.
-  - **E-Wallet:** Inherits Payment, adds `status`.
+### 📊 Automated Progress Engine
+The system calculates student progress using a weighted algorithm:
+- **40%** Lesson Completion.
+- **30%** Quiz Performance.
+- **30%** Assignment Submissions.
 
 ---
 
-## 🚀 Key Features
+## 📦 Local Development Setup
 
-- **🔐 Secure RBAC:** Role-Based Access Control for Students, Instructors, and Administrators.
-- **📚 Content Hierarchy:** Unified content system for lessons, quizzes, and assignments.
-- **📊 Progress Tracking:** Automated progress calculation (40% Lessons, 30% Quizzes, 30% Assignments).
-- **💳 Multi-Method Payments:** Support for Visa and E-Wallet payment simulations.
-- **🎓 Certificate Generation:** Automated certificate issuance upon 100% course completion.
-- **📝 Review System:** Students can rate and review courses they are enrolled in.
-- **🛠️ Admin Control:** Comprehensive management of users, categories, and course approvals.
+### 1. Prerequisites
+- Node.js (v18+)
+- MongoDB Atlas Account or Local Instance
+- Cloudinary Account (for media)
 
----
-
-## 📦 Installation & Local Setup
-
-### 1. Clone the Repository
-
+### 2. Installation
 ```bash
+# Clone the project
 git clone https://github.com/ahmedismai/LearnHub.git
 cd LearnHub
-```
 
-### 2. Backend Setup
-
-```bash
+# Install Backend dependencies
 cd Backend
 npm install
-# Configure .env with MONGO_URI, JWT_SECRET, CLOUDINARY_URL, etc.
+
+# Setup Environment Variables (.env)
+# MONGO_URI, JWT_SECRET, PORT, CLOUDINARY_CLOUD_NAME, etc.
+
+# Run Backend
 npm start
-```
 
-### 3. Frontend Setup
-
-```bash
+# Install Frontend dependencies
 cd ../Frontend
 npm install
-# Configure .env with VITE_API_URL
 npm run dev
 ```
 
 ---
 
-## 📄 UML Alignment
-
-The codebase has been refactored to achieve **100% parity** with:
-
-- `Frontend/class.jpeg` (Class Diagram)
-- `Frontend/sequence.jpeg` (Sequence Diagram)
+## 📄 Architecture Alignment
+The project is strictly mapped to the following architectural blueprints:
+- **Class Diagram:** `Frontend/class.jpeg`
+- **Sequence Diagram:** `Frontend/sequence.jpeg`
 
 ---
 
-## 👨‍💻 Author
-
+## 👨‍💻 Developed By
 **Ahmed Ismail Amer**
-Full-Stack Developer
+*Full-Stack Software Engineer*
 
-- **GitHub:** [https://github.com/ahmedismai](https://github.com/ahmedismai)
-- **LinkedIn:** [https://www.linkedin.com/in/ahmed-ismail-amer](https://www.linkedin.com/in/ahmed-ismail-amer)
+- **LinkedIn:** [Ahmed Ismail Amer](https://www.linkedin.com/in/ahmed-ismail-amer)
+- **GitHub:** [@ahmedismai](https://github.com/ahmedismai)
+
+---
+*LearnHub - Empowering the next generation of learners.*
