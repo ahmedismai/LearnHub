@@ -178,15 +178,19 @@ router.post(
       });
 
       // Update enrollment...
-      const enrollment = await Enrollment.findOne({
-        studentId,
-        courseId: quiz.courseId,
-      });
-      if (enrollment) {
-        const completedQuizzes = new Set((enrollment.completedQuizzes || []).map(id => String(id)));
-        completedQuizzes.add(String(quiz._id));
-        enrollment.completedQuizzes = Array.from(completedQuizzes);
-        await updateEnrollmentProgress(enrollment);
+      try {
+        const enrollment = await Enrollment.findOne({
+          studentId,
+          courseId: quiz.courseId,
+        });
+        if (enrollment) {
+          const completedQuizzes = new Set((enrollment.completedQuizzes || []).map(id => String(id)));
+          completedQuizzes.add(String(quiz._id));
+          enrollment.completedQuizzes = Array.from(completedQuizzes);
+          await updateEnrollmentProgress(enrollment);
+        }
+      } catch (innerError) {
+        console.error("[QUIZ-SUBMIT-POST-LOGIC-ERROR]:", innerError);
       }
 
       res.status(201).json({ 

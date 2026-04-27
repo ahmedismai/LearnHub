@@ -96,32 +96,37 @@ router.post("/submit", protect, async (req, res) => {
     console.log('[EXAM-SUBMIT] Submission saved.');
 
     console.log('[EXAM-SUBMIT] Updating grade...');
+    await Grade.init(); // Ensure indexes are built
     const grade = await updateGrade({
-      studentId,
-      courseId: exam.courseId,
-      examId: exam._id,
+      studentId: String(studentId),
+      courseId: String(exam.courseId),
+      examId: String(exam._id),
       type: "Exam",
       score,
       maxScore: 100,
     });
     console.log('[EXAM-SUBMIT] Grade updated.');
 
-    console.log('[EXAM-SUBMIT] Updating enrollment...');
-    const enrollment = await Enrollment.findOne({
-      studentId,
-      courseId: exam.courseId,
-    });
+    console.log('[EXAM-SUBMIT] Updating enrollment and graduation...');
+    try {
+      const enrollment = await Enrollment.findOne({
+        studentId,
+        courseId: exam.courseId,
+      });
 
-    if (enrollment) {
-      const completedExams = new Set((enrollment.completedExams || []).map((id) => String(id)));
-      completedExams.add(String(exam._id));
-      enrollment.completedExams = Array.from(completedExams);
-      await updateEnrollmentProgress(enrollment);
-      console.log('[EXAM-SUBMIT] Enrollment progress updated.');
+      if (enrollment) {
+        const completedExams = new Set((enrollment.completedExams || []).map((id) => String(id)));
+        completedExams.add(String(exam._id));
+        enrollment.completedExams = Array.from(completedExams);
+        await updateEnrollmentProgress(enrollment);
+        console.log('[EXAM-SUBMIT] Enrollment progress updated.');
+      }
+
+      console.log('[EXAM-SUBMIT] Checking graduation status...');
+      await checkGraduationStatus(studentId, exam.courseId);
+    } catch (innerError) {
+      console.error("[EXAM-SUBMIT-POST-LOGIC-ERROR]:", innerError);
     }
-
-    console.log('[EXAM-SUBMIT] Checking graduation status...');
-    await checkGraduationStatus(studentId, exam.courseId);
 
     console.log('[EXAM-SUBMIT] All steps completed successfully.');
     res.status(201).json({
