@@ -90,7 +90,24 @@ if (!mongoUri) {
 
 mongoose
   .connect(mongoUri)
-  .then(() => {
+  .then(async () => {
+    console.log("Connected to MongoDB");
+
+    // CLEANUP: Drop problematic legacy unique index in submissions collection
+    try {
+      const db = mongoose.connection.db;
+      const collections = await db.listCollections({ name: 'submissions' }).toArray();
+      if (collections.length > 0) {
+        await db.collection('submissions').dropIndex('studentId_1_assignmentId_1');
+        console.log("Successfully dropped legacy unique index: studentId_1_assignmentId_1");
+      }
+    } catch (err) {
+      // Silence IndexNotFound errors, log others
+      if (err.code !== 27 && err.codeName !== 'IndexNotFound') {
+        console.error("Cleanup Note:", err.message);
+      }
+    }
+
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });
