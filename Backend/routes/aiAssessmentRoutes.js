@@ -6,6 +6,7 @@ import { Content, Assignment, Quiz } from "../models/Content.js";
 import { Grade } from "../models/Grade.js";
 import { Submission } from "../models/Submission.js";
 import { Exam } from "../models/Exam.js";
+import { Question } from "../models/Question.js";
 import { calculateStudentLevel } from "../utils/studentLevel.js";
 import { generateAssessment, generateFeedback } from "../utils/aiService.js";
 import { protect } from "../middleware/auth.js";
@@ -47,7 +48,10 @@ router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
     if (grade.assignmentId) filter.contentId = grade.assignmentId;
 
     const submission = await Submission.findOne(filter).lean();
-    if (!submission) return res.status(404).json({ message: "Submission not found" });
+    if (!submission) {
+      console.warn(`[AI-FEEDBACK] Submission not found for Grade ${gradeId}`);
+      return res.status(404).json({ message: "Submission not found" });
+    }
 
     // Get assessment data
     let assessmentData = null;
@@ -55,6 +59,10 @@ router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
       assessmentData = await Exam.findById(grade.examId).lean();
     } else if (grade.type === "Quiz") {
       assessmentData = await Quiz.findById(grade.quizId).lean();
+      if (assessmentData) {
+        // AI needs questions text, which are in a separate collection for Quizzes
+        assessmentData.questions = await Question.find({ quizId: grade.quizId }).lean();
+      }
     } else if (grade.type === "Assignment") {
       assessmentData = await Assignment.findById(grade.assignmentId).lean();
     }
@@ -69,7 +77,7 @@ router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
     res.json({ feedback });
   } catch (error) {
     console.error("[AI-FEEDBACK-ERROR]:", error);
-    res.status(500).json({ message: "Failed to generate AI feedback" });
+    res.status(500).json({ message: "Failed to generate AI feedback", error: error.message });
   }
 });
 

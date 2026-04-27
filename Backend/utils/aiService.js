@@ -219,9 +219,19 @@ export const generateFeedback = async (
     if (!prompt) return "Great job on completing your assessment!";
 
     const result = await model.generateContent(prompt);
-    return result.response.text();
+    const responseText = result.response.text();
+
+    // Ensure feedback is returned as a clean string for JSON response
+    return responseText.trim();
   } catch (error) {
-    console.error("[AI-FEEDBACK-ERROR]:", error.message);
-    return "I'm sorry, I couldn't generate feedback at this time. Keep up the great work!";
+    // Log the ACTUAL error for server-side debugging (Quota, API Key, etc.)
+    console.error("[AI-FEEDBACK-ERROR-DETAIL]:", {
+      message: error.message,
+      stack: error.stack,
+      assessmentType
+    });
+    
+    // Return a slightly more informative but safe message
+    return `Note: AI feedback is temporarily unavailable (${error.message.includes('Quota') ? 'Rate limit reached' : 'Service error'}). Please check back later.`;
   }
 };
