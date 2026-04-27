@@ -218,16 +218,44 @@ const QuizPage = () => {
     },
   });
 
-  const calculateScore = () => {
-    let correct = 0;
+  const handleAnswerChange = (qId, value) => {
+    if (isFinished) return;
+    const stringId = String(qId);
+    setAnswers((prev) => ({ ...prev, [stringId]: value }));
+  };
+
+  const handleSubmit = () => {
+    if (isFinished || submitMutation.isPending) return;
+    
+    if (isInstructor) {
+      toast.info("Exiting Instructor Preview Mode");
+      navigate(-1);
+      return;
+    }
+
     const questions = quizData?.questions || [];
-    questions.forEach((q, idx) => {
-      const qId = q._id || idx;
-      if (answers[qId] === q.correctAnswer) {
-        correct++;
-      }
+    const payloadAnswers = questions.map((q, idx) => {
+      const qId = String(q._id || idx);
+      const studentAnswer = answers[qId] || "";
+      return {
+        questionId: qId,
+        answer: String(studentAnswer).trim(),
+      };
     });
-    return Math.round((correct / questions.length) * 100);
+
+    console.log('Final Submission Payload:', payloadAnswers);
+
+    const payload = { answers: payloadAnswers };
+
+    if (!isAiPractice) {
+      if (type === "exam") {
+        payload.examId = id;
+      } else {
+        payload.quizId = id;
+      }
+    }
+
+    submitMutation.mutate(payload);
   };
 
   // 4. Timer Logic
@@ -252,44 +280,6 @@ const QuizPage = () => {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isFinished, timeLeft, isInstructor]);
-
-  const handleAnswerChange = (qId, value) => {
-    if (isFinished) return;
-    setAnswers((prev) => ({ ...prev, [qId]: value }));
-  };
-
-  const handleSubmit = () => {
-    const finalAnswers = answers;
-    if (isFinished || submitMutation.isPending) return;
-    if (isInstructor) {
-      toast.info("Exiting Instructor Preview Mode");
-      navigate(-1);
-      return;
-    }
-
-    const questions = quizData?.questions || [];
-    const payload = {
-      answers: questions.map((q, idx) => {
-        const qId = q._id || idx;
-        return {
-          questionId: String(qId),
-          answer: String(finalAnswers[qId] || "").trim(),
-        };
-      }),
-    };
-
-    console.log('User Answers Prepared for Submission:', payload.answers);
-
-    if (!isAiPractice) {
-      if (type === "exam") {
-        payload.examId = id;
-      } else {
-        payload.quizId = id;
-      }
-    }
-
-    submitMutation.mutate(payload);
-  };
 
   if (isLoading && !isAiPractice) {
     return (
@@ -338,7 +328,7 @@ const QuizPage = () => {
                 Your Final Score
               </p>
               <p
-                className={`text-6xl font-black ${score >= 70 ? "text-green-500" : "text-destructive"}`}
+                className={`text-6xl font-black \${score >= 70 ? "text-green-500" : "text-destructive"}`}
               >
                 {score}%
               </p>
@@ -386,7 +376,7 @@ const QuizPage = () => {
     );
   }
 
-  const questions = quizData.questions || [];
+  const questions = quizData?.questions || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">
@@ -413,7 +403,7 @@ const QuizPage = () => {
             )}
           </div>
           <div>
-            <h1 className="text-xl font-bold line-clamp-1">{quizData.title}</h1>
+            <h1 className="text-xl font-bold line-clamp-1">{quizData?.title}</h1>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
               {questions.length} Questions •{" "}
               {isAiPractice ? "AI Practice" : type}
@@ -422,7 +412,7 @@ const QuizPage = () => {
         </div>
         {!isInstructor && (
           <div
-            className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
+            className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 \${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
           >
             <Clock className="w-5 h-5" />
             <span className="text-2xl font-mono font-black">
@@ -435,10 +425,10 @@ const QuizPage = () => {
 
       <div className="px-4 space-y-8">
         {questions.map((q, idx) => {
-          const questionIdentifier = q._id || idx;
+          const qId = String(q._id || idx);
           return (
             <Card
-              key={questionIdentifier}
+              key={qId}
               className="border-none shadow-md overflow-hidden hover:shadow-lg transition-shadow"
             >
               <CardHeader className="bg-muted/30 border-b border-border/50">
@@ -453,19 +443,19 @@ const QuizPage = () => {
               </CardHeader>
               <CardContent className="p-8">
                 <RadioGroup
-                  value={answers[questionIdentifier] || ""}
-                  onValueChange={(val) => handleAnswerChange(questionIdentifier, val)}
+                  value={answers[qId] || ""}
+                  onValueChange={(val) => handleAnswerChange(qId, val)}
                   className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
                   {q.options?.map((opt, optIdx) => (
                     <div
                       key={optIdx}
-                      className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${answers[questionIdentifier] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
-                      onClick={() => handleAnswerChange(questionIdentifier, opt)}
+                      className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer \${answers[qId] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
+                      onClick={() => handleAnswerChange(qId, opt)}
                     >
-                      <RadioGroupItem value={opt} id={`q-${idx}-o-${optIdx}`} />
+                      <RadioGroupItem value={opt} id={`q-\${idx}-o-\${optIdx}`} />
                       <Label
-                        htmlFor={`q-${idx}-o-${optIdx}`}
+                        htmlFor={`q-\${idx}-o-\${optIdx}`}
                         className="flex-1 cursor-pointer text-base font-medium"
                       >
                         {opt}
@@ -487,7 +477,7 @@ const QuizPage = () => {
                 <div
                   className="h-full bg-primary transition-all duration-300"
                   style={{
-                    width: `${(Object.keys(answers).length / questions.length) * 100}%`,
+                    width: `\${(Object.keys(answers).length / questions.length) * 100}%`,
                   }}
                 />
               </div>
