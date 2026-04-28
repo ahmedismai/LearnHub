@@ -18,9 +18,42 @@ router.get(
   authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
-      const certificates = await Certificate.find({ studentId: req.user.id })
+      const studentId = req.user.id;
+      
+      // 1. Proactive Graduation Check (Self-Repair)
+      // Look for any enrollments that have 100% progress but might have missed the graduation trigger
+      const potentialEnrollments = await Enrollment.find({
+        studentId,
+        progress: 100,
+        status: { $ne: "Cancelled" }
+      });
+
+      for (const enrollment of potentialEnrollments) {
+        const courseId = enrollment.courseId._id || enrollment.courseId;
+        
+        // If not marked as completed or can't generate cert, try to run the graduation check
+        if (!enrollment.completed || !enrollment.canGenerateCertificate) {
+            console.log(`[CERT-PROACTIVE] Running graduation check for course \${courseId}...`);
+            await checkGraduationStatus(studentId, courseId);
+        } else {
+            // If marked as eligible but certificate document is missing, generate it
+            const certExists = await Certificate.findOne({ studentId, courseId });
+            if (!certExists) {
+                console.log(`[CERT-REPAIR] Missing certificate document for course \${courseId}. Generating now...`);
+                try {
+                    await generateAndUploadCertificate(studentId, courseId);
+                } catch (err) {
+                    console.error(`[CERT-REPAIR-ERROR] Course \${courseId}:`, err);
+                }
+            }
+        }
+      }
+
+      // 2. Return all certificates
+      const certificates = await Certificate.find({ studentId })
         .populate("courseId", "title")
         .sort({ issueDate: -1 });
+        
       res.json(certificates);
     } catch (error) {
       res.status(500).json({ message: error.message });

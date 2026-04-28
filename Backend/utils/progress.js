@@ -52,9 +52,12 @@ export const updateEnrollmentProgress = async (enrollment) => {
     // TRIGGER AUTOMATIC GRADUATION CHECK
     if (enrollment.progress === 100) {
         // We use setImmediate to not block the current request while generating PDF/Uploading to Cloudinary
+        const sId = enrollment.studentId._id || enrollment.studentId;
+        const cId = enrollment.courseId._id || enrollment.courseId;
+
         setImmediate(async () => {
             try {
-                await checkGraduationStatus(enrollment.studentId, enrollment.courseId);
+                await checkGraduationStatus(sId, cId);
             } catch (err) {
                 console.error("[AUTO-GRADUATION-TRIGGER-ERROR]:", err);
             }
