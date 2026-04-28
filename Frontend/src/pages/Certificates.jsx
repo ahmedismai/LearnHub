@@ -43,11 +43,11 @@ const Certificates = () => {
   const handleGenerate = async (courseId) => {
     setIsGenerating(true);
     try {
-      await api.post("/Certificate", { courseId });
+      await api.post("/Certificate/generate", { courseId });
       await queryClient.invalidateQueries({ queryKey: ["certificates", "me"] });
       toast({
         title: "Certificate generated! 🎉",
-        description: "Congratulations on your graduation.",
+        description: "Congratulations on your graduation. Your certificate is now ready.",
       });
     } catch (error) {
       toast({
@@ -62,22 +62,16 @@ const Certificates = () => {
     }
   };
 
-  const handleDownload = async (courseId) => {
-    try {
-      await api.get(`/Certificate/download/${courseId}`);
+  const handleDownload = (certificateUrl) => {
+    if (!certificateUrl) {
       toast({
-        title: "Certificate ready",
-        description:
-          "Certificate details loaded (PDF download can be added next).",
-      });
-    } catch (error) {
-      toast({
-        title: "Download failed",
-        description:
-          error.response?.data?.message || "Certificate not available.",
+        title: "Download not available",
+        description: "The certificate file is still being processed.",
         variant: "destructive",
       });
+      return;
     }
+    window.open(certificateUrl, "_blank");
   };
 
   return (
@@ -127,7 +121,7 @@ const Certificates = () => {
                   <span>
                     Issued on{" "}
                     {new Date(
-                      cert.issuedAt || cert.createdAt,
+                      cert.issueDate || cert.createdAt,
                     ).toLocaleDateString()}
                   </span>
                 </div>
@@ -136,12 +130,12 @@ const Certificates = () => {
                   <Button
                     variant="gradient"
                     className="flex-1"
-                    onClick={() => handleDownload(cert.courseId?._id)}
+                    onClick={() => handleDownload(cert.certificateUrl)}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download
+                    Download PDF
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => window.open(cert.certificateUrl, "_blank")}>
                     <ExternalLink className="w-4 h-4" />
                   </Button>
                 </div>

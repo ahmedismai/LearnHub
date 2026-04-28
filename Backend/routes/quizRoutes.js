@@ -8,6 +8,7 @@ import { Submission } from "../models/Submission.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
 import { protect, authorize } from "../middleware/auth.js";
+import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
@@ -188,6 +189,9 @@ router.post(
           completedQuizzes.add(String(quiz._id));
           enrollment.completedQuizzes = Array.from(completedQuizzes);
           await updateEnrollmentProgress(enrollment);
+          
+          // Check for graduation/certificate
+          await checkGraduationStatus(studentId, quiz.courseId);
         }
       } catch (innerError) {
         console.error("[QUIZ-SUBMIT-POST-LOGIC-ERROR]:", innerError);

@@ -8,6 +8,7 @@ import { Question } from "../models/Question.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Submission } from "../models/Submission.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
+import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -336,6 +337,9 @@ router.post("/:id/video-complete", protect, async (req, res) => {
       if (!enrollment.completedLessons.includes(contentId)) {
         enrollment.completedLessons.push(contentId);
         await updateEnrollmentProgress(enrollment);
+        
+        // Check for graduation/certificate
+        await checkGraduationStatus(studentId, courseId);
       }
     }
 

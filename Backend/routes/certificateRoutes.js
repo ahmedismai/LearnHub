@@ -7,6 +7,9 @@ import { Certificate } from "../models/Certificate.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
+import { checkGraduationStatus } from "../utils/graduationEngine.js";
+import { generateAndUploadCertificate } from "../utils/certificateService.js";
+
 const router = express.Router();
 
 router.get(
@@ -26,28 +29,30 @@ router.get(
 );
 
 router.post(
-  "/",
+  "/generate",
   protect,
   authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
       const { courseId } = req.body;
-      const enrollment = await Enrollment.findOne({ studentId: req.user.id, courseId });
-      
-      if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
+      const studentId = req.user.id;
 
-      if (enrollment.progress < 100) {
-        return res.status(400).json({ message: "Course not completed yet" });
+      // First check eligibility
+      await checkGraduationStatus(studentId, courseId);
+
+      const enrollment = await Enrollment.findOne({ studentId, courseId });
+      if (!enrollment || !enrollment.canGenerateCertificate) {
+        return res.status(400).json({ 
+          message: "You are not eligible for a certificate yet. Ensure progress is 100% and exam score is >= 70%." 
+        });
       }
 
-      const certificateUrl = `/api/certificates/download/${courseId}`;
-      const certificate = await Certificate.findOneAndUpdate(
-        { studentId: req.user.id, courseId },
-        { studentId: req.user.id, courseId, issueDate: new Date(), certificateUrl },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+      const certificateUrl = await generateAndUploadCertificate(studentId, courseId);
 
-      res.status(201).json({ message: "Certificate generated", certificate });
+      res.status(201).json({ 
+        message: "Certificate generated successfully", 
+        certificateUrl 
+      });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

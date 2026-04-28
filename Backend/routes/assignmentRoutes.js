@@ -9,6 +9,7 @@ import { Enrollment } from "../models/Enrollment.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
 import { protect, authorize } from "../middleware/auth.js";
+import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { ROLES } from "../constants/roles.js";
 
 const storage = new CloudinaryStorage({
@@ -246,6 +247,9 @@ router.patch(
         aiFeedback,
         isReviewed,
       });
+
+      // Check for graduation/certificate
+      await checkGraduationStatus(submission.studentId, assignment.courseId);
 
       res.json({ message: "Submission graded successfully", submission });
     } catch (error) {
