@@ -12,8 +12,14 @@ export const checkGraduationStatus = async (studentId, courseId) => {
   try {
     if (!studentId || !courseId) return;
 
-    const sId = typeof studentId === "string" ? new mongoose.Types.ObjectId(studentId) : studentId;
-    const cId = typeof courseId === "string" ? new mongoose.Types.ObjectId(courseId) : courseId;
+    // Validate ObjectIds to prevent crashes with truncated/invalid IDs
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+        console.error(`[GRADUATION-ERROR] Invalid IDs provided: studentId=\${studentId}, courseId=\${courseId}`);
+        return;
+    }
+
+    const sId = new mongoose.Types.ObjectId(studentId);
+    const cId = new mongoose.Types.ObjectId(courseId);
 
     const enrollment = await Enrollment.findOne({ studentId: sId, courseId: cId });
     if (!enrollment) return;
@@ -64,17 +70,24 @@ export const checkGraduationStatus = async (studentId, courseId) => {
 
     // 3. Final Eligibility Check
     if (enrollment.progress === 100 && isExamRequirementMet) {
-      console.log(`[GRADUATION] Success! Generating certificate for student \${sId}...`);
-      
-      enrollment.status = "Completed";
-      enrollment.completed = true;
-      enrollment.canGenerateCertificate = true;
-      await enrollment.save();
+      console.log(`[GRADUATION] Success! Attempting to generate certificate for student \${sId}...`);
       
       try {
-          await generateAndUploadCertificate(sId, cId);
+          // IMPORTANT: Generate certificate first. If this fails, we don't mark as "Completed" yet
+          // so the user/system can retry later.
+          const certUrl = await generateAndUploadCertificate(sId, cId);
+          
+          if (certUrl) {
+            enrollment.status = "Completed";
+            enrollment.completed = true;
+            enrollment.canGenerateCertificate = true;
+            await enrollment.save();
+            console.log(`[GRADUATION] Certificate generated and enrollment updated for student \${sId}`);
+          }
       } catch (certError) {
           console.error("[GRADUATION-CERT-ERROR]:", certError);
+          // We still save the enrollment progress/average score even if cert fails
+          await enrollment.save();
       }
     } else {
       await enrollment.save();
