@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,9 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Certificates = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const {
     data: certificates = [],
@@ -26,41 +24,6 @@ const Certificates = () => {
     },
     enabled: user?.role === "Student",
   });
-
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ["enrollments", "me"],
-    queryFn: async () => {
-      const response = await api.get("/Enrollment/me");
-      return response.data;
-    },
-    enabled: user?.role === "Student",
-  });
-
-  const eligibleEnrollments = useMemo(() => {
-    return enrollments.filter((e) => e.canGenerateCertificate && e.courseId?._id);
-  }, [enrollments]);
-
-  const handleGenerate = async (courseId) => {
-    setIsGenerating(true);
-    try {
-      await api.post("/Certificate/generate", { courseId });
-      await queryClient.invalidateQueries({ queryKey: ["certificates", "me"] });
-      toast({
-        title: "Certificate generated! 🎉",
-        description: "Congratulations on your graduation. Your certificate is now ready.",
-      });
-    } catch (error) {
-      toast({
-        title: "Generation failed",
-        description:
-          error.response?.data?.message ||
-          "Please ensure you meet all graduation requirements.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const handleDownload = (certificateUrl) => {
     if (!certificateUrl) {
@@ -79,18 +42,18 @@ const Certificates = () => {
       <div>
         <h1 className="text-3xl font-bold text-foreground">My Certificates</h1>
         <p className="text-muted-foreground mt-1">
-          Download and share your achievements
+          Your achievements are automatically generated and stored here
         </p>
       </div>
 
       {isLoading && (
-        <p className="text-muted-foreground">Loading certificates...</p>
+        <p className="text-muted-foreground">Loading your certificates...</p>
       )}
 
       {isError && (
-        <Card>
+        <Card className="border-destructive/20 bg-destructive/5">
           <CardContent className="p-6">
-            <p className="text-destructive">Failed to load certificates.</p>
+            <p className="text-destructive font-medium">Failed to load certificates. Please try again later.</p>
           </CardContent>
         </Card>
       )}
@@ -100,20 +63,20 @@ const Certificates = () => {
           {certificates.map((cert) => (
             <Card
               key={cert._id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
+              className="overflow-hidden hover:shadow-lg transition-all border-2 hover:border-primary/20"
             >
-              <div className="h-40 gradient-hero flex items-center justify-center">
-                <Award className="w-20 h-20 text-primary-foreground/80" />
+              <div className="h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <Award className="w-20 h-20 text-primary/40" />
               </div>
               <CardContent className="p-6">
                 <Badge variant="success" className="mb-3">
-                  Verified Certificate
+                  Verified & Official
                 </Badge>
                 <h3 className="text-xl font-bold text-foreground mb-2">
-                  {cert.courseId?.title || "Course"}
+                  {cert.courseId?.title || "Course Certificate"}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Awarded to {user?.name || "Student"}
+                  Awarded to {user?.name || "Learner"}
                 </p>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -135,7 +98,12 @@ const Certificates = () => {
                     <Download className="w-4 h-4 mr-2" />
                     Download PDF
                   </Button>
-                  <Button variant="outline" onClick={() => window.open(cert.certificateUrl, "_blank")}>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => window.open(cert.certificateUrl, "_blank")}
+                    title="View Online"
+                  >
                     <ExternalLink className="w-4 h-4" />
                   </Button>
                 </div>
@@ -143,39 +111,21 @@ const Certificates = () => {
             </Card>
           ))}
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Award className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-bold text-foreground mb-2">
+      ) : !isLoading && (
+        <Card className="border-dashed">
+          <CardContent className="p-16 text-center">
+            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+              <Award className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-3">
               No Certificates Yet
             </h3>
-            <p className="text-muted-foreground mb-6">
-              Complete a course to earn your first certificate
+            <p className="text-muted-foreground max-w-md mx-auto mb-8">
+              Complete all lessons, quizzes, and assignments, and pass the final exam with at least 70% to receive your certificate automatically.
             </p>
-            {eligibleEnrollments.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  You have completed courses. Generate your certificate:
-                </p>
-                <div className="flex flex-col gap-2 max-w-md mx-auto">
-                  {eligibleEnrollments.slice(0, 3).map((e) => (
-                    <Button
-                      key={e._id}
-                      variant="gradient"
-                      onClick={() => handleGenerate(e.courseId._id)}
-                      disabled={isGenerating}
-                    >
-                      Generate: {e.courseId.title}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <Button asChild>
-                <a href="/dashboard/my-courses">View My Courses</a>
-              </Button>
-            )}
+            <Button asChild variant="outline">
+              <a href="/dashboard/my-courses">Keep Learning</a>
+            </Button>
           </CardContent>
         </Card>
       )}
