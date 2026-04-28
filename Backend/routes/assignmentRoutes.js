@@ -18,7 +18,7 @@ const storage = new CloudinaryStorage({
     return {
       folder: "learnhub_assignments",
       resource_type: "auto",
-      allowed_formats: ["jpg", "png", "jpeg", "pdf", "docx", "zip"],
+      allowed_formats: ["jpg", "png", "jpeg", "pdf", "docx", "zip", "html"],
     };
   },
 });
