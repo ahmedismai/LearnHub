@@ -340,7 +340,7 @@ const Assignments = ({ isSubComponent = false }) => {
                               />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Accepted formats: PDF, ZIP, JPG, PNG (Max 10MB)
+                              Accepted formats: PDF, ZIP, HTML, DOCX, JPG, PNG (Max 10MB)
                             </p>
                           </div>
 

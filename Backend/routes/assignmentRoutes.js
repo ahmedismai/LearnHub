@@ -24,7 +24,25 @@ const storage = new CloudinaryStorage({
 });
 
 const router = express.Router();
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = [
+      "application/pdf",
+      "text/html",
+      "image/jpeg",
+      "image/png",
+      "image/jpg"
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only PDF, HTML, and Images (JPG, PNG) are allowed."), false);
+    }
+  }
+});
 
 // Get all assignments based on role
 router.get("/", protect, async (req, res) => {
