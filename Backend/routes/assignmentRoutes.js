@@ -17,8 +17,7 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => {
     return {
       folder: "learnhub_assignments",
-      resource_type: "auto",
-      allowed_formats: ["jpg", "png", "jpeg", "pdf", "docx", "zip", "html"],
+      resource_type: "auto", // This will handle PDF, Images, and HTML automatically
     };
   },
 });
