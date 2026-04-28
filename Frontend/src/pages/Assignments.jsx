@@ -29,6 +29,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const ExpandableDescription = ({ text, limit = 100, className = "" }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!text) return null;
+
+  const shouldTruncate = text.length > limit;
+  const displayedText = isExpanded ? text : text.slice(0, limit);
+
+  return (
+    <div className="space-y-1">
+      <p className={`text-sm leading-relaxed ${className}`}>
+        {displayedText}
+        {!isExpanded && shouldTruncate && "..."}
+        {shouldTruncate && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="ml-2 text-xs font-bold text-primary hover:underline transition-all inline-flex items-center"
+          >
+            {isExpanded ? "Show Less" : "Read More"}
+          </button>
+        )}
+      </p>
+    </div>
+  );
+};
+
 const Assignments = ({ isSubComponent = false }) => {
   const { user } = useAuth();
   const location = useLocation();
@@ -155,10 +181,18 @@ const Assignments = ({ isSubComponent = false }) => {
                         <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-black text-sm">{idx + 1}</span>
                         <h4 className="text-lg font-bold">The Task</h4>
                      </div>
-                     <p className="text-foreground leading-relaxed">{task.description}</p>
+                     <ExpandableDescription 
+                        text={task.description} 
+                        limit={100} 
+                        className="text-foreground" 
+                     />
                      <div className="pt-4 border-t border-dashed">
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Success Criteria:</p>
-                        <p className="text-sm italic text-muted-foreground">{task.criteria}</p>
+                        <ExpandableDescription 
+                          text={task.criteria} 
+                          limit={80} 
+                          className="italic text-muted-foreground" 
+                        />
                      </div>
                   </div>
                 ))}
@@ -227,9 +261,11 @@ const Assignments = ({ isSubComponent = false }) => {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
-                    {assignment.description}
-                  </p>
+                  <ExpandableDescription 
+                    text={assignment.description} 
+                    limit={100} 
+                    className="text-muted-foreground min-h-[2.5rem]" 
+                  />
 
                   <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground">
