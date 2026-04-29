@@ -34,19 +34,14 @@ router.post("/evaluate-code", protect, aiRateLimiter, async (req, res) => {
     const submission = await Submission.findById(submissionId).populate("contentId");
     if (!submission) return res.status(404).json({ message: "Submission not found" });
 
-    // In a real scenario, we would fetch the file content from Cloudinary/storage
-    // For now, we assume the student might have submitted text or we can't fetch external URLs directly here
-    let codeContent = submission.text || "";
-    
-    if (!codeContent && submission.submittedFile) {
-      codeContent = `[File Submission: ${submission.submittedFile}] - (AI evaluation requires text content or direct file access)`;
+    // Use text if available, otherwise use the Cloudinary URL
+    const contentToEvaluate = submission.text || submission.submittedFile;
+
+    if (!contentToEvaluate) {
+      return res.status(400).json({ message: "No code content or file found to evaluate." });
     }
 
-    if (!codeContent) {
-      return res.status(400).json({ message: "No code content found to evaluate." });
-    }
-
-    const evaluation = await evaluateCodeAssignment(codeContent);
+    const evaluation = await evaluateCodeAssignment(contentToEvaluate);
     
     // Store the result in the submission
     submission.score = evaluation.score;

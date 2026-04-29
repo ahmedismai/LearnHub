@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 import { z } from "zod";
 import pRetry from "p-retry";
+import axios from "axios";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
  * Hardened Gemini interaction service with defensive parsing, retry logic, and validation.
  */
 export const generateAssessment = async (context, level, type, count = 5) => {
+  // ... (omitted for brevity)
   // ... (omitted for brevity in thoughts, but I will provide full code)
   const runAction = async () => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -215,8 +217,9 @@ export const chatWithAI = async (message, history = []) => {
 
 /**
  * Evaluates a code submission (HTML/CSS) using the specialized Arabic prompt.
+ * Supports both text content and Cloudinary URLs (multimodal).
  */
-export const evaluateCodeAssignment = async (fileContent) => {
+export const evaluateCodeAssignment = async (contentOrUrl) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("AI configuration missing.");
@@ -227,9 +230,41 @@ export const evaluateCodeAssignment = async (fileContent) => {
       generationConfig: { responseMimeType: "application/json" },
     });
 
-    const prompt = `Review this HTML/CSS code: ${fileContent}. Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message"}. Evaluate the score based on code quality and fulfillment of requirements.`;
+    const isUrl =
+      typeof contentOrUrl === "string" && contentOrUrl.startsWith("http");
+    let promptParts = [];
 
-    const result = await model.generateContent(prompt);
+    if (isUrl) {
+      console.log(
+        `[AI-EVAL] Fetching multimodal content from URL: ${contentOrUrl}`,
+      );
+      const response = await axios.get(contentOrUrl, {
+        responseType: "arraybuffer",
+      });
+      const base64Data = Buffer.from(response.data).toString("base64");
+
+      // Determine MIME type based on extension
+      const extension = contentOrUrl.split(".").pop().toLowerCase();
+      let mimeType = "image/jpeg"; // Default
+      if (extension === "png") mimeType = "image/png";
+      else if (extension === "pdf") mimeType = "application/pdf";
+      else if (extension === "html") mimeType = "text/html";
+
+      promptParts.push({
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType,
+        },
+      });
+      promptParts.push("Review this submitted work.");
+    } else {
+      promptParts.push(`Review this HTML/CSS code: ${contentOrUrl}`);
+    }
+
+    const systemPrompt = `Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message"}. Evaluate the score based on code quality and fulfillment of requirements.`;
+    promptParts.push(systemPrompt);
+
+    const result = await model.generateContent(promptParts);
     const responseText = result.response.text();
 
     // Defensive Sanitization
@@ -247,7 +282,7 @@ export const evaluateCodeAssignment = async (fileContent) => {
     return {
       score: 0,
       status: "Error",
-      feedback: "Automatic evaluation failed. Please try again later.",
+      feedback: `Automatic evaluation failed: ${error.message}. Please review manually.`,
     };
   }
 };
