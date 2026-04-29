@@ -42,6 +42,16 @@ const InstructorSubmissions = () => {
     },
   });
 
+  const { data: assignment } = useQuery({
+    queryKey: ["assignment", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await api.get(`/Assignment/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+
   const [isAiGrading, setIsAiGrading] = useState(false);
 
   const handleSmartAiGrade = async (submissionId) => {
@@ -53,6 +63,7 @@ const InstructorSubmissions = () => {
         aiFeedback: response.data.feedback,
         feedback: "AI evaluated submission."
       });
+      queryClient.invalidateQueries(["instructor", "submissions", id]);
       toast.success("AI Evaluation complete!");
     } catch (error) {
       toast.error("AI Evaluation failed.");
@@ -96,7 +107,7 @@ const InstructorSubmissions = () => {
 
   const getGradeForSubmission = (sub) => {
     return allGrades.find(g => 
-      (g.assignmentId?._id === sub.assignmentId || g.assignmentId === sub.assignmentId) ||
+      (g.assignmentId?._id === sub.contentId || g.assignmentId === sub.contentId) ||
       (g.examId?._id === sub.examId || g.examId === sub.examId) ||
       (g.quizId?._id === sub.contentId || g.quizId === sub.contentId)
     );
@@ -104,14 +115,38 @@ const InstructorSubmissions = () => {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-20 p-6">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight">
-          {isAssignment ? "Assignment Submissions" : "Student Submissions"}
-        </h1>
-        <p className="text-muted-foreground">
-          {isAssignment ? "Review and grade student assignment work." : "Monitor performance in AI-generated and official exams."}
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            {isAssignment ? <FileText className="w-8 h-8 text-primary" /> : <BookOpen className="w-8 h-8 text-primary" />}
+            {isAssignment ? assignment?.title || "Assignment Submissions" : "Student Submissions"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {isAssignment ? "Review and grade student assignment work." : "Monitor performance in AI-generated and official exams."}
+          </p>
+        </div>
+        {assignment?.dueDate && (
+          <Badge variant="outline" className="py-1.5 px-4 rounded-xl border-primary/20 bg-primary/5 text-primary font-bold">
+            Due: {new Date(assignment.dueDate).toLocaleDateString()}
+          </Badge>
+        )}
       </div>
+
+      {isAssignment && assignment?.description && (
+        <Card className="border-primary/20 bg-primary/5 overflow-hidden">
+           <CardHeader className="bg-primary/10 py-3">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                 <BrainCircuit className="w-4 h-4" />
+                 Assignment Instructions
+              </CardTitle>
+           </CardHeader>
+           <CardContent className="p-6">
+              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                 {assignment.description}
+              </div>
+           </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         <Card className="border-none shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
