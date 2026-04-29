@@ -38,6 +38,7 @@ const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
  * Hardened Gemini interaction service with defensive parsing, retry logic, and validation.
  */
 export const generateAssessment = async (context, level, type, count = 5) => {
+  // ... (omitted for brevity in thoughts, but I will provide full code)
   const runAction = async () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -149,20 +150,8 @@ export const chatWithAI = async (message, history = []) => {
     if (!apiKey) throw new Error("AI configuration missing.");
 
     const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: "v1" });
-    const model = genAI.getGenerativeModel({ model: AI_MODEL });
-
-    const chat = model.startChat({
-      history: history.map(h => ({
-        role: h.role === "user" ? "user" : "model",
-        parts: [{ text: h.content }],
-      })),
-      generationConfig: {
-        maxOutputTokens: 500,
-      },
-    });
 
     const systemContext = `
-      System Instruction:
       You are LearnHub AI, a helpful educational assistant.
       
       RULES:
@@ -173,7 +162,50 @@ export const chatWithAI = async (message, history = []) => {
       5. Language: Answer in the same language as the user's message.
     `;
 
-    const result = await chat.sendMessage(`${systemContext}\n\nUser Message: ${message}`);
+    const model = genAI.getGenerativeModel({
+      model: AI_MODEL,
+      systemInstruction: systemContext,
+    });
+
+    // Filter and sanitize history:
+    // 1. Must start with 'user'
+    // 2. Must alternate between 'user' and 'model'
+    // 3. Must end with 'model' (since sendMessage will append a 'user' turn)
+    let sanitizedHistory = [];
+    let lastRole = null;
+
+    for (const h of history) {
+      const currentRole = h.role === "user" ? "user" : "model";
+
+      // Skip if it doesn't start with user
+      if (sanitizedHistory.length === 0 && currentRole !== "user") continue;
+
+      // Skip consecutive same-role messages
+      if (currentRole === lastRole) continue;
+
+      sanitizedHistory.push({
+        role: currentRole,
+        parts: [{ text: h.content }],
+      });
+      lastRole = currentRole;
+    }
+
+    // Ensure it ends with 'model' for sendMessage to work correctly
+    if (
+      sanitizedHistory.length > 0 &&
+      sanitizedHistory[sanitizedHistory.length - 1].role !== "model"
+    ) {
+      sanitizedHistory.pop();
+    }
+
+    const chat = model.startChat({
+      history: sanitizedHistory,
+      generationConfig: {
+        maxOutputTokens: 500,
+      },
+    });
+
+    const result = await chat.sendMessage(message);
     return result.response.text();
   } catch (error) {
     console.error("[AI-CHAT-ERROR]:", error);
@@ -308,10 +340,10 @@ export const generateFeedback = async (
     console.error("[AI-FEEDBACK-ERROR-DETAIL]:", {
       message: error.message,
       stack: error.stack,
-      assessmentType
+      assessmentType,
     });
-    
+
     // Return a slightly more informative but safe message
-    return `Note: AI feedback is temporarily unavailable (${error.message.includes('Quota') ? 'Rate limit reached' : 'Service error'}). Please check back later.`;
+    return `Note: AI feedback is temporarily unavailable (${error.message.includes("Quota") ? "Rate limit reached" : "Service error"}). Please check back later.`;
   }
 };
