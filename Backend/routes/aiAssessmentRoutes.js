@@ -8,7 +8,7 @@ import { Submission } from "../models/Submission.js";
 import { Exam } from "../models/Exam.js";
 import { Question } from "../models/Question.js";
 import { calculateStudentLevel } from "../utils/studentLevel.js";
-import { generateAssessment, generateFeedback } from "../utils/aiService.js";
+import { generateAssessment, generateFeedback, evaluateCodeAssignment } from "../utils/aiService.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -21,6 +21,44 @@ const aiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false, xForwardedForHeader: false },
+});
+
+/**
+ * @route POST /api/AI-Assessment/evaluate-code
+ * @desc Specialized evaluation for HTML/CSS code submissions
+ */
+router.post("/evaluate-code", protect, aiRateLimiter, async (req, res) => {
+  const { submissionId } = req.body;
+
+  try {
+    const submission = await Submission.findById(submissionId).populate("contentId");
+    if (!submission) return res.status(404).json({ message: "Submission not found" });
+
+    // In a real scenario, we would fetch the file content from Cloudinary/storage
+    // For now, we assume the student might have submitted text or we can't fetch external URLs directly here
+    let codeContent = submission.text || "";
+    
+    if (!codeContent && submission.submittedFile) {
+      codeContent = `[File Submission: ${submission.submittedFile}] - (AI evaluation requires text content or direct file access)`;
+    }
+
+    if (!codeContent) {
+      return res.status(400).json({ message: "No code content found to evaluate." });
+    }
+
+    const evaluation = await evaluateCodeAssignment(codeContent);
+    
+    // Store the result in the submission
+    submission.score = evaluation.score;
+    submission.feedback = evaluation.feedback;
+    submission.status = "Graded";
+    await submission.save();
+
+    res.json(evaluation);
+  } catch (error) {
+    console.error("[AI-EVALUATION-ERROR]:", error);
+    res.status(500).json({ message: "Failed to evaluate code", error: error.message });
+  }
 });
 
 /**

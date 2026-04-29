@@ -141,6 +141,86 @@ export const generateAssessment = async (context, level, type, count = 5) => {
 };
 
 /**
+ * General purpose chatbot with academic integrity guardrails.
+ */
+export const chatWithAI = async (message, history = []) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("AI configuration missing.");
+
+    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: AI_MODEL });
+
+    const chat = model.startChat({
+      history: history.map(h => ({
+        role: h.role === "user" ? "user" : "model",
+        parts: [{ text: h.content }],
+      })),
+      generationConfig: {
+        maxOutputTokens: 500,
+      },
+    });
+
+    const systemContext = `
+      System Instruction:
+      You are LearnHub AI, a helpful educational assistant.
+      
+      RULES:
+      1. You can answer general questions, explain concepts, and help with coding/study tips.
+      2. IMPORTANT: NEVER provide direct answers, solutions, or full code for active Exams, Quizzes, or Assignments on this platform.
+      3. If a user asks for help with a specific test question, refuse politely and offer to explain the UNDERLYING CONCEPT instead.
+      4. Keep responses professional, concise, and encouraging.
+      5. Language: Answer in the same language as the user's message.
+    `;
+
+    const result = await chat.sendMessage(`${systemContext}\n\nUser Message: ${message}`);
+    return result.response.text();
+  } catch (error) {
+    console.error("[AI-CHAT-ERROR]:", error);
+    return "I'm sorry, I'm having trouble connecting right now. Please try again later.";
+  }
+};
+
+/**
+ * Evaluates a code submission (HTML/CSS) using the specialized Arabic prompt.
+ */
+export const evaluateCodeAssignment = async (fileContent) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("AI configuration missing.");
+
+    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({
+      model: AI_MODEL,
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    const prompt = `Review this HTML/CSS code: ${fileContent}. Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message"}. Evaluate the score based on code quality and fulfillment of requirements.`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    // Defensive Sanitization
+    const startIdx = responseText.indexOf("{");
+    const endIdx = responseText.lastIndexOf("}");
+
+    if (startIdx === -1 || endIdx === -1) {
+      throw new Error("AI response did not contain a valid JSON object.");
+    }
+
+    const sanitizedJson = responseText.substring(startIdx, endIdx + 1);
+    return JSON.parse(sanitizedJson);
+  } catch (error) {
+    console.error("[AI-CODE-EVALUATION-ERROR]:", error);
+    return {
+      score: 0,
+      status: "Error",
+      feedback: "Automatic evaluation failed. Please try again later.",
+    };
+  }
+};
+
+/**
  * Generates encouraging and educational feedback for assessments
  */
 export const generateFeedback = async (

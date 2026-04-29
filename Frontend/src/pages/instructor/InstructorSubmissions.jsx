@@ -42,6 +42,25 @@ const InstructorSubmissions = () => {
     },
   });
 
+  const [isAiGrading, setIsAiGrading] = useState(false);
+
+  const handleSmartAiGrade = async (submissionId) => {
+    setIsAiGrading(true);
+    try {
+      const response = await api.post("/AI-Assessment/evaluate-code", { submissionId });
+      setGradeData({
+        score: response.data.score,
+        aiFeedback: response.data.feedback,
+        feedback: "AI evaluated submission."
+      });
+      toast.success("AI Evaluation complete!");
+    } catch (error) {
+      toast.error("AI Evaluation failed.");
+    } finally {
+      setIsAiGrading(false);
+    }
+  };
+
   const gradeMutation = useMutation({
     mutationFn: async ({ submissionId, data, type }) => {
       const endpoint = type === "Exam" || type === "Quiz" 
@@ -230,6 +249,17 @@ const InstructorSubmissions = () => {
                                    </div>
 
                                    <div className="flex justify-end gap-3 pt-2">
+                                      {isAssignment && (
+                                        <Button 
+                                          variant="outline"
+                                          className="gap-2 border-primary/20 hover:bg-primary/5"
+                                          onClick={() => handleSmartAiGrade(sub._id)}
+                                          disabled={isAiGrading}
+                                        >
+                                          {isAiGrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4 text-primary" />}
+                                          Smart AI Grade
+                                        </Button>
+                                      )}
                                       <Button 
                                         className="gap-2 bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200"
                                         onClick={() => gradeMutation.mutate({ 
