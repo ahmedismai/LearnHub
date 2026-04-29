@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -283,103 +283,100 @@ const Assignments = ({ isSubComponent = false }) => {
                        <p className="text-xs text-muted-foreground mt-1">This area is disabled in preview mode.</p>
                     </div>
                   ) : (
-                    <Dialog
-                      open={
-                        isSubmitting && currentAssignment?._id === assignment._id
-                      }
-                      onOpenChange={(open) => {
-                        setIsSubmitting(open);
-                        if (!open) {
-                          setCurrentAssignment(null);
-                          setSelectedFile(null);
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant={
-                            assignment.isCompleted ? "outline" : "gradient"
+                    <>
+                      {assignment.isCompleted ? (
+                        <Link to="/dashboard/grades" className="w-full">
+                          <Button variant="outline" className="w-full h-11 text-base font-semibold border-primary/20 text-primary hover:bg-primary/5">
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            View AI Results
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Dialog
+                          open={
+                            isSubmitting && currentAssignment?._id === assignment._id
                           }
-                          className="w-full h-11 text-base font-semibold"
-                          onClick={() => setCurrentAssignment(assignment)}
-                          disabled={assignment.isCompleted}
+                          onOpenChange={(open) => {
+                            setIsSubmitting(open);
+                            if (!open) {
+                              setCurrentAssignment(null);
+                              setSelectedFile(null);
+                            }
+                          }}
                         >
-                          {assignment.isCompleted ? (
-                            <>
-                              <CheckCircle2 className="w-5 h-5 mr-2" />
-                              Already Submitted
-                            </>
-                          ) : (
-                            <>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="gradient"
+                              className="w-full h-11 text-base font-semibold"
+                              onClick={() => setCurrentAssignment(assignment)}
+                            >
                               <Upload className="w-5 h-5 mr-2" />
                               Submit Assignment
-                            </>
-                          )}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Submit: {assignment.title}</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-6 py-4">
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="file"
-                              className="text-base font-semibold"
-                            >
-                              Choose File
-                            </Label>
-                            <div className="flex items-center gap-3">
-                              <Input
-                                id="file"
-                                type="file"
-                                onChange={(e) =>
-                                  setSelectedFile(e.target.files[0])
-                                }
-                                className="cursor-pointer"
-                              />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Accepted formats: PDF, ZIP, HTML, DOCX, JPG, PNG (Max 10MB)
-                            </p>
-                          </div>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Submit: {assignment.title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-6 py-4">
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="file"
+                                  className="text-base font-semibold"
+                                >
+                                  Choose File
+                                </Label>
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    id="file"
+                                    type="file"
+                                    onChange={(e) =>
+                                      setSelectedFile(e.target.files[0])
+                                    }
+                                    className="cursor-pointer"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Accepted formats: PDF, ZIP, HTML, DOCX, JPG, PNG (Max 10MB)
+                                </p>
+                              </div>
 
-                          <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                            <p className="text-sm font-medium flex items-center gap-2">
-                              <AlertCircle className="w-4 h-4 text-primary" />
-                              Important Note
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Ensure your work is complete before submitting. You
-                              can only submit ONCE. Further submissions will be
-                              blocked.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-3">
-                          <Button
-                            variant="ghost"
-                            onClick={() => setIsSubmitting(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleSubmit}
-                            disabled={!selectedFile || submitMutation.isPending}
-                            className="min-w-[120px]"
-                          >
-                            {submitMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Submitting...
-                              </>
-                            ) : (
-                              "Upload Work"
-                            )}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                                <p className="text-sm font-medium flex items-center gap-2 text-primary">
+                                  <Sparkles className="w-4 h-4" />
+                                  Smart AI Review Enabled
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  After uploading, our AI Tutor will instantly evaluate your work and provide a preliminary score and feedback.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                              <Button
+                                variant="ghost"
+                                onClick={() => setIsSubmitting(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={handleSubmit}
+                                disabled={!selectedFile || submitMutation.isPending}
+                                className="min-w-[120px]"
+                              >
+                                {submitMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Submitting...
+                                  </>
+                                ) : (
+                                  "Upload Work"
+                                )}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

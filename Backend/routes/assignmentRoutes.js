@@ -8,6 +8,7 @@ import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
+import { evaluateCodeAssignment } from "../utils/aiService.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { ROLES } from "../constants/roles.js";
@@ -164,6 +165,34 @@ router.post(
         date: Date.now(),
       });
       await submission.save();
+
+      // --- NEW: AUTO AI GRADING ---
+      console.log(`[AI-AUTO-GRADE] Triggering evaluation for submission: ${submission._id}`);
+      try {
+        const evaluation = await evaluateCodeAssignment(fileUrl);
+        
+        submission.score = evaluation.score;
+        submission.feedback = evaluation.feedback || "AI initial evaluation completed.";
+        submission.status = "Graded";
+        await submission.save();
+
+        // Create initial Grade record
+        await updateGrade({
+          studentId: req.user.id,
+          courseId: assignment.courseId,
+          assignmentId: assignment._id,
+          type: "Assignment",
+          score: evaluation.score,
+          maxScore: 100,
+          aiFeedback: evaluation.feedback,
+          isReviewed: false, // Wait for instructor to finalize
+        });
+        
+        console.log(`[AI-AUTO-GRADE] Successfully graded submission ${submission._id} with score ${evaluation.score}`);
+      } catch (aiErr) {
+        console.error(`[AI-AUTO-GRADE-ERROR] Failed to auto-grade ${submission._id}:`, aiErr.message);
+      }
+      // ----------------------------
 
       const enrollment = await Enrollment.findOne({
         studentId: req.user.id,

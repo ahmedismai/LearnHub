@@ -38,6 +38,8 @@ router.get(
       const grades = await Grade.find({ studentId: req.user.id })
         .populate("courseId", "title")
         .populate("quizId", "title")
+        .populate("assignmentId", "title")
+        .populate("examId", "title")
         .sort({ createdAt: -1 });
 
       res.json(grades);
