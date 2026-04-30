@@ -27,7 +27,8 @@ import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import examLifecycleRoutes from "./routes/examLifecycleRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
-import { cors } from "cors";
+import cors from "cors";
+
 dotenv.config();
 
 const app = express();
