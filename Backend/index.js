@@ -93,19 +93,40 @@ mongoose
   .then(async () => {
     console.log("Connected to MongoDB");
 
-    // CLEANUP: Drop problematic legacy unique index in submissions collection
+    // CLEANUP: Drop problematic legacy unique indexes in various collections
     try {
       const db = mongoose.connection.db;
-      const collections = await db.listCollections({ name: 'submissions' }).toArray();
-      if (collections.length > 0) {
-        await db.collection('submissions').dropIndex('studentId_1_assignmentId_1');
-        console.log("Successfully dropped legacy unique index: studentId_1_assignmentId_1");
+      
+      // Clean up 'submissions' collection
+      const submissionsCols = await db.listCollections({ name: 'submissions' }).toArray();
+      if (submissionsCols.length > 0) {
+        try {
+          await db.collection('submissions').dropIndex('studentId_1_assignmentId_1');
+          console.log("Successfully dropped legacy unique index: submissions.studentId_1_assignmentId_1");
+        } catch (e) { /* ignore */ }
+      }
+
+      // Clean up 'grades' collection - CRITICAL: fixes E11000 duplicate key errors
+      const gradesCols = await db.listCollections({ name: 'grades' }).toArray();
+      if (gradesCols.length > 0) {
+        const legacyIndexes = [
+          'studentId_1_quizId_1', 
+          'studentId_1_examId_1', 
+          'studentId_1_assignmentId_1', 
+          'studentId_1_quizId_1_v2'
+        ];
+        
+        for (const indexName of legacyIndexes) {
+          try {
+            await db.collection('grades').dropIndex(indexName);
+            console.log(`Successfully dropped legacy unique index: grades.${indexName}`);
+          } catch (e) {
+            // Silence IndexNotFound errors
+          }
+        }
       }
     } catch (err) {
-      // Silence IndexNotFound errors, log others
-      if (err.code !== 27 && err.codeName !== 'IndexNotFound') {
-        console.error("Cleanup Note:", err.message);
-      }
+      console.error("Cleanup Note:", err.message);
     }
 
     app.listen(port, () => {

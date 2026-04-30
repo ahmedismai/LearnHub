@@ -33,7 +33,7 @@ const AssignmentSchema = z.object({
 });
 
 const AI_MODEL = "gemini-2.5-flash";
-const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000; // 30 seconds
+const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000;
 
 /**
  * Hardened Gemini interaction service with defensive parsing, retry logic, and validation.
