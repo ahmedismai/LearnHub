@@ -27,7 +27,7 @@ import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import examLifecycleRoutes from "./routes/examLifecycleRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
-
+import { cors } from "cors";
 dotenv.config();
 
 const app = express();
@@ -36,22 +36,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // THE ULTIMATE CORS FIX: Set headers manually at the very top for EVERY response
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Set CORS headers for all responses
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  // Handle preflight (OPTIONS)
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+app.use(cors());
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -112,30 +97,40 @@ mongoose
     // CLEANUP: Drop problematic legacy unique indexes in various collections
     try {
       const db = mongoose.connection.db;
-      
+
       // Clean up 'submissions' collection
-      const submissionsCols = await db.listCollections({ name: 'submissions' }).toArray();
+      const submissionsCols = await db
+        .listCollections({ name: "submissions" })
+        .toArray();
       if (submissionsCols.length > 0) {
         try {
-          await db.collection('submissions').dropIndex('studentId_1_assignmentId_1');
-          console.log("Successfully dropped legacy unique index: submissions.studentId_1_assignmentId_1");
-        } catch (e) { /* ignore */ }
+          await db
+            .collection("submissions")
+            .dropIndex("studentId_1_assignmentId_1");
+          console.log(
+            "Successfully dropped legacy unique index: submissions.studentId_1_assignmentId_1",
+          );
+        } catch (e) {
+          /* ignore */
+        }
       }
 
       // Clean up 'grades' collection - CRITICAL: fixes E11000 duplicate key errors
-      const gradesCols = await db.listCollections({ name: 'grades' }).toArray();
+      const gradesCols = await db.listCollections({ name: "grades" }).toArray();
       if (gradesCols.length > 0) {
         const legacyIndexes = [
-          'studentId_1_quizId_1', 
-          'studentId_1_examId_1', 
-          'studentId_1_assignmentId_1', 
-          'studentId_1_quizId_1_v2'
+          "studentId_1_quizId_1",
+          "studentId_1_examId_1",
+          "studentId_1_assignmentId_1",
+          "studentId_1_quizId_1_v2",
         ];
-        
+
         for (const indexName of legacyIndexes) {
           try {
-            await db.collection('grades').dropIndex(indexName);
-            console.log(`Successfully dropped legacy unique index: grades.${indexName}`);
+            await db.collection("grades").dropIndex(indexName);
+            console.log(
+              `Successfully dropped legacy unique index: grades.${indexName}`,
+            );
           } catch (e) {
             // Silence IndexNotFound errors
           }
