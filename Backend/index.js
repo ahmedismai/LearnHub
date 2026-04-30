@@ -1,6 +1,5 @@
 import express from "express";
 import mongoose from "mongoose";
-import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import path from "path";
@@ -36,21 +35,22 @@ app.set("trust proxy", 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// EXTREME CORS FIX: Allow all subdomains and preview URLs from Vercel dynamically
-app.use(cors({
-  origin: true, // This mirrors the 'Origin' header from the request exactly
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"]
-}));
+// THE ULTIMATE CORS FIX: Set headers manually at the very top for EVERY response
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for all responses
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
-// Robust preflight handling
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.header("Origin"));
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(200);
+  // Handle preflight (OPTIONS)
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  
+  next();
 });
 
 app.use(express.json());
@@ -146,8 +146,10 @@ mongoose
     }
 
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
+      console.log(`Server is running on port ${port}`);
     });
+
+    module.exports = app;
   })
   .catch((error) => {
     console.error("Mongo connection failed:", error);
