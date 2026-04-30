@@ -1,5 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
+import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import path from "path";
@@ -35,34 +36,28 @@ app.set("trust proxy", 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// CORS configuration
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    "https://learn-hub-psxx.vercel.app",
-    "https://learn-hub-rho-ashen.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173"
-  ];
-  
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else if (!origin) {
-    // Allow non-browser requests (like curl)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
+const allowedOrigins = [
+  "https://learn-hub-psxx.vercel.app",
+  "https://learn-hub-rho-ashen.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173"
+];
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
 
-  // Handle Preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+// Handle OPTIONS preflight explicitly
+app.options("*", cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
