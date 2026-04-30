@@ -144,10 +144,10 @@ mongoose
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
-
-    module.exports = app;
   })
   .catch((error) => {
     console.error("Mongo connection failed:", error);
     process.exit(1);
   });
+
+export default app;
