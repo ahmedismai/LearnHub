@@ -36,28 +36,23 @@ app.set("trust proxy", 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const allowedOrigins = [
-  "https://learn-hub-psxx.vercel.app",
-  "https://learn-hub-rho-ashen.vercel.app",
-  "http://localhost:3000",
-  "http://localhost:5173"
-];
-
+// EXTREME CORS FIX: Allow all subdomains and preview URLs from Vercel dynamically
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true, // This mirrors the 'Origin' header from the request exactly
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"]
 }));
 
-// Handle OPTIONS preflight explicitly
-app.options("*", cors());
+// Robust preflight handling
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.header("Origin"));
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
 app.use(express.json());
 app.use(morgan("dev"));
 
