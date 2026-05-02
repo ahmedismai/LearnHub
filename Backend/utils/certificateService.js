@@ -206,10 +206,10 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
       folder: "learnhub/certificates",
-      resource_type: "raw",
-      public_id: `cert_${studentId}_${courseId}`,
+      resource_type: "image", // Using 'image' for PDFs is more reliable for document handling
+      public_id: `cert_${studentId}_${courseId}_${Date.now()}`,
       format: "pdf",
-      overwrite: true, // Allow regenerating if needed
+      overwrite: true,
     });
 
     // 4. Save/Update Certificate in Database
