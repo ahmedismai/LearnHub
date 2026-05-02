@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Play, CheckCircle } from "lucide-react";
+import { Play, CheckCircle, Award } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const MyCourses = () => {

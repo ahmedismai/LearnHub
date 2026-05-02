@@ -32,7 +32,7 @@ const AssignmentSchema = z.object({
     .min(1),
 });
 
-const AI_MODEL = "gemini-2.5-flash";
+const AI_MODEL = "gemini-1.5-flash";
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000;
 
 /**
@@ -236,32 +236,43 @@ export const evaluateCodeAssignment = async (contentOrUrl) => {
 
     if (isUrl) {
       console.log(
-        `[AI-EVAL] Fetching multimodal content from URL: ${contentOrUrl}`,
+        `[AI-EVAL] Processing content from URL: \${contentOrUrl}`,
       );
       const response = await axios.get(contentOrUrl, {
         responseType: "arraybuffer",
       });
-      const base64Data = Buffer.from(response.data).toString("base64");
+      const fileBuffer = Buffer.from(response.data);
 
-      // Determine MIME type based on extension
+      // Determine extension
       const extension = contentOrUrl.split(".").pop().toLowerCase();
-      let mimeType = "image/jpeg"; // Default
-      if (extension === "png") mimeType = "image/png";
-      else if (extension === "pdf") mimeType = "application/pdf";
-      else if (extension === "html") mimeType = "text/html";
+      
+      // Supported multimodal types for Gemini
+      const multimodalTypes = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'webp': 'image/webp',
+        'pdf': 'application/pdf'
+      };
 
-      promptParts.push({
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType,
-        },
-      });
-      promptParts.push("Review this submitted work.");
+      if (multimodalTypes[extension]) {
+        promptParts.push({
+          inlineData: {
+            data: fileBuffer.toString("base64"),
+            mimeType: multimodalTypes[extension],
+          },
+        });
+        promptParts.push("Review this submitted document/image.");
+      } else {
+        // Treat as text (HTML, CSS, JS, etc.)
+        const textContent = fileBuffer.toString("utf-8");
+        promptParts.push(`Review this submitted code/text file:\n\n\${textContent}`);
+      }
     } else {
-      promptParts.push(`Review this HTML/CSS code: ${contentOrUrl}`);
+      promptParts.push(`Review this HTML/CSS code: \${contentOrUrl}`);
     }
 
-    const systemPrompt = `Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message"}. Evaluate the score based on code quality and fulfillment of requirements.`;
+    const systemPrompt = `Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message in English"}. Evaluate the score based on code quality, design, and fulfillment of academic requirements. Provide constructive feedback.`;
     promptParts.push(systemPrompt);
 
     const result = await model.generateContent(promptParts);

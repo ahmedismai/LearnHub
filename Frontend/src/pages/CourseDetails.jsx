@@ -20,7 +20,8 @@ import {
   MessageSquare,
   Sparkles,
   BrainCircuit,
-  Lightbulb, // Added for AI generation modal
+  Lightbulb,
+  Award,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
