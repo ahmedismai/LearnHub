@@ -57,6 +57,7 @@ const DashboardSidebar = () => {
     { title: "Courses", url: "/dashboard/admin-courses", icon: BookOpen },
     { title: "Categories", url: "/dashboard/categories", icon: Layers },
     { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
+    { title: "Certificates", url: "/dashboard/certificates", icon: Award },
   ];
 
   const instructorLinks = [
@@ -81,6 +82,7 @@ const DashboardSidebar = () => {
     { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Students", url: "/dashboard/students", icon: Users },
     { title: "Student Results", url: "/dashboard/student-results", icon: BarChart3 },
+    { title: "Certificates", url: "/dashboard/certificates", icon: Award },
   ];
 
   const studentLinks = [

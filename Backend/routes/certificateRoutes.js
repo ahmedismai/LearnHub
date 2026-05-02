@@ -15,7 +15,6 @@ const router = express.Router();
 router.get(
   "/",
   protect,
-  authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
       const studentId = req.user.id;

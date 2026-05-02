@@ -22,7 +22,7 @@ const Certificates = () => {
       const response = await api.get("/Certificate");
       return response.data;
     },
-    enabled: user?.role === "Student",
+    enabled: !!user,
   });
 
   const handleDownload = (certificateUrl) => {
