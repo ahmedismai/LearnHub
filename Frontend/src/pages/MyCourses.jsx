@@ -141,7 +141,7 @@ const MyCourses = () => {
                 </div>
 
                 <Button
-                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all \${
+                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all ${
                     enrollment.status === "completed" 
                       ? "hover:bg-primary hover:text-white" 
                       : "shadow-glow hover:shadow-none"
@@ -152,10 +152,10 @@ const MyCourses = () => {
                   asChild
                 >
                   <Link
-                    to={`/dashboard/courses/\${enrollment.course?.id}`}
+                    to={`/dashboard/courses/${enrollment.courseId?._id || enrollment.course?.id}`}
                     className="flex items-center justify-center gap-2"
                   >
-                    <Play className={`w-4 h-4 \${enrollment.status !== "completed" ? "fill-current" : ""}`} />
+                    <Play className={`w-4 h-4 ${enrollment.status !== "completed" ? "fill-current" : ""}`} />
                     {enrollment.status === "completed"
                       ? "Review Course"
                       : "Continue Learning"}

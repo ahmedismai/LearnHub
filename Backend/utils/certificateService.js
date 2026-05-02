@@ -90,7 +90,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     });
 
     // Date
-    const dateText = `Issued on: \${new Date().toLocaleDateString()}`;
+    const dateText = `Issued on: ${new Date().toLocaleDateString()}`;
     page.drawText(dateText, {
       x: 60,
       y: 80,
@@ -111,12 +111,12 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     // 4. Save PDF and Upload to Cloudinary
     const pdfBytes = await pdfDoc.save();
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
-    const dataUri = `data:application/pdf;base64,\${pdfBase64}`;
+    const dataUri = `data:application/pdf;base64,${pdfBase64}`;
 
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
       folder: "learnhub/certificates",
       resource_type: "raw", // Required for PDFs
-      public_id: `cert_\${studentId}_\${courseId}`,
+      public_id: `cert_${studentId}_${courseId}`,
       format: "pdf"
     });
 

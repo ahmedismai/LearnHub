@@ -32,7 +32,7 @@ const AssignmentSchema = z.object({
     .min(1),
 });
 
-const AI_MODEL = "gemini-1.5-flash";
+const AI_MODEL = "gemini-2.5-flash";
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000;
 
 /**
@@ -235,9 +235,7 @@ export const evaluateCodeAssignment = async (contentOrUrl) => {
     let promptParts = [];
 
     if (isUrl) {
-      console.log(
-        `[AI-EVAL] Processing content from URL: \${contentOrUrl}`,
-      );
+      console.log(`[AI-EVAL] Processing content from URL: ${contentOrUrl}`);
       const response = await axios.get(contentOrUrl, {
         responseType: "arraybuffer",
       });
@@ -245,14 +243,14 @@ export const evaluateCodeAssignment = async (contentOrUrl) => {
 
       // Determine extension
       const extension = contentOrUrl.split(".").pop().toLowerCase();
-      
+
       // Supported multimodal types for Gemini
       const multimodalTypes = {
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'webp': 'image/webp',
-        'pdf': 'application/pdf'
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        webp: "image/webp",
+        pdf: "application/pdf",
       };
 
       if (multimodalTypes[extension]) {
@@ -266,10 +264,12 @@ export const evaluateCodeAssignment = async (contentOrUrl) => {
       } else {
         // Treat as text (HTML, CSS, JS, etc.)
         const textContent = fileBuffer.toString("utf-8");
-        promptParts.push(`Review this submitted code/text file:\n\n\${textContent}`);
+        promptParts.push(
+          `Review this submitted code/text file:\n\n${textContent}`,
+        );
       }
     } else {
-      promptParts.push(`Review this HTML/CSS code: \${contentOrUrl}`);
+      promptParts.push(`Review this HTML/CSS code: ${contentOrUrl}`);
     }
 
     const systemPrompt = `Return ONLY a JSON object in this format: {"score": 100, "status": "Accepted", "feedback": "brief message in English"}. Evaluate the score based on code quality, design, and fulfillment of academic requirements. Provide constructive feedback.`;

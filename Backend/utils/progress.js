@@ -9,7 +9,7 @@ export const updateEnrollmentProgress = async (enrollment) => {
     const course = enrollment.courseId;
 
     if (!course) {
-      console.error(`[PROGRESS-ERROR] Course not found for enrollment \${enrollment._id}`);
+      console.error(`[PROGRESS-ERROR] Course not found for enrollment ${enrollment._id}`);
       return enrollment;
     }
 

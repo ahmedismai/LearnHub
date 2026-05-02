@@ -328,7 +328,7 @@ const QuizPage = () => {
                 Your Final Score
               </p>
               <p
-                className={`text-6xl font-black \${score >= 70 ? "text-green-500" : "text-destructive"}`}
+                className={`text-6xl font-black ${score >= 70 ? "text-green-500" : "text-destructive"}`}
               >
                 {score}%
               </p>
@@ -412,7 +412,7 @@ const QuizPage = () => {
         </div>
         {!isInstructor && (
           <div
-            className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 \${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
+            className={`flex items-center gap-3 px-5 py-2 rounded-full border-2 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/5 border-primary/20 text-primary"}`}
           >
             <Clock className="w-5 h-5" />
             <span className="text-2xl font-mono font-black">
@@ -450,12 +450,12 @@ const QuizPage = () => {
                   {q.options?.map((opt, optIdx) => (
                     <div
                       key={optIdx}
-                      className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer \${answers[qId] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
+                      className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${answers[qId] === opt ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" : "hover:bg-muted/50 border-transparent bg-muted/20"}`}
                       onClick={() => handleAnswerChange(qId, opt)}
                     >
-                      <RadioGroupItem value={opt} id={`q-\${idx}-o-\${optIdx}`} />
+                      <RadioGroupItem value={opt} id={`q-${idx}-o-${optIdx}`} />
                       <Label
-                        htmlFor={`q-\${idx}-o-\${optIdx}`}
+                        htmlFor={`q-${idx}-o-${optIdx}`}
                         className="flex-1 cursor-pointer text-base font-medium"
                       >
                         {opt}
@@ -477,7 +477,7 @@ const QuizPage = () => {
                 <div
                   className="h-full bg-primary transition-all duration-300"
                   style={{
-                    width: `\${(Object.keys(answers).length / questions.length) * 100}%`,
+                    width: `${(Object.keys(answers).length / questions.length) * 100}%`,
                   }}
                 />
               </div>

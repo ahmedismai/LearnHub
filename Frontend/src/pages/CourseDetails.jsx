@@ -1058,7 +1058,7 @@ const CourseDetails = () => {
             ) : (
               <CardContent className="p-8 space-y-6">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className={`w-16 h-16 \${currentEnrollment?.status === "Completed" ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center`}>
+                  <div className={`w-16 h-16 ${currentEnrollment?.status === "Completed" ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center`}>
                     {currentEnrollment?.status === "Completed" ? (
                       <Award className="w-10 h-10 text-amber-600" />
                     ) : (

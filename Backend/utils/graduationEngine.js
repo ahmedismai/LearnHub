@@ -15,7 +15,7 @@ export const checkGraduationStatus = async (studentId, courseId) => {
 
     // Validate ObjectIds to prevent crashes with truncated/invalid IDs
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
-        console.error(`[GRADUATION-ERROR] Invalid IDs provided: studentId=\${studentId}, courseId=\${courseId}`);
+        console.error(`[GRADUATION-ERROR] Invalid IDs provided: studentId=${studentId}, courseId=${courseId}`);
         return;
     }
 
@@ -27,7 +27,7 @@ export const checkGraduationStatus = async (studentId, courseId) => {
 
     // 1. Check Course Progress (Must be 100%)
     if (enrollment.progress < 100) {
-      console.log(`[GRADUATION] Student \${sId} progress is \${enrollment.progress}%, not 100%.`);
+      console.log(`[GRADUATION] Student ${sId} progress is ${enrollment.progress}%, not 100%.`);
       return;
     }
 
@@ -70,16 +70,16 @@ export const checkGraduationStatus = async (studentId, courseId) => {
         // If they have no record or score < 70, they haven't met requirements
         if (!submissionResult.length && !gradeResult && !examResultData) {
             isExamRequirementMet = false;
-            console.log(`[GRADUATION] Student \${sId} has not taken the required exam for course \${cId}`);
+            console.log(`[GRADUATION] Student ${sId} has not taken the required exam for course ${cId}`);
         } else if (averageScore < 70) {
             isExamRequirementMet = false;
-            console.log(`[GRADUATION] Student \${sId} exam score \${averageScore}% is below 70%`);
+            console.log(`[GRADUATION] Student ${sId} exam score ${averageScore}% is below 70%`);
         }
     }
 
     // 3. Final Eligibility Check
     if (enrollment.progress === 100 && isExamRequirementMet) {
-      console.log(`[GRADUATION] Success! Attempting to generate certificate for student \${sId}...`);
+      console.log(`[GRADUATION] Success! Attempting to generate certificate for student ${sId}...`);
       
       try {
           // IMPORTANT: Generate certificate first. If this fails, we don't mark as "Completed" yet
@@ -91,7 +91,7 @@ export const checkGraduationStatus = async (studentId, courseId) => {
             enrollment.completed = true;
             enrollment.canGenerateCertificate = true;
             await enrollment.save();
-            console.log(`[GRADUATION] Certificate generated and enrollment updated for student \${sId}`);
+            console.log(`[GRADUATION] Certificate generated and enrollment updated for student ${sId}`);
           }
       } catch (certError) {
           console.error("[GRADUATION-CERT-ERROR]:", certError);

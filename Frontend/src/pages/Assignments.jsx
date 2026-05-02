@@ -437,7 +437,7 @@ const Assignments = ({ isSubComponent = false }) => {
               <div className="w-full grid grid-cols-1 gap-4 pt-4">
                 <div className="p-6 bg-muted/50 rounded-2xl border-2 border-primary/10 shadow-inner">
                   <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">AI Preliminary Score</p>
-                  <p className={`text-5xl font-black \${evaluationResult?.score >= 70 ? "text-green-500" : "text-amber-500"}`}>
+                  <p className={`text-5xl font-black ${evaluationResult?.score >= 70 ? "text-green-500" : "text-amber-500"}`}>
                     {evaluationResult?.score}%
                   </p>
                   <Badge variant={evaluationResult?.score >= 70 ? "success" : "warning"} className="mt-2">

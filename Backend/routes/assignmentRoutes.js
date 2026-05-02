@@ -167,7 +167,7 @@ router.post(
       await submission.save();
 
       // --- NEW: AUTO AI GRADING & FEEDBACK ---
-      console.log(`[AI-AUTO-GRADE] Triggering evaluation for submission: \${submission._id}`);
+      console.log(`[AI-AUTO-GRADE] Triggering evaluation for submission: ${submission._id}`);
       let aiFeedback = "AI initial evaluation completed.";
       let aiScore = 0;
 
@@ -200,9 +200,9 @@ router.post(
           isReviewed: false, // Wait for instructor to finalize
         });
         
-        console.log(`[AI-AUTO-GRADE] Successfully graded submission \${submission._id} with score \${aiScore}`);
+        console.log(`[AI-AUTO-GRADE] Successfully graded submission ${submission._id} with score ${aiScore}`);
       } catch (aiErr) {
-        console.error(`[AI-AUTO-GRADE-ERROR] Failed to auto-grade \${submission._id}:`, aiErr.message);
+        console.error(`[AI-AUTO-GRADE-ERROR] Failed to auto-grade ${submission._id}:`, aiErr.message);
       }
       // ----------------------------
 
