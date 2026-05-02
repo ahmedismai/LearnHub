@@ -12,17 +12,17 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
   try {
     // 1. Fetch Student and Course Details (with Instructor population)
     const student = await User.findById(studentId);
-    const course = await Course.findById(courseId).populate("instructor");
+    const course = await Course.findById(courseId).populate("instructorId");
 
     if (!student || !course) {
       throw new Error("Student or Course not found");
     }
 
-    const instructorName = course.instructor?.name || "Lead Instructor";
+    const instructorName = course.instructorId?.name || "Lead Instructor";
 
     // 2. Create a new PDF document
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([842, 595]); // A4 Landscape (عرضي)
+    const page = pdfDoc.addPage([842, 595]);
     const { width, height } = page.getSize();
 
     // Load Fonts
