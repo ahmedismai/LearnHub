@@ -214,7 +214,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
 
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
-      resource_type: "pdf",
+      resource_type: "auto",
       public_id: `learnhub/certificates/cert_${studentId}_${courseId}_${Date.now()}`,
       format: "pdf",
       overwrite: true,
