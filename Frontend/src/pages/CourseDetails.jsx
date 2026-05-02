@@ -270,6 +270,25 @@ const CourseDetails = () => {
     return currentEnrollment.progress || 0;
   };
 
+  // Certificate Generation Mutation
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+  const generateCertificate = async () => {
+    setIsGeneratingCert(true);
+    try {
+      const response = await api.post("/Certificate/generate", { courseId: id });
+      window.open(response.data.certificateUrl, "_blank");
+      toast({ title: "Certificate generated successfully! 🎓" });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to generate certificate",
+        description: error.response?.data?.message || "Please try again later.",
+      });
+    } finally {
+      setIsGeneratingCert(false);
+    }
+  };
+
   // Enrollment Mutation
   const enrollMutation = useMutation({
     mutationFn: async () => {
@@ -1078,10 +1097,20 @@ const CourseDetails = () => {
                 {currentEnrollment?.status === "Completed" && (
                   <Button 
                     className="w-full py-6 text-lg font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-200"
-                    onClick={() => navigate("/dashboard/certificates")}
+                    onClick={generateCertificate}
+                    disabled={isGeneratingCert}
                   >
-                    <Award className="w-5 h-5 mr-2" />
-                    Claim Certificate
+                    {isGeneratingCert ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Award className="w-5 h-5 mr-2" />
+                        Download Certificate
+                      </>
+                    )}
                   </Button>
                 )}
 

@@ -63,7 +63,6 @@ router.get(
 router.post(
   "/generate",
   protect,
-  authorize(ROLES.STUDENT),
   async (req, res) => {
     try {
       const { courseId } = req.body;
