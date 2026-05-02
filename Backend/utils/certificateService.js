@@ -12,14 +12,12 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
   try {
     // 1. Fetch Student and Course Details (with Instructor population)
     const student = await User.findById(studentId);
-    // جلب بيانات الكورس مع بيانات المدرس لاستخدام اسمه في التوقيع
     const course = await Course.findById(courseId).populate("instructor");
 
     if (!student || !course) {
       throw new Error("Student or Course not found");
     }
 
-    // استخراج اسم المدرس أو وضع اسم افتراضي
     const instructorName = course.instructor?.name || "Lead Instructor";
 
     // 2. Create a new PDF document
@@ -215,9 +213,8 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
 
-    // الرفع باستخدام الـ Public ID المطلوب والمسار المنظم
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
-      resource_type: "image", // لضمان رابط مباشر يعمل في المتصفحات
+      resource_type: "pdf",
       public_id: `learnhub/certificates/cert_${studentId}_${courseId}_${Date.now()}`,
       format: "pdf",
       overwrite: true,
