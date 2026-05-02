@@ -6,20 +6,25 @@ import { Course } from "../models/Course.js";
 
 /**
  * Generates a professional certificate PDF and uploads it to Cloudinary.
+ * Features: Dynamic instructor name, secure path naming, and auto-sync with DB.
  */
 export const generateAndUploadCertificate = async (studentId, courseId) => {
   try {
-    // 1. Fetch Student and Course Details
+    // 1. Fetch Student and Course Details (with Instructor population)
     const student = await User.findById(studentId);
-    const course = await Course.findById(courseId);
+    // جلب بيانات الكورس مع بيانات المدرس لاستخدام اسمه في التوقيع
+    const course = await Course.findById(courseId).populate("instructor");
 
     if (!student || !course) {
       throw new Error("Student or Course not found");
     }
 
+    // استخراج اسم المدرس أو وضع اسم افتراضي
+    const instructorName = course.instructor?.name || "Lead Instructor";
+
     // 2. Create a new PDF document
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([842, 595]); // A4 Landscape
+    const page = pdfDoc.addPage([842, 595]); // A4 Landscape (عرضي)
     const { width, height } = page.getSize();
 
     // Load Fonts
@@ -29,8 +34,8 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     // Colors
     const primaryBlue = rgb(0.06, 0.09, 0.16); // Dark Slate
-    const accentTeal = rgb(0.05, 0.6, 0.6);   // Teal
-    const goldColor = rgb(0.85, 0.65, 0.13);  // Goldenrod
+    const accentTeal = rgb(0.05, 0.6, 0.6); // Teal
+    const goldColor = rgb(0.85, 0.65, 0.13); // Goldenrod
     const lightGray = rgb(0.95, 0.95, 0.95);
 
     // --- Background & Borders ---
@@ -101,7 +106,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: rgb(0.4, 0.4, 0.4),
     });
 
-    // Student Name (Prominent)
+    // Student Name
     const nameText = student.name?.toUpperCase() || "LEARNER NAME";
     const nameSize = 48;
     const nameWidth = boldFont.widthOfTextAtSize(nameText, nameSize);
@@ -114,9 +119,13 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     });
 
     // Completion Text
-    const completionText = "has successfully fulfilled all requirements and completed the course";
+    const completionText =
+      "has successfully fulfilled all requirements and completed the course";
     const completionSize = 16;
-    const completionWidth = regularFont.widthOfTextAtSize(completionText, completionSize);
+    const completionWidth = regularFont.widthOfTextAtSize(
+      completionText,
+      completionSize,
+    );
     page.drawText(completionText, {
       x: width / 2 - completionWidth / 2,
       y: height - 330,
@@ -125,7 +134,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    // Course Title (Prominent)
+    // Course Title
     const courseText = course.title || "COURSE TITLE";
     const courseSize = 28;
     const courseWidth = boldFont.widthOfTextAtSize(courseText, courseSize);
@@ -148,6 +157,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       font: boldFont,
       color: primaryBlue,
     });
+
     // Date Underline
     page.drawLine({
       start: { x: 100, y: 115 },
@@ -156,21 +166,22 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: primaryBlue,
     });
 
-    // Signature Placeholder
-    page.drawText("Dr. AI Tutor", {
+    // Dynamic Instructor Signature
+    page.drawText(instructorName, {
       x: width - 280,
       y: 120,
       size: 16,
       font: italicFont,
       color: accentTeal,
     });
-    page.drawText("Academic Director, LearnHub", {
+    page.drawText(`Instructor, LearnHub Academy`, {
       x: width - 280,
       y: 100,
       size: 12,
       font: regularFont,
       color: rgb(0.4, 0.4, 0.4),
     });
+
     // Signature Line
     page.drawLine({
       start: { x: width - 280, y: 125 },
@@ -204,14 +215,16 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
 
+    // الرفع باستخدام الـ Public ID المطلوب والمسار المنظم
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
-      folder: "learnhub/certificates",
-      resource_type: "auto", 
-      public_id: `cert_${studentId}_${courseId}_${Date.now()}`,
+      resource_type: "image", // لضمان رابط مباشر يعمل في المتصفحات
+      public_id: `learnhub/certificates/cert_${studentId}_${courseId}_${Date.now()}`,
+      format: "pdf",
       overwrite: true,
+      invalidate: true,
     });
 
-    // 4. Save/Update Certificate in Database
+    // 4. Update Database
     const existingCert = await Certificate.findOne({ studentId, courseId });
     if (existingCert) {
       existingCert.certificateUrl = uploadResponse.secure_url;
