@@ -15,6 +15,7 @@ import {
   BrainCircuit,
   Sparkles,
   ShieldCheck,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
@@ -25,11 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const ExpandableDescription = ({ text, limit = 100, className = "" }) => {
+// ... (rest of ExpandableDescription is same)
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!text) return null;
@@ -62,6 +66,8 @@ const Assignments = ({ isSubComponent = false }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentAssignment, setCurrentAssignment] = useState(null);
+  const [evaluationResult, setEvaluationResult] = useState(null);
+  const [showResultDialog, setShowResultDialog] = useState(false);
 
   const isInstructor = user?.role === "Instructor";
   const aiAssignment = location.state?.aiAssignment;
@@ -112,13 +118,21 @@ const Assignments = ({ isSubComponent = false }) => {
         headers: { "Content-Type": "multipart/form-data" },
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       if (isInstructor) return;
       queryClient.invalidateQueries(["assignments"]);
       queryClient.invalidateQueries(["enrollments", "me"]);
+      queryClient.invalidateQueries(["grades", "me"]);
+      
       toast.success("Assignment submitted successfully!");
       setIsSubmitting(false);
       setSelectedFile(null);
+      
+      if (data.evaluation) {
+        setEvaluationResult(data.evaluation);
+        setShowResultDialog(true);
+      }
+      
       setCurrentAssignment(null);
     },
     onError: (error) => {
@@ -403,6 +417,63 @@ const Assignments = ({ isSubComponent = false }) => {
           )}
         </div>
       )}
+
+      {/* Result Dialog */}
+      <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-gradient-to-br from-primary/10 via-background to-background p-8">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center text-primary animate-bounce">
+                <Trophy className="w-10 h-10" />
+              </div>
+              
+              <div className="space-y-2">
+                <DialogTitle className="text-3xl font-black tracking-tight">Assignment Submitted!</DialogTitle>
+                <DialogDescription className="text-base">
+                  Your work has been received and evaluated by your AI Tutor.
+                </DialogDescription>
+              </div>
+
+              <div className="w-full grid grid-cols-1 gap-4 pt-4">
+                <div className="p-6 bg-muted/50 rounded-2xl border-2 border-primary/10 shadow-inner">
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">AI Preliminary Score</p>
+                  <p className={`text-5xl font-black \${evaluationResult?.score >= 70 ? "text-green-500" : "text-amber-500"}`}>
+                    {evaluationResult?.score}%
+                  </p>
+                  <Badge variant={evaluationResult?.score >= 70 ? "success" : "warning"} className="mt-2">
+                    {evaluationResult?.score >= 70 ? "Great Job!" : "Needs Review"}
+                  </Badge>
+                </div>
+
+                <div className="p-6 bg-background rounded-2xl border shadow-sm text-left space-y-3">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Sparkles className="w-5 h-5" />
+                    <h4 className="font-bold">AI Tutor Feedback</h4>
+                  </div>
+                  <div className="text-sm leading-relaxed text-muted-foreground max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                    {evaluationResult?.feedback}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full pt-4 flex flex-col gap-3">
+                <Button onClick={() => setShowResultDialog(false)} className="w-full h-12 font-bold text-lg rounded-xl shadow-lg shadow-primary/20">
+                  Got it, thanks!
+                </Button>
+                <Link to="/dashboard/grades" className="w-full">
+                  <Button variant="outline" className="w-full h-12 font-bold rounded-xl">
+                    View in Gradebook
+                  </Button>
+                </Link>
+              </div>
+              
+              <p className="text-[10px] text-muted-foreground italic">
+                * This is an automated evaluation. Your instructor will provide the final grade after review.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

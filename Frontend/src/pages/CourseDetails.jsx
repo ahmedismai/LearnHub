@@ -1057,14 +1057,33 @@ const CourseDetails = () => {
             ) : (
               <CardContent className="p-8 space-y-6">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="w-10 h-10 text-green-600" />
+                  <div className={`w-16 h-16 \${currentEnrollment?.status === "Completed" ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center`}>
+                    {currentEnrollment?.status === "Completed" ? (
+                      <Award className="w-10 h-10 text-amber-600" />
+                    ) : (
+                      <CheckCircle2 className="w-10 h-10 text-green-600" />
+                    )}
                   </div>
-                  <h3 className="text-xl font-bold">You're Enrolled!</h3>
+                  <h3 className="text-xl font-bold">
+                    {currentEnrollment?.status === "Completed" ? "Course Completed!" : "You're Enrolled!"}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Start learning from the list on the left.
+                    {currentEnrollment?.status === "Completed" 
+                      ? "Congratulations! You've successfully finished this course." 
+                      : "Start learning from the list on the left."}
                   </p>
                 </div>
+
+                {currentEnrollment?.status === "Completed" && (
+                  <Button 
+                    className="w-full py-6 text-lg font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-200"
+                    onClick={() => navigate("/dashboard/certificates")}
+                  >
+                    <Award className="w-5 h-5 mr-2" />
+                    Claim Certificate
+                  </Button>
+                )}
+
                 <Button
                   variant="outline"
                   className="w-full"

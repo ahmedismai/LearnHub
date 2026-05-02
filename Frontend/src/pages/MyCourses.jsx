@@ -141,7 +141,7 @@ const MyCourses = () => {
                 </div>
 
                 <Button
-                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all ${
+                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all \${
                     enrollment.status === "completed" 
                       ? "hover:bg-primary hover:text-white" 
                       : "shadow-glow hover:shadow-none"
@@ -152,15 +152,30 @@ const MyCourses = () => {
                   asChild
                 >
                   <Link
-                    to={`/dashboard/courses/${enrollment.course?.id}`}
+                    to={`/dashboard/courses/\${enrollment.course?.id}`}
                     className="flex items-center justify-center gap-2"
                   >
-                    <Play className={`w-4 h-4 ${enrollment.status !== "completed" ? "fill-current" : ""}`} />
+                    <Play className={`w-4 h-4 \${enrollment.status !== "completed" ? "fill-current" : ""}`} />
                     {enrollment.status === "completed"
                       ? "Review Course"
                       : "Continue Learning"}
                   </Link>
                 </Button>
+
+                {enrollment.status === "completed" && (
+                  <Button
+                    className="w-full mt-3 rounded-full py-6 font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-100 border-none text-white"
+                    asChild
+                  >
+                    <Link
+                      to="/dashboard/certificates"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <Award className="w-4 h-4" />
+                      Claim Certificate
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

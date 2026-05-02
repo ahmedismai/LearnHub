@@ -1,5 +1,6 @@
 import { Enrollment } from "../models/Enrollment.js";
 import { Submission } from "../models/Submission.js";
+import { ExamResult } from "../models/ExamResult.js";
 import { Grade } from "../models/Grade.js";
 import { Exam } from "../models/Exam.js";
 import mongoose from "mongoose";
@@ -43,6 +44,11 @@ export const checkGraduationStatus = async (studentId, courseId) => {
             { $group: { _id: null, averageScore: { $avg: "$score" } } }
         ]);
 
+        const examResultData = await ExamResult.findOne({
+            studentId: sId,
+            courseId: cId
+        }).sort({ percentage: -1 });
+
         const gradeResult = await Grade.findOne({
             studentId: sId,
             courseId: cId,
@@ -52,6 +58,9 @@ export const checkGraduationStatus = async (studentId, courseId) => {
         if (submissionResult && submissionResult.length > 0) {
             averageScore = submissionResult[0].averageScore;
         }
+        if (examResultData && examResultData.percentage > averageScore) {
+            averageScore = examResultData.percentage;
+        }
         if (gradeResult && gradeResult.percentage > averageScore) {
             averageScore = gradeResult.percentage;
         }
@@ -59,7 +68,7 @@ export const checkGraduationStatus = async (studentId, courseId) => {
         enrollment.averageExamScore = Math.round(averageScore || 0);
         
         // If they have no record or score < 70, they haven't met requirements
-        if (!submissionResult.length && !gradeResult) {
+        if (!submissionResult.length && !gradeResult && !examResultData) {
             isExamRequirementMet = false;
             console.log(`[GRADUATION] Student \${sId} has not taken the required exam for course \${cId}`);
         } else if (averageScore < 70) {

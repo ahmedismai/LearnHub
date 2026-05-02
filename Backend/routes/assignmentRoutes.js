@@ -8,7 +8,7 @@ import { Course } from "../models/Course.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { updateEnrollmentProgress } from "../utils/progress.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
-import { evaluateCodeAssignment } from "../utils/aiService.js";
+import { evaluateCodeAssignment, generateFeedback } from "../utils/aiService.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { checkGraduationStatus } from "../utils/graduationEngine.js";
 import { ROLES } from "../constants/roles.js";
@@ -166,13 +166,25 @@ router.post(
       });
       await submission.save();
 
-      // --- NEW: AUTO AI GRADING ---
-      console.log(`[AI-AUTO-GRADE] Triggering evaluation for submission: ${submission._id}`);
+      // --- NEW: AUTO AI GRADING & FEEDBACK ---
+      console.log(`[AI-AUTO-GRADE] Triggering evaluation for submission: \${submission._id}`);
+      let aiFeedback = "AI initial evaluation completed.";
+      let aiScore = 0;
+
       try {
         const evaluation = await evaluateCodeAssignment(fileUrl);
+        aiScore = evaluation.score;
         
-        submission.score = evaluation.score;
-        submission.feedback = evaluation.feedback || "AI initial evaluation completed.";
+        // Get more comprehensive feedback
+        const detailedFeedback = await generateFeedback("Assignment", assignment, { 
+          submittedFile: fileUrl,
+          score: aiScore 
+        });
+        
+        aiFeedback = detailedFeedback || evaluation.feedback || aiFeedback;
+        
+        submission.score = aiScore;
+        submission.feedback = aiFeedback;
         submission.status = "Graded";
         await submission.save();
 
@@ -182,15 +194,15 @@ router.post(
           courseId: assignment.courseId,
           assignmentId: assignment._id,
           type: "Assignment",
-          score: evaluation.score,
+          score: aiScore,
           maxScore: 100,
-          aiFeedback: evaluation.feedback,
+          aiFeedback: aiFeedback,
           isReviewed: false, // Wait for instructor to finalize
         });
         
-        console.log(`[AI-AUTO-GRADE] Successfully graded submission ${submission._id} with score ${evaluation.score}`);
+        console.log(`[AI-AUTO-GRADE] Successfully graded submission \${submission._id} with score \${aiScore}`);
       } catch (aiErr) {
-        console.error(`[AI-AUTO-GRADE-ERROR] Failed to auto-grade ${submission._id}:`, aiErr.message);
+        console.error(`[AI-AUTO-GRADE-ERROR] Failed to auto-grade \${submission._id}:`, aiErr.message);
       }
       // ----------------------------
 
@@ -206,11 +218,18 @@ router.post(
         completedAssignments.add(String(assignment._id));
         enrollment.completedAssignments = Array.from(completedAssignments);
         await updateEnrollmentProgress(enrollment);
+        
+        // Check for graduation/certificate explicitly after progress update
+        await checkGraduationStatus(req.user.id, assignment.courseId);
       }
 
       res
         .status(201)
-        .json({ message: "Assignment submitted successfully", submission });
+        .json({ 
+          message: "Assignment submitted successfully", 
+          submission,
+          evaluation: { score: aiScore, feedback: aiFeedback }
+        });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

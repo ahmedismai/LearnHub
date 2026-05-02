@@ -6,6 +6,7 @@ import { Enrollment } from "../models/Enrollment.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 import { updateGrade } from "../utils/gradeUpdater.js";
+import { checkGraduationStatus } from "../utils/graduationEngine.js";
 
 const router = express.Router();
 
@@ -69,10 +70,8 @@ router.post("/Submit", protect, authorize(ROLES.STUDENT), async (req, res) => {
       maxScore,
     });
 
-    await Enrollment.findOneAndUpdate(
-      { studentId: req.user.id, courseId: exam.courseId },
-      { $set: { progress: 100 } },
-    );
+    // TRIGGER GRADUATION CHECK
+    await checkGraduationStatus(req.user.id, exam.courseId);
 
     res
       .status(201)
