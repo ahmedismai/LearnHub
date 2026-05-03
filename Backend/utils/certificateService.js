@@ -3,6 +3,10 @@ import { v2 as cloudinary } from "cloudinary";
 import { Certificate } from "../models/Certificate.js";
 import { User } from "../models/User.js";
 import { Course } from "../models/Course.js";
+import axios from "axios";
+
+// Decorative font for signature (Alex Brush is elegant and clear)
+const DECORATIVE_FONT_URL = "https://github.com/google/fonts/raw/main/ofl/alexbrush/AlexBrush-Regular.ttf";
 
 /**
  * Generates a professional certificate PDF and uploads it to Cloudinary.
@@ -29,6 +33,17 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+
+    // Load Decorative Font for Signature
+    let signatureFont = italicFont;
+    let signatureSize = 22;
+    try {
+      const fontResponse = await axios.get(DECORATIVE_FONT_URL, { responseType: 'arraybuffer' });
+      signatureFont = await pdfDoc.embedFont(fontResponse.data);
+      signatureSize = 36; // Script fonts usually need to be larger to be clear
+    } catch (error) {
+      console.warn("Could not load decorative font, falling back to standard italic:", error.message);
+    }
 
     // Colors
     const primaryBlue = rgb(0.06, 0.09, 0.16); // Dark Slate
@@ -167,10 +182,10 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     // Dynamic Instructor Signature
     page.drawText(instructorName, {
       x: width - 280,
-      y: 120,
-      size: 16,
-      font: italicFont,
-      color: accentTeal,
+      y: 125, // Moved slightly up for better signature feel
+      size: signatureSize,
+      font: signatureFont,
+      color: rgb(0.1, 0.1, 0.3), // Deep ink blue
     });
     page.drawText(`Instructor, LearnHub Academy`, {
       x: width - 280,
@@ -182,8 +197,8 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     // Signature Line
     page.drawLine({
-      start: { x: width - 280, y: 125 },
-      end: { x: width - 100, y: 125 },
+      start: { x: width - 280, y: 120 }, // Adjusted to be below the signature
+      end: { x: width - 100, y: 120 },
       thickness: 1,
       color: primaryBlue,
     });

@@ -72,6 +72,36 @@ router.get(
       const instructorCourses = await Course.find({ instructorId }).select("_id");
       const courseIds = instructorCourses.map(c => c._id);
 
+      if (courseIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Proactive Check for Instructor: ensure all eligible students have certificates generated
+      const potentialGraduates = await Enrollment.find({
+        courseId: { $in: courseIds },
+        progress: 100,
+        status: { $ne: "Cancelled" }
+      });
+
+      for (const enrollment of potentialGraduates) {
+        const studentId = enrollment.studentId._id || enrollment.studentId;
+        const courseId = enrollment.courseId._id || enrollment.courseId;
+        
+        const certExists = await Certificate.findOne({ studentId, courseId });
+        if (!certExists) {
+            // Check eligibility if not already marked
+            if (!enrollment.canGenerateCertificate) {
+                await checkGraduationStatus(studentId, courseId);
+            } else {
+                try {
+                    await generateAndUploadCertificate(studentId, courseId);
+                } catch (err) {
+                    console.error(`[INST-CERT-REPAIR-ERROR] Student ${studentId}:`, err);
+                }
+            }
+        }
+      }
+
       const certificates = await Certificate.find({ courseId: { $in: courseIds } })
         .populate("studentId", "name email")
         .populate("courseId", "title")
@@ -104,13 +134,21 @@ router.get(
 router.delete(
   "/:id",
   protect,
-  authorize(ROLES.ADMINISTRATOR),
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
   async (req, res) => {
     try {
-      const certificate = await Certificate.findById(req.params.id);
+      const certificate = await Certificate.findById(req.params.id).populate("courseId");
       if (!certificate) {
         return res.status(404).json({ message: "Certificate not found" });
       }
+
+      // If instructor, verify they own the course
+      if (req.user.role === ROLES.INSTRUCTOR) {
+        if (certificate.courseId.instructorId.toString() !== req.user.id) {
+          return res.status(403).json({ message: "You can only delete certificates for your own courses" });
+        }
+      }
+
       await certificate.deleteOne();
       res.json({ message: "Certificate deleted successfully" });
     } catch (error) {

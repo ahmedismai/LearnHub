@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -15,17 +15,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Award, User, BookOpen, Calendar, ExternalLink } from "lucide-react";
+import { Award, User, BookOpen, Calendar, ExternalLink, Trash2 } from "lucide-react";
 import api from "@/api/axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const InstructorCertificates = () => {
+  const queryClient = useQueryClient();
+
   const { data: certificates = [], isLoading } = useQuery({
     queryKey: ["instructor", "certificates"],
     queryFn: async () => {
       const response = await api.get("/Certificate/instructor");
       return response.data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/Certificate/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["instructor", "certificates"]);
+      toast.success("Certificate deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete certificate");
     },
   });
 
@@ -107,6 +123,20 @@ const InstructorCertificates = () => {
                           </a>
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
+                            deleteMutation.mutate(cert._id);
+                          }
+                        }}
+                        className="h-8 gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
