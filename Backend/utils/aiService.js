@@ -53,21 +53,29 @@ export const generateAssessment = async (context, level, type, count = 5) => {
       generationConfig: { responseMimeType: "application/json" },
     });
 
+    const isAssignment = type === "Assignment";
+    const itemLabel = isAssignment ? "tasks" : "questions";
+
     const prompt = `
       System: You are an expert academic professor specialized in ${type} design.
       
       Context:
       ${context}
 
-      Task: Generate ${count} questions. Mix Multiple Choice and True/False questions based on the context. Ensure the JSON structure remains consistent, where True/False questions have only two options: ["True", "False"].
+      Task: Generate ${count} ${isAssignment ? "practical assignment tasks" : "questions"}. ${
+      isAssignment 
+        ? "Each task should be challenging and relevant to the context." 
+        : "Mix Multiple Choice and True/False questions based on the context. Ensure True/False questions have only two options: ['True', 'False']."
+    }
       
       Target Audience: Student at the ${level} proficiency level.
 
       Output Requirements:
       1. Format: STRICT JSON ONLY.
-      2. Quantity: Exactly ${count} questions/tasks.
+      2. Quantity: Exactly ${count} ${itemLabel}.
       3. Language: ALL output must be in English.
 
+      ${!isAssignment ? `
       Expected JSON Structure (Quiz/Exam):
       {
         "title": "Clear English Title",
@@ -76,15 +84,9 @@ export const generateAssessment = async (context, level, type, count = 5) => {
             "text": "The question text?",
             "options": ["Option A", "Option B", "Option C", "Option D"],
             "correctAnswer": "The exact text of the correct option"
-          },
-          {
-            "text": "Statement to evaluate as True or False?",
-            "options": ["True", "False"],
-            "correctAnswer": "True"
           }
         ]
-      }
-
+      }` : `
       Expected JSON Structure (Assignment):
       {
         "title": "Clear English Title",
@@ -94,7 +96,7 @@ export const generateAssessment = async (context, level, type, count = 5) => {
             "criteria": "Success metrics"
           }
         ]
-      }
+      }`}
     `;
 
     // Implement timeout using AbortController if supported by the client,
