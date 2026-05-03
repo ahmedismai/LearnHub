@@ -452,6 +452,9 @@ router.put("/Account/UpdateProfile", protect, async (req, res) => {
     if (req.body.bio && user.role === ROLES.INSTRUCTOR) {
       user.bio = req.body.bio;
     }
+    if (req.body.signatureText !== undefined) {
+      user.signatureText = req.body.signatureText;
+    }
     await user.save();
 
     res.json(buildUserResponse(user));
