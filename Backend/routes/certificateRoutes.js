@@ -152,6 +152,53 @@ router.delete(
 );
 
 router.post(
+  "/instructor/generate",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const { studentId, courseId } = req.body;
+      const instructorId = req.user.id;
+
+      // Verify course ownership if instructor
+      if (req.user.role === ROLES.INSTRUCTOR) {
+        const course = await Course.findById(courseId);
+        if (!course || course.instructorId.toString() !== instructorId) {
+          return res.status(403).json({ message: "You can only generate certificates for your own courses" });
+        }
+      }
+
+      // 1. Reset Revocation status
+      await Enrollment.findOneAndUpdate(
+        { studentId, courseId },
+        { isRevoked: false }
+      );
+
+      // 2. Check eligibility (to update completion flags)
+      await checkGraduationStatus(studentId, courseId);
+
+      const enrollment = await Enrollment.findOne({ studentId, courseId });
+      if (!enrollment || !enrollment.canGenerateCertificate) {
+         return res.status(400).json({ 
+           message: "Student is not eligible for this certificate. Ensure they have 100% progress and passed the exam." 
+         });
+      }
+
+      // 3. Generate
+      const certificateUrl = await generateAndUploadCertificate(studentId, courseId);
+
+      res.status(201).json({ 
+        message: "Certificate re-issued successfully", 
+        certificateUrl 
+      });
+    } catch (error) {
+      console.error("[MANUAL-GENERATE-ERROR]:", error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
   "/generate",
   protect,
   async (req, res) => {

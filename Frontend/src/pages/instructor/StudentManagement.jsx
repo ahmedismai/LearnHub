@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
 import {
@@ -18,11 +18,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, BookOpen, Mail, Award, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, BookOpen, Mail, Award, Loader2, RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const StudentManagement = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // 1. Fetch Instructor's Courses
   const { data: courses = [], isLoading: isCoursesLoading } = useQuery({
@@ -47,6 +50,20 @@ const StudentManagement = () => {
       return results.flat();
     },
     enabled: courses.length > 0,
+  });
+
+  const reissueMutation = useMutation({
+    mutationFn: async ({ studentId, courseId }) => {
+      const response = await api.post("/Certificate/instructor/generate", { studentId, courseId });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Certificate re-issued successfully");
+      queryClient.invalidateQueries(["instructor", "enrollments"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to re-issue certificate");
+    },
   });
 
   if (isCoursesLoading || isEnrollmentsLoading) {
@@ -87,7 +104,8 @@ const StudentManagement = () => {
                 <TableHead>Course</TableHead>
                 <TableHead>Progress</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Enrollment Date</TableHead>
+                <TableHead>Enrollment Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -126,8 +144,29 @@ const StudentManagement = () => {
                         {enrollment.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {new Date(enrollment.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {enrollment.progress === 100 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1 border-primary/20 hover:bg-primary/5 hover:text-primary transition-colors"
+                          onClick={() => reissueMutation.mutate({ 
+                            studentId: enrollment.studentId?._id, 
+                            courseId: enrollment.courseId?._id 
+                          })}
+                          disabled={reissueMutation.isPending}
+                        >
+                          {reissueMutation.isPending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          )}
+                          {enrollment.status === "Completed" ? "Regenerate" : "Issue Certificate"}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
