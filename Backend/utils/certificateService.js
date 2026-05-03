@@ -166,7 +166,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     // Instructor Signature - Deep Fluid Ink Blue, Overlapping line
     page.drawText(instructorName, {
       x: width - 280,
-      y: 118, // Slightly lowered to overlap the line at y:120
+      y: 80,
       size: signatureSize,
       font: signatureFont,
       color: deepInkBlue,

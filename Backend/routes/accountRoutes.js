@@ -63,7 +63,11 @@ const buildUserResponse = (user) => ({
   profileImage: user.profileImage,
   emailConfirmed: user.emailConfirmed,
   ...(user.role === ROLES.STUDENT && { studentId: user.studentId }),
-  ...(user.role === ROLES.INSTRUCTOR && { instructorId: user.instructorId }),
+  ...(user.role === ROLES.INSTRUCTOR && {
+    instructorId: user.instructorId,
+    bio: user.bio,
+    signatureText: user.signatureText,
+  }),
   ...(user.role === ROLES.ADMINISTRATOR && { adminId: user.adminId }),
 });
 
