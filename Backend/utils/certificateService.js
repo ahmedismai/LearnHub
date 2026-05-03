@@ -166,11 +166,10 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     // Instructor Signature - Deep Fluid Ink Blue, Overlapping line
     page.drawText(instructorName, {
       x: width - 280,
-      y: 80,
+      y: 118,
       size: signatureSize,
       font: signatureFont,
       color: deepInkBlue,
-      rotate: degrees(-3),
     });
 
     page.drawText(`Instructor, LearnHub Academy`, {
