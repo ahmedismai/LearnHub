@@ -137,6 +137,20 @@ const Profile = () => {
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   />
+                  
+                  <div className="pt-6 border-t mt-6">
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-3 block">
+                      Digital Signature Preview
+                    </Label>
+                    <div className="p-8 bg-muted/30 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center justify-center gap-2">
+                      <span className="font-signature text-4xl md:text-5xl text-primary/80 transition-all">
+                        {formData.name || user?.name || "Your Signature"}
+                      </span>
+                      <p className="text-xs text-muted-foreground italic mt-2">
+                        This is how your signature will appear on official certificates.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 

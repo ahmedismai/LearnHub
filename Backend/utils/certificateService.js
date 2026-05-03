@@ -5,8 +5,8 @@ import { User } from "../models/User.js";
 import { Course } from "../models/Course.js";
 import axios from "axios";
 
-// Decorative font for signature (Great Vibes is very fluid and looks like real handwriting)
-const DECORATIVE_FONT_URL = "https://github.com/google/fonts/raw/main/ofl/greatvibes/GreatVibes-Regular.ttf";
+// Decorative font for signature (Playwrite ZA is a modern elegant handwriting font)
+const DECORATIVE_FONT_URL = "https://github.com/google/fonts/raw/main/ofl/playwriteza/PlaywriteZA-VariableFont_wght.ttf";
 
 /**
  * Generates a professional certificate PDF and uploads it to Cloudinary.

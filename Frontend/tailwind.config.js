@@ -14,6 +14,9 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        outfit: ["Outfit", "sans-serif"],
+        signature: ["Playwrite ZA", "cursive"],
+        prata: ["Prata", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
