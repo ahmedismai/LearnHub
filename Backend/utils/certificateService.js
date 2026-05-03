@@ -36,13 +36,15 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     // Load Decorative Font for Signature
     let signatureFont = italicFont;
-    let signatureSize = 22;
+    let signatureSize = 48; // Larger for the script font
     try {
+      console.log(`[CERT-GEN] Fetching decorative font from: ${DECORATIVE_FONT_URL}`);
       const fontResponse = await axios.get(DECORATIVE_FONT_URL, { responseType: 'arraybuffer' });
       signatureFont = await pdfDoc.embedFont(fontResponse.data);
-      signatureSize = 42; // Great Vibes needs to be a bit bigger
+      console.log("[CERT-GEN] Decorative font loaded successfully.");
     } catch (error) {
-      console.warn("Could not load decorative font, falling back to standard italic:", error.message);
+      console.warn("[CERT-GEN] Could not load decorative font, falling back to standard italic:", error.message);
+      signatureSize = 24; // Standard font size
     }
 
     // Colors
@@ -50,9 +52,9 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const accentTeal = rgb(0.05, 0.6, 0.6); // Teal
     const goldColor = rgb(0.85, 0.65, 0.13); // Goldenrod
     const lightGray = rgb(0.95, 0.95, 0.95);
+    const signatureBlue = rgb(0, 0.2, 0.6); // Vibrant Royal Blue
 
     // --- Background & Borders ---
-    // Main Background
     page.drawRectangle({
       x: 0,
       y: 0,
@@ -61,7 +63,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: lightGray,
     });
 
-    // Outer Decorative Border
     page.drawRectangle({
       x: 30,
       y: 30,
@@ -71,7 +72,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       borderWidth: 3,
     });
 
-    // Inner Decorative Border
     page.drawRectangle({
       x: 45,
       y: 45,
@@ -82,86 +82,67 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     });
 
     // --- Content ---
-
-    // LearnHub Logo/Brand Header
     const brandText = "LEARNHUB ACADEMY";
-    const brandSize = 24;
-    const brandWidth = boldFont.widthOfTextAtSize(brandText, brandSize);
+    const brandWidth = boldFont.widthOfTextAtSize(brandText, 24);
     page.drawText(brandText, {
       x: width / 2 - brandWidth / 2,
       y: height - 100,
-      size: brandSize,
+      size: 24,
       font: boldFont,
       color: accentTeal,
     });
 
-    // Main Title
     const titleText = "CERTIFICATE OF COMPLETION";
-    const titleSize = 36;
-    const titleWidth = boldFont.widthOfTextAtSize(titleText, titleSize);
+    const titleWidth = boldFont.widthOfTextAtSize(titleText, 36);
     page.drawText(titleText, {
       x: width / 2 - titleWidth / 2,
       y: height - 160,
-      size: titleSize,
+      size: 36,
       font: boldFont,
       color: primaryBlue,
     });
 
-    // Subtitle
     const subText = "This is to officially certify that";
-    const subSize = 18;
-    const subWidth = regularFont.widthOfTextAtSize(subText, subSize);
+    const subWidth = regularFont.widthOfTextAtSize(subText, 18);
     page.drawText(subText, {
       x: width / 2 - subWidth / 2,
       y: height - 210,
-      size: subSize,
+      size: 18,
       font: italicFont,
       color: rgb(0.4, 0.4, 0.4),
     });
 
-    // Student Name
     const nameText = student.name?.toUpperCase() || "LEARNER NAME";
-    const nameSize = 48;
-    const nameWidth = boldFont.widthOfTextAtSize(nameText, nameSize);
+    const nameWidth = boldFont.widthOfTextAtSize(nameText, 48);
     page.drawText(nameText, {
       x: width / 2 - nameWidth / 2,
       y: height - 280,
-      size: nameSize,
+      size: 48,
       font: boldFont,
       color: accentTeal,
     });
 
-    // Completion Text
-    const completionText =
-      "has successfully fulfilled all requirements and completed the course";
-    const completionSize = 16;
-    const completionWidth = regularFont.widthOfTextAtSize(
-      completionText,
-      completionSize,
-    );
+    const completionText = "has successfully fulfilled all requirements and completed the course";
+    const completionWidth = regularFont.widthOfTextAtSize(completionText, 16);
     page.drawText(completionText, {
       x: width / 2 - completionWidth / 2,
       y: height - 330,
-      size: completionSize,
+      size: 16,
       font: regularFont,
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    // Course Title
     const courseText = course.title || "COURSE TITLE";
-    const courseSize = 28;
-    const courseWidth = boldFont.widthOfTextAtSize(courseText, courseSize);
+    const courseWidth = boldFont.widthOfTextAtSize(courseText, 28);
     page.drawText(courseText, {
       x: width / 2 - courseWidth / 2,
       y: height - 380,
-      size: courseSize,
+      size: 28,
       font: boldFont,
       color: primaryBlue,
     });
 
-    // --- Footer Section ---
-
-    // Date
+    // --- Footer ---
     const dateText = `Date of Issue: ${new Date().toLocaleDateString()}`;
     page.drawText(dateText, {
       x: 100,
@@ -171,7 +152,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: primaryBlue,
     });
 
-    // Date Underline
     page.drawLine({
       start: { x: 100, y: 115 },
       end: { x: 280, y: 115 },
@@ -179,15 +159,16 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: primaryBlue,
     });
 
-    // Dynamic Instructor Signature
+    // Instructor Signature
     page.drawText(instructorName, {
       x: width - 280,
-      y: 130, // Adjusted y for rotation
+      y: 135,
       size: signatureSize,
       font: signatureFont,
-      color: rgb(0.12, 0.15, 0.4), // Fluid Ink Blue
-      rotate: degrees(-3), // HUMAN TOUCH: Slight tilt makes it look like real handwriting
+      color: signatureBlue,
+      rotate: degrees(-3),
     });
+
     page.drawText(`Instructor, LearnHub Academy`, {
       x: width - 280,
       y: 100,
@@ -196,7 +177,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: rgb(0.4, 0.4, 0.4),
     });
 
-    // Signature Line
     page.drawLine({
       start: { x: width - 280, y: 120 },
       end: { x: width - 100, y: 120 },
@@ -204,7 +184,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: primaryBlue,
     });
 
-    // Decorative Seal
     page.drawCircle({
       x: width / 2,
       y: 110,
@@ -213,18 +192,18 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       borderColor: primaryBlue,
       borderWidth: 2,
     });
+
     const sealText = "OFFICIAL";
-    const sealTextSize = 10;
-    const sealTextWidth = boldFont.widthOfTextAtSize(sealText, sealTextSize);
+    const sealTextWidth = boldFont.widthOfTextAtSize(sealText, 10);
     page.drawText(sealText, {
       x: width / 2 - sealTextWidth / 2,
       y: 105,
-      size: sealTextSize,
+      size: 10,
       font: boldFont,
       color: primaryBlue,
     });
 
-    // 3. Save PDF and Upload to Cloudinary
+    // 3. Save PDF and Upload
     const pdfBytes = await pdfDoc.save();
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
@@ -232,7 +211,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const uploadResponse = await cloudinary.uploader.upload(dataUri, {
       resource_type: "auto",
       access_mode: "public",
-      type: "upload",
       folder: "learnhub/certificates",
       public_id: `cert_${studentId}_${courseId}_${Date.now()}`,
       format: "pdf",
@@ -240,22 +218,23 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       invalidate: true,
     });
 
-    // 4. Update Database
+    // 4. Update Database with Cache Buster
+    const finalUrl = `${uploadResponse.secure_url}?v=${Date.now()}`;
     const existingCert = await Certificate.findOne({ studentId, courseId });
     if (existingCert) {
-      existingCert.certificateUrl = uploadResponse.secure_url;
+      existingCert.certificateUrl = finalUrl;
       existingCert.issueDate = new Date();
       await existingCert.save();
     } else {
       await Certificate.create({
         studentId,
         courseId,
-        certificateUrl: uploadResponse.secure_url,
+        certificateUrl: finalUrl,
         issueDate: new Date(),
       });
     }
 
-    return uploadResponse.secure_url;
+    return finalUrl;
   } catch (error) {
     console.error("[CERTIFICATE-SERVICE-ERROR]:", error);
     throw error;
