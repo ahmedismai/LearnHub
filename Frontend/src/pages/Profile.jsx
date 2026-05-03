@@ -17,6 +17,7 @@ const Profile = () => {
     name: user?.name || "",
     profileImage: user?.profileImage || "",
     bio: user?.bio || "",
+    signatureText: user?.signatureText || "",
   });
 
   const handleUpdate = async (e) => {
@@ -127,24 +128,40 @@ const Profile = () => {
               </div>
 
               {user?.role === "Instructor" && (
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Professional Bio</Label>
-                  <textarea
-                    id="bio"
-                    disabled={!isEditing}
-                    className="w-full min-h-[120px] p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                    placeholder="Tell your students about your background and expertise..."
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  />
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Professional Bio</Label>
+                    <textarea
+                      id="bio"
+                      disabled={!isEditing}
+                      className="w-full min-h-[120px] p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      placeholder="Tell your students about your background and expertise..."
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signature">Signature Name (For Certificates)</Label>
+                    <Input
+                      id="signature"
+                      disabled={!isEditing}
+                      placeholder="Enter the name as you want it to appear in script"
+                      value={formData.signatureText}
+                      onChange={(e) => setFormData({ ...formData, signatureText: e.target.value })}
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">
+                      This text will be used to generate your digital signature on certificates.
+                    </p>
+                  </div>
                   
-                  <div className="pt-6 border-t mt-6">
+                  <div className="pt-6 border-t">
                     <Label className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-3 block">
                       Digital Signature Preview
                     </Label>
                     <div className="p-8 bg-muted/30 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center justify-center gap-2">
-                      <span className="font-signature text-4xl md:text-5xl text-primary/80 transition-all">
-                        {formData.name || user?.name || "Your Signature"}
+                      <span className="font-signature text-4xl md:text-5xl text-[#002D62] transition-all -rotate-[3deg]">
+                        {formData.signatureText || formData.name || user?.signatureText || user?.name || "Your Signature"}
                       </span>
                       <p className="text-xs text-muted-foreground italic mt-2">
                         This is how your signature will appear on official certificates.
@@ -170,6 +187,7 @@ const Profile = () => {
                           name: user?.name || "",
                           profileImage: user?.profileImage || "",
                           bio: user?.bio || "",
+                          signatureText: user?.signatureText || "",
                         });
                       }}
                     >

@@ -35,7 +35,10 @@ userSchema.virtual("id").get(function () {
 // Update Profile Method
 userSchema.methods.updateProfile = function (data) {
   if (data.name) this.name = data.name;
-  if (data.bio && this.role === ROLES.INSTRUCTOR) this.bio = data.bio;
+  if (this.role === ROLES.INSTRUCTOR) {
+    if (data.bio) this.bio = data.bio;
+    if (data.signatureText !== undefined) this.signatureText = data.signatureText;
+  }
   if (data.profileImage) this.profileImage = data.profileImage;
   return this.save();
 };
@@ -66,6 +69,7 @@ export const Instructor = User.discriminator(
       },
     },
     bio: { type: String, default: "" },
+    signatureText: { type: String, default: "" },
   }),
 );
 

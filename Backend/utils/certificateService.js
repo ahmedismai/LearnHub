@@ -22,7 +22,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       throw new Error("Student or Course not found");
     }
 
-    const instructorName = course.instructorId?.name || "Lead Instructor";
+    const instructorName = course.instructorId?.signatureText || course.instructorId?.name || "Lead Instructor";
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([842, 595]);
