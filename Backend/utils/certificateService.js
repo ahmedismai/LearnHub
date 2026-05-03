@@ -1,12 +1,12 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 import { v2 as cloudinary } from "cloudinary";
 import { Certificate } from "../models/Certificate.js";
 import { User } from "../models/User.js";
 import { Course } from "../models/Course.js";
 import axios from "axios";
 
-// Decorative font for signature (Alex Brush is elegant and clear)
-const DECORATIVE_FONT_URL = "https://github.com/google/fonts/raw/main/ofl/alexbrush/AlexBrush-Regular.ttf";
+// Decorative font for signature (Great Vibes is very fluid and looks like real handwriting)
+const DECORATIVE_FONT_URL = "https://github.com/google/fonts/raw/main/ofl/greatvibes/GreatVibes-Regular.ttf";
 
 /**
  * Generates a professional certificate PDF and uploads it to Cloudinary.
@@ -40,7 +40,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     try {
       const fontResponse = await axios.get(DECORATIVE_FONT_URL, { responseType: 'arraybuffer' });
       signatureFont = await pdfDoc.embedFont(fontResponse.data);
-      signatureSize = 36; // Script fonts usually need to be larger to be clear
+      signatureSize = 42; // Great Vibes needs to be a bit bigger
     } catch (error) {
       console.warn("Could not load decorative font, falling back to standard italic:", error.message);
     }
@@ -182,10 +182,11 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     // Dynamic Instructor Signature
     page.drawText(instructorName, {
       x: width - 280,
-      y: 125, // Moved slightly up for better signature feel
+      y: 130, // Adjusted y for rotation
       size: signatureSize,
       font: signatureFont,
-      color: rgb(0.1, 0.1, 0.3), // Deep ink blue
+      color: rgb(0.12, 0.15, 0.4), // Fluid Ink Blue
+      rotate: degrees(-3), // HUMAN TOUCH: Slight tilt makes it look like real handwriting
     });
     page.drawText(`Instructor, LearnHub Academy`, {
       x: width - 280,
@@ -197,7 +198,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     // Signature Line
     page.drawLine({
-      start: { x: width - 280, y: 120 }, // Adjusted to be below the signature
+      start: { x: width - 280, y: 120 },
       end: { x: width - 100, y: 120 },
       thickness: 1,
       color: primaryBlue,
