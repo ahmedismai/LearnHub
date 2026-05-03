@@ -447,14 +447,26 @@ router.put("/Account/UpdateProfile", protect, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (req.body.name) user.name = req.body.name;
-    if (req.body.profileImage) user.profileImage = req.body.profileImage;
-    if (req.body.bio && user.role === ROLES.INSTRUCTOR) {
-      user.bio = req.body.bio;
+    // Define allowed fields for everyone
+    const allowedUpdates = ["name", "profileImage"];
+    
+    // Define instructor-only fields
+    if (user.role === ROLES.INSTRUCTOR) {
+      allowedUpdates.push("bio", "signatureText");
     }
-    if (req.body.signatureText !== undefined) {
-      user.signatureText = req.body.signatureText;
-    }
+
+    // Filter req.body to only include allowed fields
+    const updates = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    // Use user.set() with strict: false to allow fields from discriminators
+    // when searching via the base model
+    user.set(updates, { strict: false });
+    
     await user.save();
 
     res.json(buildUserResponse(user));

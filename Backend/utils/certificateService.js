@@ -19,7 +19,10 @@ const OUTFIT_BOLD_URL =
 export const generateAndUploadCertificate = async (studentId, courseId) => {
   try {
     const student = await User.findById(studentId);
-    const course = await Course.findById(courseId).populate("instructorId");
+    const course = await Course.findById(courseId).populate({
+      path: "instructorId",
+      select: "name signatureText"
+    });
 
     if (!student || !course) {
       throw new Error("Student or Course not found");
@@ -165,8 +168,8 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
 
     // Instructor Signature - Deep Fluid Ink Blue, Overlapping line
     page.drawText(instructorName, {
-      x: width - 280,
-      y: 118,
+      x: width - 300,
+      y: 119,
       size: signatureSize,
       font: signatureFont,
       color: deepInkBlue,
