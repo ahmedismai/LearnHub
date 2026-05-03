@@ -12,6 +12,7 @@ const enrollmentSchema = new mongoose.Schema({
   completedAssignments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
   completedExams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }],
   completed: { type: Boolean, default: false },
+  isRevoked: { type: Boolean, default: false },
   canGenerateCertificate: { type: Boolean, default: false },
   averageExamScore: { type: Number, default: 0 }
 }, {

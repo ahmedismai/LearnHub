@@ -41,6 +41,7 @@ const InstructorCertificates = () => {
       toast.success("Certificate deleted successfully");
     },
     onError: (error) => {
+      console.error("Delete Error:", error.response?.data || error);
       toast.error(error.response?.data?.message || "Failed to delete certificate");
     },
   });

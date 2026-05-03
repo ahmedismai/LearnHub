@@ -19,33 +19,16 @@ router.get(
     try {
       const studentId = req.user.id;
       
-      // 1. Proactive Graduation Check (Self-Repair)
-      // Look for any enrollments that have 100% progress but might have missed the graduation trigger
+      // 1. Proactive Graduation Check (Only if not already processed)
       const potentialEnrollments = await Enrollment.find({
         studentId,
         progress: 100,
-        status: { $ne: "Cancelled" }
+        status: "Active" // Only check those not yet marked completed
       });
 
       for (const enrollment of potentialEnrollments) {
         const courseId = enrollment.courseId._id || enrollment.courseId;
-        
-        // If not marked as completed or can't generate cert, try to run the graduation check
-        if (!enrollment.completed || !enrollment.canGenerateCertificate) {
-            console.log(`[CERT-PROACTIVE] Running graduation check for course ${courseId}...`);
-            await checkGraduationStatus(studentId, courseId);
-        } else {
-            // If marked as eligible but certificate document is missing, generate it
-            const certExists = await Certificate.findOne({ studentId, courseId });
-            if (!certExists) {
-                console.log(`[CERT-REPAIR] Missing certificate document for course ${courseId}. Generating now...`);
-                try {
-                    await generateAndUploadCertificate(studentId, courseId);
-                } catch (err) {
-                    console.error(`[CERT-REPAIR-ERROR] Course ${courseId}:`, err);
-                }
-            }
-        }
+        await checkGraduationStatus(studentId, courseId);
       }
 
       // 2. Return all certificates
@@ -76,31 +59,8 @@ router.get(
         return res.json([]);
       }
 
-      // Proactive Check for Instructor: ensure all eligible students have certificates generated
-      const potentialGraduates = await Enrollment.find({
-        courseId: { $in: courseIds },
-        progress: 100,
-        status: { $ne: "Cancelled" }
-      });
-
-      for (const enrollment of potentialGraduates) {
-        const studentId = enrollment.studentId._id || enrollment.studentId;
-        const courseId = enrollment.courseId._id || enrollment.courseId;
-        
-        const certExists = await Certificate.findOne({ studentId, courseId });
-        if (!certExists) {
-            // Check eligibility if not already marked
-            if (!enrollment.canGenerateCertificate) {
-                await checkGraduationStatus(studentId, courseId);
-            } else {
-                try {
-                    await generateAndUploadCertificate(studentId, courseId);
-                } catch (err) {
-                    console.error(`[INST-CERT-REPAIR-ERROR] Student ${studentId}:`, err);
-                }
-            }
-        }
-      }
+      // No more aggressive auto-generation here to avoid "zombie" certificates
+      // Certificates will be fetched as they exist in the DB
 
       const certificates = await Certificate.find({ courseId: { $in: courseIds } })
         .populate("studentId", "name email")
@@ -137,22 +97,56 @@ router.delete(
   authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
   async (req, res) => {
     try {
+      console.log(`[DELETE-CERT] Attempting to delete certificate: ${req.params.id}`);
+      
       const certificate = await Certificate.findById(req.params.id).populate("courseId");
       if (!certificate) {
+        console.log(`[DELETE-CERT] Certificate not found: ${req.params.id}`);
         return res.status(404).json({ message: "Certificate not found" });
       }
 
       // If instructor, verify they own the course
       if (req.user.role === ROLES.INSTRUCTOR) {
-        if (certificate.courseId.instructorId.toString() !== req.user.id) {
+        if (!certificate.courseId) {
+          console.log(`[DELETE-CERT] Course missing for cert ${req.params.id}`);
+          return res.status(400).json({ message: "Course data is missing for this certificate." });
+        }
+
+        const courseInstructorId = certificate.courseId.instructorId?.toString();
+        if (courseInstructorId !== req.user.id) {
+          console.log(`[DELETE-CERT] Unauthorized: Instructor ${req.user.id} does not own course ${certificate.courseId._id}`);
           return res.status(403).json({ message: "You can only delete certificates for your own courses" });
         }
       }
 
-      await certificate.deleteOne();
+      // Reset enrollment status so it doesn't auto-regenerate
+      const studentId = certificate.studentId;
+      const courseId = certificate.courseId._id || certificate.courseId;
+      
+      const updatedEnrollment = await Enrollment.findOneAndUpdate(
+        { studentId, courseId },
+        { 
+          completed: false, 
+          canGenerateCertificate: false,
+          isRevoked: true,
+          status: "Active" 
+        },
+        { new: true }
+      );
+
+      if (updatedEnrollment) {
+        console.log(`[DELETE-CERT] Enrollment updated for student ${studentId} in course ${courseId}`);
+      } else {
+        console.warn(`[DELETE-CERT] Warning: No enrollment found to reset for student ${studentId} in course ${courseId}`);
+      }
+
+      await Certificate.findByIdAndDelete(req.params.id);
+      console.log(`[DELETE-CERT] Certificate ${req.params.id} successfully deleted from database`);
+      
       res.json({ message: "Certificate deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.error("[DELETE-CERTIFICATE-ERROR]:", error);
+      res.status(500).json({ message: "Server error during certificate deletion" });
     }
   }
 );

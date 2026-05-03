@@ -25,6 +25,12 @@ export const checkGraduationStatus = async (studentId, courseId) => {
     const enrollment = await Enrollment.findOne({ studentId: sId, courseId: cId });
     if (!enrollment) return;
 
+    // 0. Check if certificate was revoked/deleted by instructor
+    if (enrollment.isRevoked) {
+      console.log(`[GRADUATION] Student ${sId} certificate for course ${cId} was revoked. Skipping auto-generation.`);
+      return;
+    }
+
     // 1. Check Course Progress (Must be 100%)
     if (enrollment.progress < 100) {
       console.log(`[GRADUATION] Student ${sId} progress is ${enrollment.progress}%, not 100%.`);
