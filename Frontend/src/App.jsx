@@ -133,6 +133,7 @@ const App = () => (
                 <Route path="review-submissions/:id" element={<InstructorSubmissions />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="admin-courses" element={<AdminCourses />} />
+                <Route path="admin-certificates" element={<AdminCertificates />} />
                 <Route path="reports" element={<AdminOverview />} />
                 <Route path="admin" element={<AdminDashboard />} />
                 <Route path="payments" element={<AdminPayments />} />
@@ -154,4 +155,3 @@ const App = () => (
 );
 
 export default App;
-port default App;
