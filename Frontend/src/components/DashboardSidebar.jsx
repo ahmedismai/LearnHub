@@ -82,7 +82,7 @@ const DashboardSidebar = () => {
     { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
     { title: "Students", url: "/dashboard/students", icon: Users },
     { title: "Student Results", url: "/dashboard/student-results", icon: BarChart3 },
-    { title: "Certificates", url: "/dashboard/certificates", icon: Award },
+    { title: "Certificates", url: "/dashboard/instructor-certificates", icon: Award },
   ];
 
   const studentLinks = [

@@ -129,6 +129,7 @@ const App = () => (
                 <Route path="students" element={<StudentManagement />} />
                 <Route path="student-results" element={<StudentResults />} />
                 <Route path="student-results/:id" element={<StudentResults />} />
+                <Route path="instructor-certificates" element={<InstructorCertificates />} />
                 <Route path="review-submissions" element={<InstructorSubmissions />} />
                 <Route path="review-submissions/:id" element={<InstructorSubmissions />} />
                 <Route path="users" element={<AdminUsers />} />

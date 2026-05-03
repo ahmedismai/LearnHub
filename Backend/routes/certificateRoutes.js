@@ -61,6 +61,30 @@ router.get(
 );
 
 router.get(
+  "/instructor",
+  protect,
+  authorize(ROLES.INSTRUCTOR),
+  async (req, res) => {
+    try {
+      const instructorId = req.user.id;
+      
+      // Find courses by this instructor
+      const instructorCourses = await Course.find({ instructorId }).select("_id");
+      const courseIds = instructorCourses.map(c => c._id);
+
+      const certificates = await Certificate.find({ courseId: { $in: courseIds } })
+        .populate("studentId", "name email")
+        .populate("courseId", "title")
+        .sort({ issueDate: -1 });
+        
+      res.json(certificates);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.get(
   "/all",
   protect,
   authorize(ROLES.ADMINISTRATOR),
