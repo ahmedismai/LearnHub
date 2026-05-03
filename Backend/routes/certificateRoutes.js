@@ -60,6 +60,41 @@ router.get(
   }
 );
 
+router.get(
+  "/all",
+  protect,
+  authorize(ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const certificates = await Certificate.find()
+        .populate("studentId", "name email")
+        .populate("courseId", "title")
+        .sort({ issueDate: -1 });
+      res.json(certificates);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/:id",
+  protect,
+  authorize(ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const certificate = await Certificate.findById(req.params.id);
+      if (!certificate) {
+        return res.status(404).json({ message: "Certificate not found" });
+      }
+      await certificate.deleteOne();
+      res.json({ message: "Certificate deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 router.post(
   "/generate",
   protect,

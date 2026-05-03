@@ -33,6 +33,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCourses from "./pages/admin/AdminCourses";
+import AdminCertificates from "./pages/admin/AdminCertificates";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPayments from "./pages/admin/AdminPayments";
 import Settings from "./pages/Settings";
@@ -153,3 +154,4 @@ const App = () => (
 );
 
 export default App;
+port default App;

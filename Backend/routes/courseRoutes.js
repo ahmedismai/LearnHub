@@ -509,4 +509,35 @@ router.post(
   },
 );
 
+router.delete(
+  "/:id",
+  protect,
+  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
+  async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
+
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (
+        req.user.role === ROLES.INSTRUCTOR &&
+        String(course.instructorId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to delete this course" });
+      }
+
+      // Delete associated contents, enrollments, etc. if necessary
+      // For now, let's just delete the course
+      await course.deleteOne();
+      res.json({ message: "Course deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 export default router;

@@ -57,7 +57,7 @@ const DashboardSidebar = () => {
     { title: "Courses", url: "/dashboard/admin-courses", icon: BookOpen },
     { title: "Categories", url: "/dashboard/categories", icon: Layers },
     { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
-    { title: "Certificates", url: "/dashboard/certificates", icon: Award },
+    { title: "Certificates", url: "/dashboard/admin-certificates", icon: Award },
   ];
 
   const instructorLinks = [

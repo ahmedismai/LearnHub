@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, BookOpen, User, DollarSign } from "lucide-react";
+import { CheckCircle2, XCircle, BookOpen, User, DollarSign, Trash2 } from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +41,17 @@ const AdminCourses = () => {
       toast.success("Course status updated successfully");
     },
     onError: () => toast.error("Failed to update course status"),
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (courseId) => {
+      return await api.delete(`/Course/${courseId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "courses"]);
+      toast.success("Course deleted successfully");
+    },
+    onError: () => toast.error("Failed to delete course"),
   });
 
   if (isLoading) {
@@ -159,6 +170,18 @@ const AdminCourses = () => {
                           <XCircle className="w-3.5 h-3.5" /> Reject
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
+                            deleteCourseMutation.mutate(course._id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -172,3 +195,4 @@ const AdminCourses = () => {
 };
 
 export default AdminCourses;
+

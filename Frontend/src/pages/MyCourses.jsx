@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Play, CheckCircle, Award } from "lucide-react";
+import { Play, CheckCircle, Award, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const MyCourses = () => {
@@ -19,48 +19,76 @@ const MyCourses = () => {
   const isInstructor = user?.role === "Instructor";
   const [studentEnrollments, setStudentEnrollments] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      if (isStudent) {
+        const response = await api.get("/Enrollment/me");
+        const enrollments = response.data.map((item) => ({
+          id: item._id,
+          progress: item.progress,
+          status: item.completed ? "completed" : "active",
+          courseId: item.courseId?._id || item.courseId,
+          course: {
+            id: item.courseId?._id,
+            title: item.courseId?.title,
+            thumbnail: item.courseId?.thumbnail,
+            instructorName: item.courseId?.instructorId?.name || "Unknown",
+          },
+        }));
+        setStudentEnrollments(enrollments);
+      } else if (isInstructor) {
+        const response = await api.get("/Course/mine");
+        const courses = response.data.map((item) => ({
+          id: item._id,
+          title: item.title,
+          thumbnail: item.thumbnail,
+          category: item.categoryId,
+          enrolledCount: item.enrolledCount || 0,
+          price: item.price,
+        }));
+        setInstructorCourses(courses);
+      }
+    } catch (error) {
+      console.error("Failed to load courses:", error);
+      toast({
+        title: "Error",
+        description: "Could not load your courses.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (isStudent) {
-          const response = await api.get("/Enrollment/me");
-          const enrollments = response.data.map((item) => ({
-            id: item._id,
-            progress: item.progress,
-            status: item.completed ? "completed" : "active",
-            course: {
-              id: item.courseId?._id,
-              title: item.courseId?.title,
-              thumbnail: item.courseId?.thumbnail,
-              instructorName: item.courseId?.instructorId?.name || "Unknown",
-            },
-          }));
-          setStudentEnrollments(enrollments);
-        } else if (isInstructor) {
-          const response = await api.get("/Course/mine");
-          const courses = response.data.map((item) => ({
-            id: item._id,
-            title: item.title,
-            thumbnail: item.thumbnail,
-            category: item.category,
-            enrolledCount: item.enrolledCount || 0,
-            price: item.price,
-          }));
-          setInstructorCourses(courses);
-        }
-      } catch (error) {
-        console.error("Failed to load courses:", error);
-        toast({
-          title: "Error",
-          description: "Could not load your courses.",
-          variant: "destructive",
-        });
-      }
-    };
-
     fetchData();
   }, [isStudent, isInstructor]);
+
+  const handleDeleteCourse = async (courseId) => {
+    if (!window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.delete(`/Course/${courseId}`);
+      toast({
+        title: "Success",
+        description: "Course deleted successfully.",
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Could not delete course.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const enrolledCourses = studentEnrollments.filter((e) => e.course);
 
   const getProgressColor = (progress) => {
@@ -152,7 +180,7 @@ const MyCourses = () => {
                   asChild
                 >
                   <Link
-                    to={`/dashboard/courses/${enrollment.courseId?._id || enrollment.course?.id}`}
+                    to={`/dashboard/courses/${enrollment.courseId}`}
                     className="flex items-center justify-center gap-2"
                   >
                     <Play className={`w-4 h-4 ${enrollment.status !== "completed" ? "fill-current" : ""}`} />
@@ -208,11 +236,11 @@ const MyCourses = () => {
                 />
 
                 <Badge className="absolute top-3 right-3" variant="secondary">
-                  {course.categoryId?.name || "General"}
+                  {course.category?.name || "General"}
                 </Badge>
               </div>
               <CardContent className="p-5">
-                <h3 className="font-bold text-foreground mb-2 line-clamp-2">
+                <h3 className="font-bold text-foreground mb-2 line-clamp-2 h-12">
                   {course.title}
                 </h3>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -227,6 +255,16 @@ const MyCourses = () => {
 
                   <Button variant="ghost" className="flex-1" asChild>
                     <Link to={`/dashboard/courses/${course.id}`}>View</Link>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDeleteCourse(course.id)}
+                    disabled={loading}
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </CardContent>
