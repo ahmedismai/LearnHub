@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
   },
   {
-    discriminatorKey: "roleType",
+    discriminatorKey: "role",
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     timestamps: true,
