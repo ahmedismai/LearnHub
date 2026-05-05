@@ -21,17 +21,18 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const student = await User.findById(studentId);
     const course = await Course.findById(courseId).populate({
       path: "instructorId",
-      select: "name signatureText"
+      select: "name signatureText",
     });
 
     if (!student || !course) {
       throw new Error("Student or Course not found");
     }
 
-    const instructorName =
-      course.instructorId?.signatureText ||
-      course.instructorId?.name ||
-      "Lead Instructor";
+    // Instructor Info
+    const instructor = course.instructorId;
+    const instructorSignature =
+      instructor?.signatureText || instructor?.name || "Lead Instructor";
+    const instructorPrintedName = instructor?.name || "Lead Instructor";
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([842, 595]);
@@ -41,7 +42,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     let regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     let boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     let signatureFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-    let signatureSize = 32;
+    let signatureSize = 30;
 
     // Load Custom Fonts
     try {
@@ -54,7 +55,6 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       signatureFont = await pdfDoc.embedFont(playwriteRes.data);
       regularFont = await pdfDoc.embedFont(outfitRes.data);
       boldFont = await pdfDoc.embedFont(outfitBoldRes.data);
-      signatureSize = 32;
     } catch (error) {
       console.warn(
         "[CERT-GEN] Font loading failed, using fallbacks:",
@@ -166,27 +166,43 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
       color: primaryBlue,
     });
 
-    // Instructor Signature - Deep Fluid Ink Blue, Overlapping line
-    page.drawText(instructorName, {
-      x: width - 300,
-      y: 119,
+    // Instructor Signature - Deep Fluid Ink Blue
+    const signatureX = width - 300;
+    const lineY = 120;
+
+    // Draw Signature (Playwrite Font)
+    page.drawText(instructorSignature, {
+      x: signatureX + 20,
+      y: lineY + 5,
       size: signatureSize,
       font: signatureFont,
       color: deepInkBlue,
+      rotate: degrees(-3),
+    });
+
+    // Draw Signature Line
+    page.drawLine({
+      start: { x: signatureX, y: lineY },
+      end: { x: width - 100, y: lineY },
+      thickness: 1,
+      color: primaryBlue,
+    });
+
+    // Draw Printed Name
+    page.drawText(instructorPrintedName, {
+      x: signatureX + 20,
+      y: lineY - 20,
+      size: 14,
+      font: boldFont,
+      color: primaryBlue,
     });
 
     page.drawText(`Instructor, LearnHub Academy`, {
-      x: width - 280,
-      y: 100,
-      size: 12,
+      x: signatureX + 20,
+      y: lineY - 35,
+      size: 10,
       font: regularFont,
       color: rgb(0.4, 0.4, 0.4),
-    });
-    page.drawLine({
-      start: { x: width - 280, y: 120 },
-      end: { x: width - 100, y: 120 },
-      thickness: 1,
-      color: primaryBlue,
     });
 
     page.drawCircle({
