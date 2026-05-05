@@ -3,15 +3,17 @@ import { v2 as cloudinary } from "cloudinary";
 import { Certificate } from "../models/Certificate.js";
 import { User } from "../models/User.js";
 import { Course } from "../models/Course.js";
-import axios from "axios";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Fonts from Google Fonts
-const PLAYWRITE_FONT_URL =
-  "https://fonts.gstatic.com/s/playwriteza/v1/D78vXNm9p9S7u7U.ttf";
-const OUTFIT_FONT_URL =
-  "https://fonts.gstatic.com/s/outfit/v11/QGYsz_OBy1qW9dz3.ttf";
-const OUTFIT_BOLD_URL =
-  "https://fonts.gstatic.com/s/outfit/v11/QGYxz_OBy1qW9dz3.ttf";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Local Font Paths
+const PLAYWRITE_FONT_PATH = path.join(__dirname, "../assets/fonts/PlaywriteZA.ttf");
+const OUTFIT_FONT_PATH = path.join(__dirname, "../assets/fonts/Outfit-Regular.ttf");
+const OUTFIT_BOLD_PATH = path.join(__dirname, "../assets/fonts/Outfit-Bold.ttf");
 
 /**
  * Generates a professional certificate PDF and uploads it to Cloudinary.
@@ -42,22 +44,27 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     let regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     let boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     let signatureFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-    let signatureSize = 30;
+    let signatureSize = 32;
 
-    // Load Custom Fonts
+    // Load Local Fonts
     try {
-      const [playwriteRes, outfitRes, outfitBoldRes] = await Promise.all([
-        axios.get(PLAYWRITE_FONT_URL, { responseType: "arraybuffer" }),
-        axios.get(OUTFIT_FONT_URL, { responseType: "arraybuffer" }),
-        axios.get(OUTFIT_BOLD_URL, { responseType: "arraybuffer" }),
-      ]);
+      if (fs.existsSync(PLAYWRITE_FONT_PATH)) {
+        const playwriteBytes = fs.readFileSync(PLAYWRITE_FONT_PATH);
+        signatureFont = await pdfDoc.embedFont(playwriteBytes);
+      }
+      
+      if (fs.existsSync(OUTFIT_FONT_PATH)) {
+        const outfitBytes = fs.readFileSync(OUTFIT_FONT_PATH);
+        regularFont = await pdfDoc.embedFont(outfitBytes);
+      }
 
-      signatureFont = await pdfDoc.embedFont(playwriteRes.data);
-      regularFont = await pdfDoc.embedFont(outfitRes.data);
-      boldFont = await pdfDoc.embedFont(outfitBoldRes.data);
+      if (fs.existsSync(OUTFIT_BOLD_PATH)) {
+        const outfitBoldBytes = fs.readFileSync(OUTFIT_BOLD_PATH);
+        boldFont = await pdfDoc.embedFont(outfitBoldBytes);
+      }
     } catch (error) {
       console.warn(
-        "[CERT-GEN] Font loading failed, using fallbacks:",
+        "[CERT-GEN] Local font loading failed, using fallbacks:",
         error.message,
       );
     }
@@ -67,7 +74,7 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const accentTeal = rgb(0.05, 0.6, 0.6);
     const goldColor = rgb(0.85, 0.65, 0.13);
     const lightGray = rgb(0.95, 0.95, 0.95);
-    const deepInkBlue = rgb(0, 0.176, 0.384); // #002D62
+    const deepInkBlue = rgb(0, 0.176, 0.384); // #002D62 matching frontend
 
     // --- Background & Borders ---
     page.drawRectangle({ x: 0, y: 0, width, height, color: lightGray });
@@ -170,10 +177,10 @@ export const generateAndUploadCertificate = async (studentId, courseId) => {
     const signatureX = width - 300;
     const lineY = 120;
 
-    // Draw Signature (Playwrite Font)
+    // Draw Signature (Playwrite ZA Font)
     page.drawText(instructorSignature, {
-      x: signatureX + 20,
-      y: lineY + 5,
+      x: signatureX + 15,
+      y: lineY + 8,
       size: signatureSize,
       font: signatureFont,
       color: deepInkBlue,
