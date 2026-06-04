@@ -37,11 +37,12 @@ export const AuthProvider = ({ children }) => {
     };
   };
 
-  const getApiBaseUrl = () => api.defaults.baseURL || "";
+  const getApiOriginUrl = () =>
+    (api.defaults.baseURL || "").replace(/\/+$/, "").replace(/(?:\/api)+$/i, "");
 
   const startOAuthLogin = (provider, role = "Student") => {
     const params = new URLSearchParams({ role });
-    window.location.href = `${getApiBaseUrl()}/api/Account/oauth/${provider}?${params}`;
+    window.location.href = `${getApiOriginUrl()}/api/Account/oauth/${provider}?${params}`;
   };
 
   const completeOAuthLogin = ({ accessToken, refreshToken, user: oauthUser }) => {

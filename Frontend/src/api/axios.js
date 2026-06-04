@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const normalizeApiBaseUrl = (url = "") =>
+  url.replace(/\/+$/, "").replace(/(?:\/api)+$/i, "");
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: normalizeApiBaseUrl(import.meta.env.VITE_API_URL || ""),
 });
 
 
