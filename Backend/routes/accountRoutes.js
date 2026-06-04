@@ -70,13 +70,13 @@ const getOAuthRedirectUri = (req, provider) =>
 
 const getGoogleOAuthClient = (req) =>
   new OAuth2Client(
-    process.env.GOOGLE_CLIENT_ID,
+    process.env.WEB_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     getOAuthRedirectUri(req, "google"),
   );
 
 const getGoogleAudiences = () =>
-  (process.env.WEB_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "")
+  (process.env.WEB_CLIENT_ID || process.env.WEB_CLIENT_ID || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -168,7 +168,10 @@ const upsertOAuthUser = async ({
     return existingUser;
   }
 
-  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+  const passwordHash = await bcrypt.hash(
+    crypto.randomBytes(32).toString("hex"),
+    10,
+  );
   const userData = {
     name: name || email.split("@")[0],
     email,
@@ -188,7 +191,10 @@ const upsertOAuthUser = async ({
 };
 
 const createGoogleUser = async ({ profile, role }) => {
-  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+  const passwordHash = await bcrypt.hash(
+    crypto.randomBytes(32).toString("hex"),
+    10,
+  );
   const name =
     profile.name ||
     [profile.given_name, profile.family_name].filter(Boolean).join(" ") ||
@@ -238,7 +244,9 @@ const exchangeOAuthCode = async ({ tokenUrl, params }) => {
   });
   const data = await response.json();
   if (!response.ok || data.error) {
-    throw new Error(data.error_description || data.error || "OAuth token exchange failed");
+    throw new Error(
+      data.error_description || data.error || "OAuth token exchange failed",
+    );
   }
   return data;
 };
@@ -253,14 +261,18 @@ const fetchJson = async (url, accessToken) => {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error_description || data.message || "OAuth profile request failed");
+    throw new Error(
+      data.error_description || data.message || "OAuth profile request failed",
+    );
   }
   return data;
 };
 
 router.get("/oauth/google", (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not configured" });
+  if (!process.env.WEB_CLIENT_ID) {
+    return res
+      .status(500)
+      .json({ message: "GOOGLE_CLIENT_ID is not configured" });
   }
 
   const client = getGoogleOAuthClient(req);
@@ -279,8 +291,9 @@ router.get("/oauth/google", (req, res) => {
 router.get("/oauth/google/callback", async (req, res) => {
   try {
     const { code, state } = req.query;
-    if (!code) return redirectOAuthError(res, "Missing Google authorization code");
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (!code)
+      return redirectOAuthError(res, "Missing Google authorization code");
+    if (!process.env.WEB_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
       return redirectOAuthError(res, "Google OAuth is not configured");
     }
 
@@ -292,7 +305,7 @@ router.get("/oauth/google/callback", async (req, res) => {
 
     const ticket = await client.verifyIdToken({
       idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.WEB_CLIENT_ID,
     });
     const profile = ticket.getPayload();
     const stateData = state
@@ -362,7 +375,8 @@ router.post("/oauth/google/id-token", async (req, res) => {
     console.error("Google ID token sign-in error:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Fail to signup with Gmail please try again later",
+      message:
+        error.message || "Fail to signup with Gmail please try again later",
     });
   }
 });
@@ -405,7 +419,8 @@ const signupWithGmail = async (req, res) => {
     console.error("Gmail signup error:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Fail to signup with Gmail please try again later",
+      message:
+        error.message || "Fail to signup with Gmail please try again later",
     });
   }
 };
@@ -419,7 +434,10 @@ const loginWithGmail = async (req, res) => {
 
     const profile = await verifyGmailAccount(idToken);
     const user = await User.findOne({
-      $or: [{ googleId: profile.sub }, { email: profile.email, authProvider: "google" }],
+      $or: [
+        { googleId: profile.sub },
+        { email: profile.email, authProvider: "google" },
+      ],
     });
 
     if (!user) {
@@ -439,7 +457,8 @@ const loginWithGmail = async (req, res) => {
     console.error("Gmail login error:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Fail to login with Gmail please try again later",
+      message:
+        error.message || "Fail to login with Gmail please try again later",
     });
   }
 };
@@ -451,7 +470,9 @@ router.post("/Login/Gmail", loginWithGmail);
 
 router.get("/oauth/github", (req, res) => {
   if (!process.env.GITHUB_CLIENT_ID) {
-    return res.status(500).json({ message: "GITHUB_CLIENT_ID is not configured" });
+    return res
+      .status(500)
+      .json({ message: "GITHUB_CLIENT_ID is not configured" });
   }
 
   const url = new URL("https://github.com/login/oauth/authorize");
@@ -460,7 +481,9 @@ router.get("/oauth/github", (req, res) => {
   url.searchParams.set("scope", "read:user user:email");
   url.searchParams.set(
     "state",
-    Buffer.from(JSON.stringify({ role: req.query.role || ROLES.STUDENT })).toString("base64url"),
+    Buffer.from(
+      JSON.stringify({ role: req.query.role || ROLES.STUDENT }),
+    ).toString("base64url"),
   );
   return res.redirect(url.toString());
 });
@@ -468,7 +491,8 @@ router.get("/oauth/github", (req, res) => {
 router.get("/oauth/github/callback", async (req, res) => {
   try {
     const { code, state } = req.query;
-    if (!code) return redirectOAuthError(res, "Missing GitHub authorization code");
+    if (!code)
+      return redirectOAuthError(res, "Missing GitHub authorization code");
     if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
       return redirectOAuthError(res, "GitHub OAuth is not configured");
     }
@@ -482,7 +506,10 @@ router.get("/oauth/github/callback", async (req, res) => {
         redirect_uri: getOAuthRedirectUri(req, "github"),
       },
     });
-    const profile = await fetchJson("https://api.github.com/user", tokenData.access_token);
+    const profile = await fetchJson(
+      "https://api.github.com/user",
+      tokenData.access_token,
+    );
     const emails = await fetchJson(
       "https://api.github.com/user/emails",
       tokenData.access_token,

@@ -45,3 +45,9 @@ Re-optimizing dependencies because vite config has changed
 [2m6:50:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
 [2m6:51:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
 [2m6:52:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
+[2m7:16:10 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m7:16:11 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m7:16:11 PM[22m [36m[1m[vite][22m[39m server restarted.
+[2m7:42:30 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m7:42:30 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m7:42:31 PM[22m [36m[1m[vite][22m[39m server restarted.
