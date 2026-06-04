@@ -70,12 +70,12 @@ const getOAuthRedirectUri = (req, provider) =>
 
 const getGoogleOAuthClient = (req) =>
   new OAuth2Client(
-    process.env.WEB_CLIENT_ID,
+    process.env.WEB_CLIENT_IDS,
     getOAuthRedirectUri(req, "google"),
   );
 
 const getGoogleAudiences = () =>
-  (process.env.WEB_CLIENT_ID || "")
+  (process.env.WEB_CLIENT_IDS || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -83,7 +83,7 @@ const getGoogleAudiences = () =>
 const verifyGmailAccount = async (idToken) => {
   const audiences = getGoogleAudiences();
   if (!audiences.length) {
-    throw new Error("WEB_CLIENT_ID is not configured");
+    throw new Error("WEB_CLIENT_IDS is not configured");
   }
 
   const client = new OAuth2Client();
@@ -268,7 +268,7 @@ const fetchJson = async (url, accessToken) => {
 };
 
 router.get("/oauth/google", (req, res) => {
-  if (!process.env.WEB_CLIENT_ID) {
+  if (!process.env.WEB_CLIENT_IDS) {
     return res
       .status(500)
       .json({ message: "GOOGLE_CLIENT_ID is not configured" });
@@ -292,7 +292,7 @@ router.get("/oauth/google/callback", async (req, res) => {
     const { code, state } = req.query;
     if (!code)
       return redirectOAuthError(res, "Missing Google authorization code");
-    if (!process.env.WEB_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (!process.env.WEB_CLIENT_IDS) {
       return redirectOAuthError(res, "Google OAuth is not configured");
     }
 
@@ -304,7 +304,7 @@ router.get("/oauth/google/callback", async (req, res) => {
 
     const ticket = await client.verifyIdToken({
       idToken: tokens.id_token,
-      audience: process.env.WEB_CLIENT_ID,
+      audience: process.env.WEB_CLIENT_IDS,
     });
     const profile = ticket.getPayload();
     const stateData = state
