@@ -23,7 +23,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, startOAuthLogin } = useAuth();
+  const { login, startOAuthLogin, startGmailIdTokenFlow } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -197,7 +197,22 @@ const Login = () => {
               type="button"
               variant="outline"
               className="social-btn"
-              onClick={() => startOAuthLogin("google")}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const userData = await startGmailIdTokenFlow("login");
+                  toast({ title: "Welcome back!" });
+                  navigate(userData?.role === "Student" ? "/" : "/dashboard");
+                } catch (error) {
+                  toast({
+                    variant: "destructive",
+                    title: "Google login failed",
+                    description: error.message || "Please try again.",
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

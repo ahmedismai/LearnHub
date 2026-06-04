@@ -3,6 +3,33 @@ import api from "../api/axios";
 
 const AuthContext = createContext({});
 
+const loadGoogleIdentityScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve(window.google);
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]',
+    );
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.google), {
+        once: true,
+      });
+      existingScript.addEventListener("error", reject, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +82,65 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(normalizedUser));
     setUser(normalizedUser);
     return normalizedUser;
+  };
+
+  const completeCredentialsLogin = (credentials) => {
+    const payload = credentials?.data?.credentials || credentials;
+    return completeOAuthLogin(payload);
+  };
+
+  const signupWithGmail = async (idToken, role = "Student") => {
+    const response = await api.post("/api/Account/signup/gmail", {
+      idToken,
+      role,
+    });
+    return completeCredentialsLogin(response.data);
+  };
+
+  const loginWithGmail = async (idToken) => {
+    const response = await api.post("/api/Account/login/gmail", { idToken });
+    return completeCredentialsLogin(response.data);
+  };
+
+  const loginWithGoogleIdToken = signupWithGmail;
+
+  const startGmailIdTokenFlow = async (mode = "login", role = "Student") => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error("VITE_GOOGLE_CLIENT_ID is not configured");
+    }
+
+    const google = await loadGoogleIdentityScript();
+
+    return new Promise((resolve, reject) => {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            if (!response?.credential) {
+              throw new Error("Google did not return an ID token");
+            }
+
+            const userData =
+              mode === "signup"
+                ? await signupWithGmail(response.credential, role)
+                : await loginWithGmail(response.credential);
+            resolve(userData);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      });
+
+      google.accounts.id.prompt((notification) => {
+        if (
+          notification.isNotDisplayed?.() ||
+          notification.isSkippedMoment?.()
+        ) {
+          reject(new Error("Google sign-in prompt was not displayed"));
+        }
+      });
+    });
   };
 
   const login = async (email, password) => {
@@ -154,6 +240,10 @@ export const AuthProvider = ({ children }) => {
         login,
         startOAuthLogin,
         completeOAuthLogin,
+        loginWithGoogleIdToken,
+        signupWithGmail,
+        loginWithGmail,
+        startGmailIdTokenFlow,
         refreshUser,
         register,
         logout,

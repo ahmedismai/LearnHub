@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { OAuth2Client } from "google-auth-library";
 import { User, Student, Instructor, Admin } from "../models/User.js";
 import { ROLES } from "../constants/roles.js";
 import { protect, authorize } from "../middleware/auth.js";
@@ -66,6 +67,39 @@ const getBackendUrl = (req) =>
 
 const getOAuthRedirectUri = (req, provider) =>
   `${getBackendUrl(req)}/api/Account/oauth/${provider}/callback`;
+
+const getGoogleOAuthClient = (req) =>
+  new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    getOAuthRedirectUri(req, "google"),
+  );
+
+const getGoogleAudiences = () =>
+  (process.env.WEB_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const verifyGmailAccount = async (idToken) => {
+  const audiences = getGoogleAudiences();
+  if (!audiences.length) {
+    throw new Error("GOOGLE_CLIENT_ID or WEB_CLIENT_ID is not configured");
+  }
+
+  const client = new OAuth2Client();
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: audiences,
+  });
+  const payload = ticket.getPayload();
+
+  if (!payload?.email || !payload?.email_verified) {
+    throw new Error("Fail to verify this Google account");
+  }
+
+  return payload;
+};
 
 const createAuthPayload = async (user) => {
   const accessToken = createToken(user);
@@ -153,6 +187,46 @@ const upsertOAuthUser = async ({
   return Student.create(userData);
 };
 
+const createGoogleUser = async ({ profile, role }) => {
+  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+  const name =
+    profile.name ||
+    [profile.given_name, profile.family_name].filter(Boolean).join(" ") ||
+    profile.email.split("@")[0];
+
+  const userData = {
+    name,
+    email: profile.email,
+    passwordHash,
+    role: getOAuthRole(role),
+    profileImage: profile.picture || "",
+    emailConfirmed: true,
+    confirmationToken: "",
+    authProvider: "google",
+    googleId: profile.sub || "",
+  };
+
+  if (userData.role === ROLES.INSTRUCTOR) {
+    return Instructor.create(userData);
+  }
+  return Student.create(userData);
+};
+
+const findGoogleUserByProfile = (profile) =>
+  User.findOne({
+    $or: [{ email: profile.email }, { googleId: profile.sub }],
+  });
+
+const sendCredentialsResponse = async (res, user, status = 200) => {
+  const credentials = await createAuthPayload(user);
+  return res.status(status).json({
+    success: true,
+    message: "Done",
+    data: { credentials },
+    ...credentials,
+  });
+};
+
 const exchangeOAuthCode = async ({ tokenUrl, params }) => {
   const response = await fetch(tokenUrl, {
     method: "POST",
@@ -189,17 +263,17 @@ router.get("/oauth/google", (req, res) => {
     return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not configured" });
   }
 
-  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  url.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID);
-  url.searchParams.set("redirect_uri", getOAuthRedirectUri(req, "google"));
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid email profile");
-  url.searchParams.set("prompt", "select_account");
-  url.searchParams.set(
-    "state",
-    Buffer.from(JSON.stringify({ role: req.query.role || ROLES.STUDENT })).toString("base64url"),
-  );
-  return res.redirect(url.toString());
+  const client = getGoogleOAuthClient(req);
+  const state = Buffer.from(
+    JSON.stringify({ role: req.query.role || ROLES.STUDENT }),
+  ).toString("base64url");
+  const url = client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "select_account",
+    scope: ["openid", "email", "profile"],
+    state,
+  });
+  return res.redirect(url);
 });
 
 router.get("/oauth/google/callback", async (req, res) => {
@@ -210,20 +284,17 @@ router.get("/oauth/google/callback", async (req, res) => {
       return redirectOAuthError(res, "Google OAuth is not configured");
     }
 
-    const tokenData = await exchangeOAuthCode({
-      tokenUrl: "https://oauth2.googleapis.com/token",
-      params: {
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: getOAuthRedirectUri(req, "google"),
-        grant_type: "authorization_code",
-      },
+    const client = getGoogleOAuthClient(req);
+    const { tokens } = await client.getToken(String(code));
+    if (!tokens.id_token) {
+      throw new Error("Google did not return an identity token");
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
-    const profile = await fetchJson(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      tokenData.access_token,
-    );
+    const profile = ticket.getPayload();
     const stateData = state
       ? JSON.parse(Buffer.from(String(state), "base64url").toString("utf8"))
       : {};
@@ -241,6 +312,142 @@ router.get("/oauth/google/callback", async (req, res) => {
     return redirectOAuthError(res, error.message || "Google sign-in failed");
   }
 });
+
+router.post("/oauth/google/id-token", async (req, res) => {
+  try {
+    const { idToken, role = ROLES.STUDENT } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    const {
+      sub,
+      email,
+      given_name: givenName,
+      family_name: familyName,
+      name,
+      picture,
+    } = await verifyGmailAccount(idToken);
+
+    const existingUser = await User.findOne({ email });
+    if (
+      existingUser &&
+      existingUser.authProvider !== "google" &&
+      !existingUser.googleId
+    ) {
+      return res.status(409).json({
+        message: `Email exists with another provider: ${existingUser.authProvider || "local"}`,
+      });
+    }
+
+    const user = await upsertOAuthUser({
+      provider: "google",
+      providerId: sub,
+      email,
+      name: name || [givenName, familyName].filter(Boolean).join(" "),
+      profileImage: picture,
+      role,
+    });
+    const payload = await createAuthPayload(user);
+
+    return res.status(existingUser ? 200 : 201).json({
+      success: true,
+      message: "Done",
+      data: {
+        credentials: payload,
+      },
+      ...payload,
+    });
+  } catch (error) {
+    console.error("Google ID token sign-in error:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Fail to signup with Gmail please try again later",
+    });
+  }
+});
+
+const signupWithGmail = async (req, res) => {
+  try {
+    const { idToken, role = ROLES.STUDENT } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    const profile = await verifyGmailAccount(idToken);
+    const user = await findGoogleUserByProfile(profile);
+
+    if (user) {
+      if (user.authProvider === "google" || user.googleId) {
+        user.googleId = user.googleId || profile.sub;
+        user.authProvider = "google";
+        user.emailConfirmed = true;
+        await user.save();
+        return sendCredentialsResponse(res, user, 200);
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: `Email exists with another provider: ${user.authProvider || "local"}`,
+      });
+    }
+
+    const newUser = await createGoogleUser({ profile, role });
+    if (!newUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Fail to signup with Gmail please try again later",
+      });
+    }
+
+    return sendCredentialsResponse(res, newUser, 201);
+  } catch (error) {
+    console.error("Gmail signup error:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Fail to signup with Gmail please try again later",
+    });
+  }
+};
+
+const loginWithGmail = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    const profile = await verifyGmailAccount(idToken);
+    const user = await User.findOne({
+      $or: [{ googleId: profile.sub }, { email: profile.email, authProvider: "google" }],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid login data or invalid provider",
+      });
+    }
+
+    user.googleId = user.googleId || profile.sub;
+    user.authProvider = "google";
+    user.emailConfirmed = true;
+    await user.save();
+
+    return sendCredentialsResponse(res, user, 200);
+  } catch (error) {
+    console.error("Gmail login error:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Fail to login with Gmail please try again later",
+    });
+  }
+};
+
+router.post("/signup/gmail", signupWithGmail);
+router.post("/Signup/Gmail", signupWithGmail);
+router.post("/login/gmail", loginWithGmail);
+router.post("/Login/Gmail", loginWithGmail);
 
 router.get("/oauth/github", (req, res) => {
   if (!process.env.GITHUB_CLIENT_ID) {
