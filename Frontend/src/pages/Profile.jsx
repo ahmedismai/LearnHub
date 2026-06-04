@@ -1,213 +1,177 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Loader2, Camera, User, Mail, Shield, BookOpen } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import accountService from "@/api/account";
+import { Loader2, User, Mail, Shield, Camera, Save } from "lucide-react";
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    profileImage: user?.profileImage || "",
-    bio: user?.bio || "",
-    signatureText: user?.signatureText || "",
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileData, setProfileData] = useState({
+    fullName: "",
+    email: "",
   });
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await accountService.getProfile();
+        const data = response.data;
+        setProfileData({
+          fullName: data.fullName || "",
+          email: data.email || "",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile details.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [toast]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
     try {
-      await updateProfile(formData);
-      toast.success("Profile updated successfully");
-      setIsEditing(false);
+      // Use the improved updateProfile from context
+      const result = await updateProfile({ fullName: profileData.fullName });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully!",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: result.message || "Something went wrong.",
+        });
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update profile");
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error.response?.data?.message || "Something went wrong.",
+      });
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Account Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your profile information and preferences</p>
+    <div className="mx-auto max-w-5xl space-y-8 animate-fade-in pb-12">
+      <div className="page__head">
+        <div>
+          <h1 className="page__title flex items-center gap-3">
+            <User className="h-9 w-9 text-primary" />
+            Your Profile
+          </h1>
+          <p className="page__subtitle">
+            Manage your personal information and account settings.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Profile Sidebar */}
-        <Card className="md:col-span-1 border-none shadow-lg h-fit">
-          <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-            <div className="relative group">
-              <Avatar className="w-32 h-32 border-4 border-primary/10">
-                <AvatarImage src={formData.profileImage} />
-                <AvatarFallback className="bg-primary/5 text-primary text-3xl font-bold">
-                  {user?.name?.[0] || user?.username?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Camera className="text-white w-8 h-8" />
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold">{user?.name || user?.username}</h2>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-              <Badge variant="secondary" className="mt-2 capitalize">
-                {user?.role}
-              </Badge>
-            </div>
-
-            <div className="w-full pt-4 space-y-3">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Shield className="w-4 h-4" />
-                <span>Verified Account</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="surface-glass h-fit lg:col-span-1">
+          <CardHeader className="text-center pb-2">
+            <div className="relative w-32 h-32 mx-auto mb-4 group">
+              <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-4 border-white bg-muted shadow-md">
+                <User className="w-16 h-16 text-slate-300" />
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <BookOpen className="w-4 h-4" />
-                <span>Member since {new Date(user?.createdAt || Date.now()).getFullYear()}</span>
-              </div>
+              <button className="absolute bottom-1 right-1 p-2 rounded-full bg-primary text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+            <CardTitle>{profileData.fullName}</CardTitle>
+            <CardDescription>{user?.role}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
+              <Shield className="w-4 h-4 text-primary" />
+              <span>Account Status: Active</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
+              <Mail className="w-4 h-4 text-primary" />
+              <span className="truncate">{profileData.email}</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Edit Form */}
-        <Card className="md:col-span-2 border-none shadow-lg">
+        <Card className="surface-glass lg:col-span-2">
           <CardHeader>
-            <CardTitle>Profile Details</CardTitle>
-            <CardDescription>Update your personal information and how others see you on the platform</CardDescription>
+            <CardTitle>Personal Details</CardTitle>
+            <CardDescription>
+              Update your public profile information.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdate} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      disabled={!isEditing}
-                      className="pl-10"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      disabled
-                      className="pl-10 opacity-70"
-                      value={user?.email || ""}
-                    />
-                  </div>
-                </div>
-              </div>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={profileData.fullName}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, fullName: e.target.value })
+                }
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="avatar">Profile Image URL</Label>
-                <Input
-                  id="avatar"
-                  disabled={!isEditing}
-                  placeholder="https://example.com/avatar.jpg"
-                  value={formData.profileImage}
-                  onChange={(e) => setFormData({ ...formData, profileImage: e.target.value })}
-                />
-              </div>
-
-              {user?.role === "Instructor" && (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Professional Bio</Label>
-                    <textarea
-                      id="bio"
-                      disabled={!isEditing}
-                      className="w-full min-h-[120px] p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                      placeholder="Tell your students about your background and expertise..."
-                      value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signature">Signature Name (For Certificates)</Label>
-                    <Input
-                      id="signature"
-                      disabled={!isEditing}
-                      placeholder="Enter the name as you want it to appear in script"
-                      value={formData.signatureText}
-                      onChange={(e) => setFormData({ ...formData, signatureText: e.target.value })}
-                    />
-                    <p className="text-[10px] text-muted-foreground italic">
-                      This text will be used to generate your digital signature on certificates.
-                    </p>
-                  </div>
-                  
-                  <div className="pt-6 border-t">
-                    <Label className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-3 block">
-                      Digital Signature Preview
-                    </Label>
-                    <div className="p-8 bg-muted/30 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center justify-center gap-2">
-                      <span className="font-signature text-4xl md:text-5xl text-[#002D62] transition-all -rotate-[3deg]">
-                        {formData.signatureText || formData.name || user?.signatureText || user?.name || "Your Signature"}
-                      </span>
-                      <p className="text-xs text-muted-foreground italic mt-2">
-                        This is how your signature will appear on official certificates.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4">
-                {!isEditing ? (
-                  <Button type="button" onClick={() => setIsEditing(true)}>
-                    Edit Profile
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setFormData({
-                          name: user?.name || "",
-                          profileImage: user?.profileImage || "",
-                          bio: user?.bio || "",
-                          signatureText: user?.signatureText || "",
-                        });
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Changes"
-                      )}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </form>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={profileData.email}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Email cannot be changed directly.
+              </p>
+            </div>
           </CardContent>
+          <CardFooter className="border-t border-border/60 bg-background/40 pt-6">
+            <Button
+              className="ml-auto flex items-center gap-2 px-8"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Save Changes
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>

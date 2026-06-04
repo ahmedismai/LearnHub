@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
+import courseService from "@/api/course";
+import enrollmentService from "@/api/enrollment";
 import {
   Card,
   CardContent,
@@ -8,18 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, Mail, Award, Loader2, RotateCcw } from "lucide-react";
+import { Users, BookOpen, Mail, Loader2, RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -28,23 +21,22 @@ const StudentManagement = () => {
   const queryClient = useQueryClient();
 
   // 1. Fetch Instructor's Courses
-  const { data: courses = [], isLoading: isCoursesLoading } = useQuery({
+  const { data: coursesData = {}, isLoading: isCoursesLoading } = useQuery({
     queryKey: ["instructor", "courses", user?.id],
-    queryFn: async () => {
-      const response = await api.get("/Course/mine");
-      return response.data;
-    },
+    queryFn: () => courseService.getMyCourses(),
     enabled: !!user && user.role === "Instructor",
   });
 
+  const courses = coursesData.data || [];
+
   // 2. Fetch all enrollments for these courses
   const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
-    queryKey: ["instructor", "enrollments", courses.map(c => c._id)],
+    queryKey: ["instructor", "enrollments", courses.map(c => c.courseId)],
     queryFn: async () => {
       const results = await Promise.all(
         courses.map(async (course) => {
-          const response = await api.get(`/Enrollment/ByCourse/${course._id}`);
-          return response.data;
+          const response = await enrollmentService.getByCourse(course.courseId);
+          return response.data || [];
         })
       );
       return results.flat();
@@ -54,7 +46,7 @@ const StudentManagement = () => {
 
   const reissueMutation = useMutation({
     mutationFn: async ({ studentId, courseId }) => {
-      const response = await api.post("/Certificate/instructor/generate", { studentId, courseId });
+      const response = await api.post("/api/Certificate/instructor/generate", { studentId, courseId });
       return response.data;
     },
     onSuccess: (data) => {
@@ -77,18 +69,20 @@ const StudentManagement = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="page__head">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Student Management</h1>
-          <p className="text-muted-foreground mt-1">Track student progress across your courses</p>
+          <h1 className="page__title">Student Management</h1>
+          <p className="page__subtitle">
+            Track student progress across your courses.
+          </p>
         </div>
-        <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10 flex items-center gap-2">
+        <div className="surface-glass flex items-center gap-2 border-primary/10 bg-primary/5 px-4 py-2">
           <Users className="w-5 h-5 text-primary" />
           <span className="font-bold text-primary">{enrollments.length} Total Students</span>
         </div>
       </div>
 
-      <Card>
+      <Card className="surface-glass">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary" />
@@ -97,65 +91,59 @@ const StudentManagement = () => {
           <CardDescription>Real-time overview of student performance and completion status</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Course</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Enrollment Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="data-list">
+            <div className="data-list__head grid-cols-[1.3fr,1.2fr,0.8fr,0.7fr,0.9fr,1fr]">
+              <span>Student</span>
+              <span>Course</span>
+              <span>Progress</span>
+              <span>Status</span>
+              <span>Enrollment Date</span>
+              <span className="text-right">Actions</span>
+            </div>
               {enrollments.length > 0 ? (
                 enrollments.map((enrollment) => (
-                  <TableRow key={enrollment._id}>
-                    <TableCell>
+                  <div key={enrollment.enrollmentId} className="data-list__row grid-cols-[1.3fr,1.2fr,0.8fr,0.7fr,0.9fr,1fr]">
+                    <div className="data-list__cell" data-label="Student">
                       <div className="space-y-0.5">
-                        <p className="font-bold">{enrollment.studentId?.name || "Anonymous User"}</p>
+                        <p className="font-bold">{enrollment.studentName || "Anonymous User"}</p>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Mail className="w-3 h-3" />
-                          {enrollment.studentId?.email}
+                          {enrollment.studentEmail || enrollment.studentId}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="max-w-[200px]">
+                    </div>
+                    <div className="data-list__cell max-w-[200px]" data-label="Course">
                       <Badge variant="outline" className="font-medium truncate block">
-                        {enrollment.courseId?.title}
+                        {enrollment.courseTitle}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    <div className="data-list__cell" data-label="Progress">
                       <div className="w-32 space-y-1.5">
                         <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                          <span>Progress</span>
-                          <span>{enrollment.progress}%</span>
+                          <span>Status</span>
                         </div>
-                        <Progress value={enrollment.progress} className="h-1.5" />
+                        <Badge variant="outline">Enrolled</Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    <div className="data-list__cell" data-label="Status">
                       <Badge 
-                        variant={enrollment.status === "Completed" ? "success" : "secondary"}
+                        variant="secondary"
                         className="h-7 gap-1"
                       >
-                        {enrollment.status === "Completed" && <Award className="w-3 h-3" />}
-                        {enrollment.status}
+                        Active
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(enrollment.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {enrollment.progress === 100 && (
+                    </div>
+                    <div className="data-list__cell text-muted-foreground" data-label="Enrollment Date">
+                      {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                    </div>
+                    <div className="data-list__cell data-list__actions" data-label="Actions">
                         <Button
                           size="sm"
                           variant="outline"
                           className="h-8 gap-1 border-primary/20 hover:bg-primary/5 hover:text-primary transition-colors"
                           onClick={() => reissueMutation.mutate({ 
-                            studentId: enrollment.studentId?._id, 
-                            courseId: enrollment.courseId?._id 
+                            studentId: enrollment.studentId, 
+                            courseId: enrollment.courseId 
                           })}
                           disabled={reissueMutation.isPending}
                         >
@@ -164,21 +152,17 @@ const StudentManagement = () => {
                           ) : (
                             <RotateCcw className="w-3.5 h-3.5" />
                           )}
-                          {enrollment.status === "Completed" ? "Regenerate" : "Issue Certificate"}
+                          Issue Certificate
                         </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                <div className="empty-state text-muted-foreground">
                     No students enrolled in your courses yet.
-                  </TableCell>
-                </TableRow>
+                </div>
               )}
-            </TableBody>
-          </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

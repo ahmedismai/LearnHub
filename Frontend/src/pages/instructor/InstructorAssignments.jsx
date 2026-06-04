@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/api/axios";
 import {
   Card,
   CardContent,
@@ -8,14 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   ClipboardList,
@@ -27,6 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import courseService from "@/api/course";
+import assignmentService from "@/api/assignment";
 
 const InstructorAssignments = () => {
   const { user } = useAuth();
@@ -35,28 +28,20 @@ const InstructorAssignments = () => {
   const { data: courses = [], isLoading: isCoursesLoading } = useQuery({
     queryKey: ["instructor", "courses", user?.id],
     queryFn: async () => {
-      const response = await api.get("/Course/mine");
-      return response.data;
+      const response = await courseService.getMyCourses();
+      return response.data || [];
     },
     enabled: !!user && user.role === "Instructor",
   });
 
   // 2. Fetch assignments for these courses
   const { data: assignments = [], isLoading: isAssignmentsLoading } = useQuery({
-    queryKey: ["instructor", "assignments", courses.map((c) => c._id)],
+    queryKey: ["instructor", "assignments", courses.map((c) => c.courseId || c.id)],
     queryFn: async () => {
-      const results = await Promise.all(
-        courses.map(async (course) => {
-          const response = await api.get(`/Assignment/course/${course._id}`);
-          return response.data.map((a) => ({
-            ...a,
-            courseTitle: course.title,
-          }));
-        }),
-      );
-      return results.flat();
+      const response = await assignmentService.getInstructorAssignments();
+      return response.data || [];
     },
-    enabled: courses.length > 0,
+    enabled: !!user && user.role === "Instructor" && courses.length > 0,
   });
 
   if (isCoursesLoading || isAssignmentsLoading)
@@ -64,12 +49,10 @@ const InstructorAssignments = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="page__head">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Course Assignments
-          </h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="page__title">Course Assignments</h1>
+          <p className="page__subtitle">
             Review student submissions and manage tasks
           </p>
         </div>
@@ -79,8 +62,8 @@ const InstructorAssignments = () => {
         {assignments.length > 0 ? (
           assignments.map((assignment) => (
             <Card
-              key={assignment._id}
-              className="overflow-hidden border-none shadow-md"
+              key={assignment.assignmentId || assignment._id}
+              className="surface-glass overflow-hidden"
             >
               <CardHeader className="bg-muted/20 pb-4">
                 <div className="flex justify-between items-start">
@@ -138,7 +121,10 @@ const InstructorAssignments = () => {
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="flex-1">
-                    <Link to={`/dashboard/review-submissions/${assignment._id}`}>
+                    <Link
+                      to={`/dashboard/review-submissions/${assignment.assignmentId || assignment._id}?type=assignment`}
+                      state={{ type: "assignment" }}
+                    >
                       Review Submissions
                     </Link>
                   </Button>
@@ -147,8 +133,8 @@ const InstructorAssignments = () => {
             </Card>
           ))
         ) : (
-          <Card className="border-dashed">
-            <CardContent className="p-16 text-center">
+          <Card className="empty-state">
+            <CardContent>
               <ClipboardList className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium">
                 No assignments created yet

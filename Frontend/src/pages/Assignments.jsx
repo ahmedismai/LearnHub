@@ -18,8 +18,8 @@ import {
   Trophy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/api/axios";
 import { toast } from "sonner";
+import assignmentService from "@/api/assignment";
 import {
   Dialog,
   DialogContent,
@@ -79,32 +79,10 @@ const Assignments = ({ isSubComponent = false }) => {
   } = useQuery({
     queryKey: ["assignments", user?.role],
     queryFn: async () => {
-      const response = await api.get("/Assignment");
-      const allAssignments = response.data;
-
-      // For students, we only want assignments from courses they are enrolled in
-      const enrollmentsRes = await api.get("/Enrollment/me");
-      const enrollments = enrollmentsRes.data;
-      const enrolledCourseIds = enrollments.map(e => (e.courseId?._id || e.courseId).toString());
-
-      if (isInstructor) {
-        return allAssignments.map(a => ({ ...a, courseTitle: a.courseId?.title }));
-      }
-
-      return allAssignments
-        .filter(a => enrolledCourseIds.includes((a.courseId?._id || a.courseId).toString()))
-        .map((a) => {
-          const enrollment = enrollments.find(
-            (e) => (e.courseId?._id || e.courseId).toString() === (a.courseId?._id || a.courseId).toString(),
-          );
-          return {
-            ...a,
-            courseTitle: a.courseId?.title,
-            isCompleted: enrollment?.completedAssignments?.some(
-              (id) => id.toString() === a._id.toString(),
-            ),
-          };
-        });
+      const response = isInstructor
+        ? await assignmentService.getInstructorAssignments()
+        : await assignmentService.getAll();
+      return response.data || [];
     },
     enabled: !!user,
   });
@@ -112,11 +90,7 @@ const Assignments = ({ isSubComponent = false }) => {
   const submitMutation = useMutation({
     mutationFn: async ({ assignmentId, file }) => {
       if (isInstructor) return { message: "Instructor preview" };
-      const formData = new FormData();
-      formData.append("file", file);
-      return await api.post(`/Assignment/${assignmentId}/submit`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      return assignmentService.submit(assignmentId, file);
     },
     onSuccess: (data) => {
       if (isInstructor) return;
@@ -145,7 +119,7 @@ const Assignments = ({ isSubComponent = false }) => {
   const handleSubmit = () => {
     if (!selectedFile || !currentAssignment) return;
     submitMutation.mutate({
-      assignmentId: currentAssignment._id,
+      assignmentId: currentAssignment.assignmentId || currentAssignment._id,
       file: selectedFile,
     });
   };
@@ -243,7 +217,7 @@ const Assignments = ({ isSubComponent = false }) => {
           {assignments.length > 0 ? (
             assignments.map((assignment) => (
               <Card
-                key={assignment._id}
+                key={assignment.assignmentId || assignment._id}
                 className={`overflow-hidden hover:shadow-lg transition-all border-2 ${assignment.isCompleted ? "border-success/20" : "hover:border-primary/20"}`}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -308,7 +282,9 @@ const Assignments = ({ isSubComponent = false }) => {
                       ) : (
                         <Dialog
                           open={
-                            isSubmitting && currentAssignment?._id === assignment._id
+                            isSubmitting &&
+                            (currentAssignment?.assignmentId || currentAssignment?._id) ===
+                              (assignment.assignmentId || assignment._id)
                           }
                           onOpenChange={(open) => {
                             setIsSubmitting(open);

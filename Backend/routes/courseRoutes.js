@@ -104,6 +104,7 @@ router.post(
         price,
         level,
         categoryId,
+        instructorId,
         thumbnail: thumbnailLink,
       } = req.body;
       const thumbnail = req.file ? req.file.path : thumbnailLink || "";
@@ -113,7 +114,10 @@ router.post(
         price,
         level,
         categoryId,
-        instructorId: req.user.id,
+        instructorId:
+          req.user.role === ROLES.ADMINISTRATOR && instructorId
+            ? instructorId
+            : req.user.id,
         status: "Pending",
         thumbnail,
       });

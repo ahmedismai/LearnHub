@@ -121,7 +121,7 @@ router.post("/feedback", protect, aiRateLimiter, async (req, res) => {
  */
 router.post("/generate", protect, aiRateLimiter, async (req, res) => {
   const { courseId, type, count } = req.body;
-  const studentId = req.user._id;
+  const studentId = req.user.id;
 
   try {
     // 1. Validation

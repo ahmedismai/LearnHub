@@ -1,6 +1,22 @@
 {
     "rewrites": [
         {
+            "source": "/api/:path*",
+            "destination": "https://learn-hub-rho-ashen.vercel.app/api/:path*"
+        },
+        {
+            "source": "/Images/:path*",
+            "destination": "https://learn-hub-rho-ashen.vercel.app/Images/:path*"
+        },
+        {
+            "source": "/Videos/:path*",
+            "destination": "https://learn-hub-rho-ashen.vercel.app/Videos/:path*"
+        },
+        {
+            "source": "/Files/:path*",
+            "destination": "https://learn-hub-rho-ashen.vercel.app/Files/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

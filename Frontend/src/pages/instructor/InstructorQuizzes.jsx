@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/api/axios";
+import courseService from "@/api/course";
+import examService from "@/api/exam";
 import {
   Card,
   CardContent,
@@ -27,21 +28,25 @@ const InstructorQuizzes = () => {
   const { data: courses = [], isLoading: isCoursesLoading } = useQuery({
     queryKey: ["instructor", "courses", user?.id],
     queryFn: async () => {
-      const response = await api.get("/Course/mine");
-      return response.data;
+      const response = await courseService.getMyCourses();
+      return response.data || response || [];
     },
     enabled: !!user && user.role === "Instructor",
   });
 
   // 2. Fetch quizzes for these courses
   const { data: quizzes = [], isLoading: isQuizzesLoading } = useQuery({
-    queryKey: ["instructor", "quizzes", courses.map((c) => c._id)],
+    queryKey: ["instructor", "quizzes", courses.map((c) => c.courseId || c.id)],
     queryFn: async () => {
       const results = await Promise.all(
         courses.map(async (course) => {
-          const response = await api.get(`/Quiz/course/${course._id}`);
-          return response.data.map((q) => ({
+          const courseId = course.courseId || course.id;
+          const response = await examService.getByCourse(courseId);
+          const exams = response.data || response || [];
+          return exams.map((q) => ({
             ...q,
+            _id: q.examId,
+            courseId,
             courseTitle: course.title,
           }));
         }),
@@ -56,10 +61,10 @@ const InstructorQuizzes = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="page__head">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Course Quizzes</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="page__title">Course Quizzes</h1>
+          <p className="page__subtitle">
             Manage interactive assessments and check student scores
           </p>
         </div>
@@ -70,7 +75,7 @@ const InstructorQuizzes = () => {
           quizzes.map((quiz) => (
             <Card
               key={quiz._id}
-              className="overflow-hidden border-none shadow-md"
+              className="surface-glass overflow-hidden"
             >
               <CardHeader className="bg-muted/20 pb-4">
                 <div className="flex justify-between items-start">
@@ -101,13 +106,13 @@ const InstructorQuizzes = () => {
                     size="sm"
                     className="flex-1"
                   >
-                    <Link to={`/dashboard/edit-course/${quiz.courseId}`}>
+                    <Link to={`/dashboard/edit-exam/${quiz.examId || quiz._id}`}>
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Edit Quiz
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="flex-1">
-                    <Link to={`/dashboard/student-results/${quiz._id}`}>
+                    <Link to={`/dashboard/student-results/${quiz.examId || quiz._id}`}>
                       View Results
                     </Link>
                   </Button>
@@ -116,8 +121,8 @@ const InstructorQuizzes = () => {
             </Card>
           ))
         ) : (
-          <Card className="col-span-full border-dashed">
-            <CardContent className="p-16 text-center">
+          <Card className="empty-state col-span-full">
+            <CardContent>
               <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium">No quizzes created yet</h3>
               <p className="text-muted-foreground text-sm">

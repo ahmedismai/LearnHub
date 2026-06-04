@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import { Review } from "../models/Review.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
@@ -7,6 +8,10 @@ const router = express.Router();
 
 router.get("/course/:courseId", async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.courseId)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
     const reviews = await Review.find({
       courseId: req.params.courseId,
     }).populate("studentId", "name profileImage");

@@ -15,9 +15,9 @@ router.post(
     try {
       const { sectionId, title, description, duration, videoUrl } = req.body;
       const courseId = req.params.courseId;
-      if (!title || !description || !videoUrl) {
+      if (!title) {
         return res.status(400).json({
-          message: "title, description and videoUrl are required",
+          message: "title is required",
         });
       }
 
@@ -58,9 +58,9 @@ router.post(
         courseId,
         sectionId: finalSectionId,
         title,
-        description,
+        description: description || "Course lesson",
         duration,
-        videoUrl,
+        videoUrl: videoUrl || "",
         type: "Lesson",
       });
 
@@ -98,26 +98,6 @@ router.get("/:sectionId", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-router.patch(
-  "/:lessonId",
-  protect,
-  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
-  async (req, res) => {
-    try {
-      const lesson = await Lesson.findOne({
-        _id: req.params.lessonId,
-        contentType: "Lesson",
-      });
-      if (!lesson) {
-        return res.status(404).json({ message: "Lesson not found" });
-      }
-      res.json(lesson);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-);
 
 router.patch(
   "/:lessonId",

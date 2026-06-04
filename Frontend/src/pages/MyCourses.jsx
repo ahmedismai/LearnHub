@@ -1,68 +1,73 @@
-import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
+import enrollmentService from "@/api/enrollment";
+import courseService from "@/api/course";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Play, CheckCircle, Award, Trash2 } from "lucide-react";
+import { Play, CheckCircle, Award, Trash2, Loader2, BookOpen } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getFullUrl } from "@/lib/urlHelper";
+
+const unwrapList = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.items)) return response.items;
+  return [];
+};
 
 const MyCourses = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // For students, show enrolled courses
-  // For instructors, show their created courses
   const isStudent = user?.role === "Student";
   const isInstructor = user?.role === "Instructor";
-  const [studentEnrollments, setStudentEnrollments] = useState([]);
-  const [instructorCourses, setInstructorCourses] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      if (isStudent) {
-        const response = await api.get("/Enrollment/me");
-        const enrollments = response.data.map((item) => ({
-          id: item._id,
-          progress: item.progress,
-          status: item.completed ? "completed" : "active",
-          courseId: item.courseId?._id || item.courseId,
-          course: {
-            id: item.courseId?._id,
-            title: item.courseId?.title,
-            thumbnail: item.courseId?.thumbnail,
-            instructorName: item.courseId?.instructorId?.name || "Unknown",
-          },
-        }));
-        setStudentEnrollments(enrollments);
-      } else if (isInstructor) {
-        const response = await api.get("/Course/mine");
-        const courses = response.data.map((item) => ({
-          id: item._id,
-          title: item.title,
-          thumbnail: item.thumbnail,
-          category: item.categoryId,
-          enrolledCount: item.enrolledCount || 0,
-          price: item.price,
-        }));
-        setInstructorCourses(courses);
-      }
-    } catch (error) {
-      console.error("Failed to load courses:", error);
+  // Fetch student dashboard data
+  const { data: studentDashboard, isLoading: isStudentLoading } = useQuery({
+    queryKey: ["student-dashboard"],
+    queryFn: async () => {
+      const response = await api.get("/api/Dashboard/StudentDashboard");
+      return response.data;
+    },
+    enabled: isStudent,
+  });
+
+  // Fetch student enrollments to get enrollmentIds (which are missing in dashboard)
+  const { data: enrollmentsResponse, isLoading: isEnrollmentsLoading } = useQuery({
+    queryKey: ["enrollments", "me"],
+    queryFn: () => enrollmentService.getByStudent(user.id),
+    enabled: isStudent,
+  });
+  const enrollments = unwrapList(enrollmentsResponse);
+
+  // Fetch instructor courses
+  const { data: instructorCoursesData, isLoading: isInstructorLoading } = useQuery({
+    queryKey: ["instructor-courses"],
+    queryFn: () => courseService.getMyCourses(),
+    enabled: isInstructor,
+  });
+
+  // Unenroll Mutation
+  const unenrollMutation = useMutation({
+    mutationFn: enrollmentService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["student-dashboard"]);
+      queryClient.invalidateQueries(["enrollments", "me"]);
+      toast({ title: "Unenrolled successfully" });
+    },
+    onError: (error) => {
       toast({
-        title: "Error",
-        description: "Could not load your courses.",
+        title: "Failed to unenroll",
+        description: error.response?.data?.message || "Something went wrong",
         variant: "destructive",
       });
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [isStudent, isInstructor]);
+    },
+  });
 
   const handleDeleteCourse = async (courseId) => {
     if (!window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
@@ -70,13 +75,12 @@ const MyCourses = () => {
     }
 
     try {
-      setLoading(true);
-      await api.delete(`/Course/${courseId}`);
+      await courseService.delete(courseId);
       toast({
         title: "Success",
         description: "Course deleted successfully.",
       });
-      fetchData();
+      queryClient.invalidateQueries(["instructor-courses"]);
     } catch (error) {
       console.error("Failed to delete course:", error);
       toast({
@@ -84,12 +88,8 @@ const MyCourses = () => {
         description: error.response?.data?.message || "Could not delete course.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
-
-  const enrolledCourses = studentEnrollments.filter((e) => e.course);
 
   const getProgressColor = (progress) => {
     if (progress > 80) return "bg-green-500";
@@ -97,14 +97,70 @@ const MyCourses = () => {
     return "bg-blue-500";
   };
 
+  if (isStudentLoading || isInstructorLoading || isEnrollmentsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const dashboardCourses = studentDashboard?.data?.myCourses || studentDashboard?.myCourses || [];
+  const studentCoursesSource = dashboardCourses.length > 0 ? dashboardCourses : enrollments;
+
+  const studentCourses = studentCoursesSource.map((item) => {
+    const courseId =
+      item.courseId || item.course?.courseId || item.course?.id || item.id;
+    const enrollment = enrollments.find((e) => {
+      const enrollmentCourseId =
+        e.courseId || e.course?.courseId || e.course?.id || e.id;
+      return String(enrollmentCourseId) === String(courseId);
+    });
+    const progress =
+      item.progress?.progressPercentage ??
+      item.progressPercentage ??
+      item.progress ??
+      enrollment?.progress ??
+      enrollment?.progressPercentage ??
+      0;
+
+    return {
+      id: courseId,
+      enrollmentId: item.enrollmentId || enrollment?.enrollmentId || enrollment?.id,
+      progress,
+      status: progress >= 100 ? "completed" : "active",
+      courseId,
+      title: item.title || item.courseTitle || item.course?.title || "Untitled Course",
+      thumbnail: item.image || item.imgPath || item.course?.image || item.course?.imgPath,
+      instructorName:
+        item.instructorName ||
+        item.course?.instructorName ||
+        enrollment?.instructorName ||
+        enrollment?.course?.instructorName ||
+        "Unknown",
+      enrolledAt: item.enrolledAt || item.enrollmentDate || enrollment?.enrolledAt || enrollment?.enrollmentDate,
+    };
+  });
+
+  const instructorCourses = (instructorCoursesData?.data || []).map((item) => ({
+    id: item.courseId,
+    title: item.title,
+    thumbnail: item.imgPath,
+    categoryName: item.categoryName,
+    price: item.price,
+    enrolledCount: item.enrolledCount || 0
+  }));
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-in pb-12">
+      <div className="page__head">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Courses</h1>
-          <p className="text-muted-foreground mt-1">
-            {isStudent
-              ? "Continue your learning journey"
+          <h1 className="page__title">
+            {isStudent ? "My Learning Journey" : "Manage My Courses"}
+          </h1>
+          <p className="page__subtitle">
+            {isStudent 
+              ? "Continue your learning journey" 
               : "Manage your course catalog"}
           </p>
         </div>
@@ -116,27 +172,24 @@ const MyCourses = () => {
       </div>
 
       {isStudent && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {enrolledCourses.map((enrollment) => (
-            <Card
-              key={enrollment.id}
-              className="overflow-hidden hover:shadow-2xl transition-all duration-500 border-none bg-white group"
-            >
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {studentCourses.map((course) => (
+            <Card key={course.courseId} className="group overflow-hidden">
               <div className="relative aspect-video overflow-hidden">
                 <img
-                  src={enrollment.course?.thumbnail}
-                  alt={enrollment.course?.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  src={getFullUrl(course.thumbnail)}
+                  alt={course.title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-500" />
                 <Badge
                   className={`absolute top-4 right-4 shadow-sm border-none backdrop-blur-sm ${
-                    enrollment.status === "completed" 
+                    course.status === "completed" 
                       ? "bg-green-500/90 text-white" 
                       : "bg-white/90 text-slate-900"
                   }`}
                 >
-                  {enrollment.status === "completed" ? (
+                  {course.status === "completed" ? (
                     <>
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Completed
@@ -145,98 +198,104 @@ const MyCourses = () => {
                     "In Progress"
                   )}
                 </Badge>
+                {course.enrollmentId && (
+                  <Button 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute bottom-4 right-4 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to unenroll from this course? Your progress will be lost.")) {
+                        unenrollMutation.mutate(course.enrollmentId);
+                      }
+                    }}
+                    disabled={unenrollMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                  {enrollment.course?.title}
+                <h3 className="mb-2 line-clamp-1 text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+                  {course.title}
                 </h3>
-                <p className="text-sm font-medium text-slate-500 mb-6 flex items-center gap-2">
+                <p className="mb-6 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                   {enrollment.course?.instructorName}
+                   {course.instructorName}
                 </p>
+                {course.enrolledAt && (
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    Enrolled: {new Date(course.enrolledAt).toLocaleDateString()}
+                  </p>
+                )}
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Progress</span>
-                    <span className="text-primary">{enrollment.progress}%</span>
+                    <span className="text-primary">{course.progress}%</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div 
-                      className={`h-full transition-all duration-1000 ease-out rounded-full ${getProgressColor(enrollment.progress)}`}
-                      style={{ width: `${enrollment.progress}%` }}
+                      className={`h-full transition-all duration-1000 ease-out rounded-full ${getProgressColor(course.progress)}`}
+                      style={{ width: `${course.progress}%` }}
                     />
                   </div>
                 </div>
 
                 <Button
-                  className={`w-full mt-6 rounded-full py-6 font-bold transition-all ${
-                    enrollment.status === "completed" 
+                  className={`mt-6 w-full py-6 font-bold transition-all ${
+                    course.status === "completed" 
                       ? "hover:bg-primary hover:text-white" 
                       : "shadow-glow hover:shadow-none"
                   }`}
                   variant={
-                    enrollment.status === "completed" ? "outline" : "default"
+                    course.status === "completed" ? "outline" : "default"
                   }
                   asChild
                 >
                   <Link
-                    to={`/dashboard/courses/${enrollment.courseId}`}
+                    to={`/dashboard/courses/${course.courseId}`}
                     className="flex items-center justify-center gap-2"
                   >
-                    <Play className={`w-4 h-4 ${enrollment.status !== "completed" ? "fill-current" : ""}`} />
-                    {enrollment.status === "completed"
+                    <Play className={`w-4 h-4 ${course.status !== "completed" ? "fill-current" : ""}`} />
+                    {course.status === "completed"
                       ? "Review Course"
                       : "Continue Learning"}
                   </Link>
                 </Button>
 
-                {enrollment.status === "completed" && (
-                  <Button
-                    className="w-full mt-3 rounded-full py-6 font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-100 border-none text-white"
-                    asChild
-                  >
-                    <Link
-                      to="/dashboard/certificates"
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <Award className="w-4 h-4" />
-                      Claim Certificate
-                    </Link>
-                  </Button>
-                )}
+                {/* Removed Claim Certificate button - Backend not implemented */}
               </CardContent>
             </Card>
           ))}
-
-          {enrolledCourses.length === 0 && (
-            <div className="col-span-full text-center py-16">
-              <p className="text-xl text-muted-foreground mb-4">
-                You haven't enrolled in any courses yet
-              </p>
-              <Button asChild>
-                <Link to="/courses">Browse Courses</Link>
-              </Button>
+          {studentCourses.length === 0 && (
+            <div className="empty-state col-span-full">
+               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                  <BookOpen className="w-8 h-8 text-muted-foreground" />
+               </div>
+               <div>
+                  <h3 className="text-xl font-bold">No courses yet</h3>
+                  <p className="text-muted-foreground">Start your learning journey today!</p>
+               </div>
+               <Button asChild>
+                  <Link to="/courses">Browse Catalog</Link>
+               </Button>
             </div>
           )}
         </div>
       )}
 
       {isInstructor && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {instructorCourses.map((course) => (
-            <Card
-              key={course.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
-            >
+            <Card key={course.id} className="overflow-hidden transition-shadow hover:shadow-lg">
               <div className="relative">
                 <img
-                  src={course.thumbnail}
+                  src={getFullUrl(course.thumbnail)}
                   alt={course.title}
                   className="w-full h-40 object-cover"
                 />
-
                 <Badge className="absolute top-3 right-3" variant="secondary">
-                  {course.category?.name || "General"}
+                  {course.categoryName || "General"}
                 </Badge>
               </div>
               <CardContent className="p-5">
@@ -248,21 +307,21 @@ const MyCourses = () => {
                   <span>${course.price}</span>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" asChild>
-                    <Link to={`/dashboard/edit-course/${course.id}`}>Edit</Link>
+                <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+                  <Button variant="outline" className="h-9 flex-1" asChild>
+                    <Link to={`/dashboard/create-course?edit=${course.id}`}>Edit</Link>
                   </Button>
-
-                  <Button variant="ghost" className="flex-1" asChild>
+                  <Button variant="outline" className="h-9 flex-1" asChild>
+                    <Link to={`/dashboard/student-results/${course.id}`}>Results</Link>
+                  </Button>
+                  <Button variant="ghost" className="h-9 flex-1" asChild>
                     <Link to={`/dashboard/courses/${course.id}`}>View</Link>
                   </Button>
-                  
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => handleDeleteCourse(course.id)}
-                    disabled={loading}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -270,6 +329,14 @@ const MyCourses = () => {
               </CardContent>
             </Card>
           ))}
+          {instructorCourses.length === 0 && (
+            <div className="empty-state col-span-full">
+               <p className="text-muted-foreground mb-4">You haven't created any courses yet.</p>
+               <Button asChild>
+                  <Link to="/dashboard/create-course">Create Your First Course</Link>
+               </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

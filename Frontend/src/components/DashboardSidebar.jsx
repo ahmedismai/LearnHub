@@ -15,19 +15,24 @@ import {
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Users,
+  ChartNoAxesCombined,
+  CirclePlus,
+  ClipboardCheck,
+  ClipboardPenLine,
+  Compass,
+  Gauge,
+  House,
+  LibraryBig,
+  ReceiptText,
+  SlidersHorizontal,
+  Tags,
+  Trophy,
+  UserCheck,
+  UserCircle,
+  UserRoundCog,
+  UsersRound,
   GraduationCap,
-  FileText,
-  Award,
-  BarChart3,
-  Settings,
   LogOut,
-  PlusCircle,
-  ClipboardList,
-  CreditCard,
-  Layers,
   BrainCircuit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +41,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const DashboardSidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const displayName = user?.fullName || user?.name || user?.username || "User";
 
   const getInitials = (name) => {
     return (name || "U")
@@ -47,55 +53,51 @@ const DashboardSidebar = () => {
   };
 
   const guestLinks = [
-    { title: "Home", url: "/", icon: LayoutDashboard },
-    { title: "Browse Courses", url: "/browse-courses", icon: GraduationCap },
+    { title: "Home", url: "/", icon: House },
+    { title: "Browse Courses", url: "/browse-courses", icon: Compass },
   ];
 
   const adminLinks = [
-    { title: "Overview", url: "/dashboard/reports", icon: LayoutDashboard },
-    { title: "Users", url: "/dashboard/users", icon: Users },
-    { title: "Courses", url: "/dashboard/admin-courses", icon: BookOpen },
-    { title: "Categories", url: "/dashboard/categories", icon: Layers },
-    { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
-    { title: "Certificates", url: "/dashboard/admin-certificates", icon: Award },
+    { title: "Overview", url: "/dashboard/reports", icon: Gauge },
+    { title: "Users", url: "/dashboard/users", icon: UserRoundCog },
+    { title: "Courses", url: "/dashboard/admin-courses", icon: LibraryBig },
+    { title: "Exams", url: "/dashboard/admin-exams", icon: ClipboardPenLine },
+    { title: "Student Results", url: "/dashboard/admin-student-results", icon: ChartNoAxesCombined },
+    { title: "Categories", url: "/dashboard/categories", icon: Tags },
+    { title: "Enrollments", url: "/dashboard/enrollments", icon: UserCheck },
+    { title: "Payments", url: "/dashboard/payments", icon: ReceiptText },
   ];
 
   const instructorLinks = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-    { title: "My Courses", url: "/dashboard/my-courses", icon: BookOpen },
+    { title: "Dashboard", url: "/dashboard", icon: Gauge },
+    { title: "My Courses", url: "/dashboard/my-courses", icon: LibraryBig },
     {
       title: "Create Course",
       url: "/dashboard/create-course",
-      icon: PlusCircle,
+      icon: CirclePlus,
     },
     {
       title: "Create Exam",
       url: "/dashboard/create-exam",
-      icon: GraduationCap,
+      icon: ClipboardPenLine,
     },
-    {
-      title: "Assignments",
-      url: "/dashboard/assignments",
-      icon: ClipboardList,
-    },
-    { title: "Quizzes", url: "/dashboard/quizzes", icon: FileText },
-    { title: "Exams", url: "/dashboard/exams", icon: GraduationCap },
-    { title: "Students", url: "/dashboard/students", icon: Users },
-    { title: "Student Results", url: "/dashboard/student-results", icon: BarChart3 },
-    { title: "Certificates", url: "/dashboard/instructor-certificates", icon: Award },
+    { title: "Manage Exams", url: "/dashboard/exams", icon: ClipboardCheck },
+    { title: "Students", url: "/dashboard/students", icon: UsersRound },
+    { title: "Student Results", url: "/dashboard/student-results", icon: ChartNoAxesCombined },
   ];
 
   const studentLinks = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-    { title: "My Courses", url: "/dashboard/my-courses", icon: BookOpen },
-    { title: "Browse Courses", url: "/browse-courses", icon: GraduationCap },
+    { title: "Dashboard", url: "/dashboard", icon: Gauge },
+    { title: "My Courses", url: "/dashboard/my-courses", icon: LibraryBig },
+    { title: "Browse Courses", url: "/browse-courses", icon: Compass },
     {
-      title: "Smart Assessments",
-      url: "/dashboard/quizzes",
+      title: "Assessments",
+      url: "/dashboard/smart-assessments",
       icon: BrainCircuit,
     },
-    { title: "Grades", url: "/dashboard/grades", icon: BarChart3 },
-    { title: "Certificates", url: "/dashboard/certificates", icon: Award },
+    { title: "Grades", url: "/dashboard/grades", icon: ChartNoAxesCombined },
+    { title: "Certificates", url: "/dashboard/certificates", icon: Trophy },
+    { title: "My Orders", url: "/dashboard/my-orders", icon: ReceiptText },
   ];
 
   const getLinks = () => {
@@ -115,25 +117,25 @@ const DashboardSidebar = () => {
   const links = getLinks();
 
   return (
-    <Sidebar className="w-64 bg-[#0f172a] border-r border-slate-800 z-50 [&>[data-sidebar=sidebar]]:bg-[#0f172a] fixed h-full">
-      <SidebarHeader className="p-4 border-b border-slate-800 bg-[#0f172a]">
+    <Sidebar className="z-50 w-64 border-r border-white/10 bg-slate-950 text-white [&>[data-sidebar=sidebar]]:bg-slate-950 [&>[data-sidebar=sidebar]]:text-white">
+      <SidebarHeader className="border-b border-white/10 p-4">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <GraduationCap size={24} className="text-white" />
           </div>
-          <span className="text-xl font-bold text-white">
+          <span className="text-xl font-bold text-white tracking-tight">
             LearnHub
           </span>
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 bg-[#0f172a]">
+      <SidebarContent className="custom-scrollbar px-2 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Menu
+          <SidebarGroupLabel className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
+            Main Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1.5">
               {links.map((link) => {
                 const Icon = link.icon;
                 const isCustomActive = (url) => {
@@ -149,20 +151,22 @@ const DashboardSidebar = () => {
                   return location.pathname === url;
                 };
 
+                const active = isCustomActive(link.url);
+
                 return (
                   <SidebarMenuItem key={link.title}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={link.url}
-                        className={({ isActive }) => 
-                          cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white transition-all duration-300",
-                            (isActive || isCustomActive(link.url)) && "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
-                          )
-                        }
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 group",
+                          active 
+                            ? "bg-primary text-white shadow-md shadow-primary/20" 
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                        )}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span className="font-medium tracking-wide">{link.title}</span>
+                        <Icon size={18} className={cn("transition-colors", active ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                        <span className="font-semibold text-sm tracking-wide">{link.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -173,25 +177,27 @@ const DashboardSidebar = () => {
         </SidebarGroup>
 
         {user && (
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Account
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
+              Preferences
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-1.5">
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to="/dashboard/profile"
                       className={({ isActive }) => 
                         cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
-                          isActive && "bg-primary text-white hover:bg-primary/90 shadow-sm"
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 group",
+                          isActive 
+                            ? "bg-white/10 text-white" 
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )
                       }
                     >
-                      <Users className="w-5 h-5" />
-                      <span className="font-medium">My Profile</span>
+                      <UserCircle size={18} className="text-slate-500 group-hover:text-white transition-colors" />
+                      <span className="font-semibold text-sm">My Profile</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -201,13 +207,15 @@ const DashboardSidebar = () => {
                       to="/dashboard/settings"
                       className={({ isActive }) => 
                         cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors",
-                          isActive && "bg-primary text-white hover:bg-primary/90 shadow-sm"
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 group",
+                          isActive 
+                            ? "bg-white/10 text-white" 
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         )
                       }
                     >
-                      <Settings className="w-5 h-5" />
-                      <span className="font-medium">Settings</span>
+                      <SlidersHorizontal size={18} className="text-slate-500 group-hover:text-white transition-colors" />
+                      <span className="font-semibold text-sm">Settings</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -218,37 +226,37 @@ const DashboardSidebar = () => {
       </SidebarContent>
 
       {user ? (
-        <SidebarFooter className="p-4 border-t border-slate-800 bg-[#0f172a]">
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-white font-semibold">
-                {getInitials(user.name || user.username)}
+        <SidebarFooter className="border-t border-white/10 p-4">
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <Avatar className="h-9 w-9 border border-white/10">
+              <AvatarFallback className="bg-teal-500 text-white text-xs font-bold">
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-white truncate">
-                {user.name || user.username}
+              <p className="font-bold text-xs text-white truncate">
+                {displayName}
               </p>
-              <p className="text-xs text-slate-400 capitalize">
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                 {user.role}
               </p>
             </div>
           </div>
           <Button
-            variant="outline"
-            className="w-full justify-start gap-2 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+            variant="ghost"
+            className="w-full justify-start gap-2 text-slate-400 hover:bg-red-500/10 hover:text-red-400 h-9 px-3 rounded-lg transition-colors group"
             onClick={logout}
           >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+            <LogOut size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            <span className="text-xs font-bold">Sign Out</span>
           </Button>
         </SidebarFooter>
       ) : (
-        <SidebarFooter className="p-4 border-t border-slate-800 bg-[#0f172a]">
-          <Button asChild className="w-full gap-2">
+        <SidebarFooter className="border-t border-white/10 p-4">
+          <Button asChild className="w-full gap-2 gradient-primary border-none text-white h-10 shadow-lg shadow-teal-500/20">
             <Link to="/login">
-              <LogOut className="w-4 h-4 rotate-180" />
-              Sign In
+              <LogOut size={18} className="rotate-180" />
+              <span className="font-bold">Sign In</span>
             </Link>
           </Button>
         </SidebarFooter>

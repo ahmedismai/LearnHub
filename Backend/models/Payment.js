@@ -35,7 +35,11 @@ export const Payment = mongoose.model("Payment", paymentSchema);
 export const Visa = Payment.discriminator(
   "Visa",
   new mongoose.Schema({
-    status: { type: String, enum: ["Success", "Failed"], default: "Success" },
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected", "Success", "Failed", "Reviewed"],
+      default: "Pending",
+    },
   }),
 );
 
@@ -43,6 +47,10 @@ export const Visa = Payment.discriminator(
 export const EWallet = Payment.discriminator(
   "E-Wallet",
   new mongoose.Schema({
-    status: { type: String, enum: ["Success", "Failed"], default: "Success" },
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected", "Success", "Failed", "Reviewed"],
+      default: "Pending",
+    },
   }),
 );

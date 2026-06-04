@@ -1,6 +1,7 @@
 import express from "express";
 import { Payment, Visa, EWallet } from "../models/Payment.js";
 import { Course } from "../models/Course.js";
+import { Enrollment } from "../models/Enrollment.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
@@ -42,7 +43,9 @@ router.post("/", protect, authorize(ROLES.STUDENT), async (req, res) => {
 
 router.get("/", protect, authorize(ROLES.ADMINISTRATOR), async (_req, res) => {
   try {
-    const orders = await Payment.find();
+    const orders = await Payment.find()
+      .populate("studentId", "name email")
+      .populate("courseId", "title price");
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -55,7 +58,9 @@ router.get(
   authorize(ROLES.ADMINISTRATOR),
   async (_req, res) => {
     try {
-      const pendingOrders = await Payment.find({ status: "Pending" });
+      const pendingOrders = await Payment.find({ status: "Pending" })
+        .populate("studentId", "name email")
+        .populate("courseId", "title price");
       res.json(pendingOrders);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -72,23 +77,40 @@ router.get("/MyOrders", protect, authorize(ROLES.STUDENT), async (req, res) => {
   }
 });
 
-router.put("/Review", protect, authorize(ROLES.STUDENT), async (req, res) => {
+router.put("/Review", protect, authorize(ROLES.ADMINISTRATOR), async (req, res) => {
   try {
-    const { orderId, review } = req.body;
-    if (!orderId || !review) {
+    const { orderId, isApproved, rejectionReason = "" } = req.body;
+    if (!orderId || typeof isApproved !== "boolean") {
       return res
         .status(400)
-        .json({ message: "orderId and review are required" });
+        .json({ message: "orderId and isApproved are required" });
     }
 
     const order = await Payment.findById(orderId);
-    if (!order || String(order.studentId) !== String(req.user.id)) {
+    if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.review = review;
-    order.status = "Reviewed";
+    order.review = rejectionReason;
+    order.status = isApproved ? "Approved" : "Rejected";
     await order.save();
+
+    if (isApproved) {
+      await Enrollment.findOneAndUpdate(
+        {
+          studentId: order.studentId,
+          courseId: order.courseId,
+        },
+        {
+          studentId: order.studentId,
+          courseId: order.courseId,
+          paymentId: order._id,
+          status: "Active",
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });

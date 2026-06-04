@@ -74,23 +74,6 @@ router.patch(
       if (!section) {
         return res.status(404).json({ message: "Section not found" });
       }
-      res.json(section);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-);
-
-router.patch(
-  "/:sectionId",
-  protect,
-  authorize(ROLES.INSTRUCTOR, ROLES.ADMINISTRATOR),
-  async (req, res) => {
-    try {
-      const section = await Section.findById(req.params.sectionId);
-      if (!section) {
-        return res.status(404).json({ message: "Section not found" });
-      }
 
       const course = await Course.findById(section.courseId);
       if (!course) {

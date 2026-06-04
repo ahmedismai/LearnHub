@@ -9,9 +9,9 @@ const AIFeedback = ({ gradeId, initialFeedback, isReviewed }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  const feedbackMutation = useMutation({
+  const { mutate: requestFeedback, isPending } = useMutation({
     mutationFn: async () => {
-      const response = await api.post("/AI-Assessment/feedback", { gradeId });
+      const response = await api.post("/api/AI-Assessment/feedback", { gradeId });
       return response.data.feedback;
     },
     onSuccess: (data) => {
@@ -21,9 +21,9 @@ const AIFeedback = ({ gradeId, initialFeedback, isReviewed }) => {
 
   useEffect(() => {
     if (!feedback && gradeId) {
-      feedbackMutation.mutate();
+      requestFeedback();
     }
-  }, [feedback, gradeId]);
+  }, [feedback, gradeId, requestFeedback]);
 
   useEffect(() => {
     if (feedback && displayedText.length < feedback.length) {
@@ -37,7 +37,7 @@ const AIFeedback = ({ gradeId, initialFeedback, isReviewed }) => {
     }
   }, [feedback, displayedText]);
 
-  if (feedbackMutation.isPending) {
+  if (isPending) {
     return (
       <Card className="border-primary/20 bg-primary/5 animate-pulse">
         <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">

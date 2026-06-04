@@ -6,14 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Award, User, BookOpen, Calendar, ExternalLink, Trash2 } from "lucide-react";
 import api from "@/api/axios";
@@ -27,14 +19,14 @@ const InstructorCertificates = () => {
   const { data: certificates = [], isLoading } = useQuery({
     queryKey: ["instructor", "certificates"],
     queryFn: async () => {
-      const response = await api.get("/Certificate/instructor");
+      const response = await api.get("/api/Certificate/instructor");
       return response.data;
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await api.delete(`/Certificate/${id}`);
+      await api.delete(`/api/Certificate/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["instructor", "certificates"]);
@@ -57,14 +49,16 @@ const InstructorCertificates = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Student Certificates</h1>
-        <p className="text-muted-foreground mt-1">
-          Monitor achievements and certificates earned by students in your courses
-        </p>
+      <div className="page__head">
+        <div>
+          <h1 className="page__title">Student Certificates</h1>
+          <p className="page__subtitle">
+            Monitor achievements and certificates earned by students in your courses.
+          </p>
+        </div>
       </div>
 
-      <Card>
+      <Card className="surface-glass">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
@@ -75,19 +69,16 @@ const InstructorCertificates = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Course</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="data-list">
+            <div className="data-list__head grid-cols-[1.3fr,1.4fr,0.9fr,1fr]">
+              <span>Student</span>
+              <span>Course</span>
+              <span>Issue Date</span>
+              <span className="text-right">Actions</span>
+            </div>
               {certificates.map((cert) => (
-                <TableRow key={cert._id}>
-                  <TableCell>
+                <div key={cert._id} className="data-list__row grid-cols-[1.3fr,1.4fr,0.9fr,1fr]">
+                  <div className="data-list__cell" data-label="Student">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 font-medium">
                         <User className="w-3.5 h-3.5 text-muted-foreground" />
@@ -97,20 +88,20 @@ const InstructorCertificates = () => {
                         {cert.studentId?.email}
                       </span>
                     </div>
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  <div className="data-list__cell" data-label="Course">
                     <div className="flex items-center gap-2">
                       <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="font-medium">{cert.courseId?.title || "Unknown Course"}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  <div className="data-list__cell" data-label="Issue Date">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="w-3.5 h-3.5" />
                       {cert.issueDate ? format(new Date(cert.issueDate), "PPP") : "N/A"}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
+                  </div>
+                  <div className="data-list__cell data-list__actions" data-label="Actions">
                     <div className="flex justify-end gap-2">
                       {cert.certificateUrl && (
                         <Button
@@ -139,18 +130,15 @@ const InstructorCertificates = () => {
                         {deleteMutation.isPending ? "Deleting..." : "Delete"}
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
               {certificates.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                <div className="empty-state text-muted-foreground">
                     No student certificates found for your courses yet.
-                  </TableCell>
-                </TableRow>
+                </div>
               )}
-            </TableBody>
-          </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

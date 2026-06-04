@@ -45,13 +45,17 @@ const Settings = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your application preferences and security.</p>
+    <div className="mx-auto max-w-5xl space-y-8 animate-fade-in pb-12">
+      <div className="page__head">
+        <div>
+          <h1 className="page__title">Settings</h1>
+          <p className="page__subtitle">
+            Manage your application preferences and security.
+          </p>
+        </div>
       </div>
 
-      <Card className="border-none shadow-lg">
+      <Card className="surface-glass">
         <CardHeader>
           <CardTitle>Notification Settings</CardTitle>
           <CardDescription>Control how you receive alerts and updates.</CardDescription>
@@ -82,7 +86,7 @@ const Settings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-lg">
+      <Card className="surface-glass">
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
           <CardDescription>Update your account password for security.</CardDescription>

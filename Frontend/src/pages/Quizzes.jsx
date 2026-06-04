@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/api/axios";
+import examService from "@/api/exam";
 import { ClipboardList, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -19,8 +19,8 @@ const Quizzes = ({ isSubComponent = false }) => {
   } = useQuery({
     queryKey: ["quizzes", user?.role],
     queryFn: async () => {
-      const response = await api.get("/Quiz");
-      return response.data;
+      const response = await examService.getAll();
+      return response.data || response || [];
     },
     enabled: !!user,
   });
@@ -69,7 +69,7 @@ const Quizzes = ({ isSubComponent = false }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {quizzes.map((quiz) => (
                 <Card
-                  key={quiz._id}
+                  key={quiz.examId || quiz._id}
                   className="overflow-hidden hover:shadow-lg transition-shadow"
                 >
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -80,7 +80,7 @@ const Quizzes = ({ isSubComponent = false }) => {
                       <div>
                         <CardTitle className="text-lg">{quiz.title}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Course: {quiz.courseId?.title}
+                          Course: {quiz.courseName || quiz.courseId?.title}
                         </p>
                       </div>
                     </div>
@@ -88,7 +88,7 @@ const Quizzes = ({ isSubComponent = false }) => {
                   </CardHeader>
                   <CardContent className="p-6 pt-0">
                     <Button variant="gradient" className="w-full" asChild>
-                      <Link to={`/dashboard/exam/${quiz._id}`}>
+                      <Link to={`/dashboard/exam/${quiz.examId || quiz._id}`}>
                         <Play className="w-4 h-4 mr-2" />
                         {isInstructor ? "Preview Quiz" : "Start Quiz"}
                       </Link>

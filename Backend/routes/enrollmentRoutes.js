@@ -88,9 +88,18 @@ router.get(
 router.get(
   "/ByStudent/:studentId",
   protect,
-  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR),
+  authorize(ROLES.ADMINISTRATOR, ROLES.INSTRUCTOR, ROLES.STUDENT),
   async (req, res) => {
     try {
+      if (
+        req.user.role === ROLES.STUDENT &&
+        String(req.params.studentId) !== String(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to view these enrollments" });
+      }
+
       const enrollments = await Enrollment.find({
         studentId: req.params.studentId,
       })

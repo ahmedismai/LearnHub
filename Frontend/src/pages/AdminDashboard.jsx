@@ -1,43 +1,34 @@
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Users,
-  BookOpen,
-  BarChart3,
-  CheckCircle2,
-  XCircle,
-  Shield,
-  Activity,
-  TrendingUp,
-  DollarSign,
-  Trash2,
-  Loader2,
-  Layers,
-  History,
-  Plus,
-  Pencil,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/api/axios";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BookOpen,
+  Clock,
+  FileText,
+  Play,
+  ShieldCheck,
+  Star,
+  Users,
+  CheckCircle2,
+  PlusCircle,
+  Loader2,
+  TrendingUp,
+  MessageSquare,
+  Sparkles,
+  BrainCircuit,
+  Award,
+  User,
+  GraduationCap,
+  Trash2,
+  Edit2,
+  ClipboardList,
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -48,640 +39,913 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import AIQuizDialog from "@/components/AIQuizDialog";
+import { getFullUrl } from "@/lib/urlHelper";
+import orderService from "@/api/order";
 
-const AdminDashboard = () => {
+import enrollmentService from "@/api/enrollment";
+import lessonService from "@/api/lesson";
+import lessonProgressService from "@/api/lessonProgress";
+import reviewService from "@/api/review";
+import sectionService from "@/api/section";
+import courseService from "@/api/course";
+import examService from "@/api/exam";
+
+const CourseDetails = () => {
+  const [activeLesson, setActiveLesson] = useState(null);
+  const { id } = useParams();
+  const hasCourseId = Boolean(id && id !== "undefined" && id !== "null");
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("overview");
 
-  // Category State
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [categoryData, setCategoryData] = useState({ name: "", description: "" });
-
-  // Fetch Stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["admin", "stats"],
-    queryFn: async () => {
-      const response = await api.get("/admin/stats");
-      return response.data;
-    },
+  // Queries
+  const { data: courseResponse, isLoading: isCourseLoading } = useQuery({
+    queryKey: ["course", id],
+    queryFn: () => courseService.getById(id),
+    enabled: hasCourseId,
   });
 
-  // Fetch Users
-  const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: async () => {
-      const response = await api.get("/admin/users");
-      return response.data;
-    },
+  const course = courseResponse?.data;
+  const sections = course?.sections || [];
+
+  const { data: reviewsResponse } = useQuery({
+    queryKey: ["reviews", id],
+    queryFn: () => reviewService.getAllByCourse(id),
+    enabled: hasCourseId,
   });
 
-  // Fetch Courses (all courses for approval)
-  const { data: courses = [], isLoading: coursesLoading } = useQuery({
-    queryKey: ["admin", "courses"],
-    queryFn: async () => {
-      const response = await api.get("/Course/list");
-      return response.data;
-    },
+  const reviews = reviewsResponse?.data || [];
+
+  const { data: enrollmentsResponse } = useQuery({
+    queryKey: ["enrollments", "me"],
+    queryFn: () => enrollmentService.getByStudent(user?.id),
+    enabled: !!user && (user.role === "Student" || user.role === "Administrator"),
   });
 
-  // Fetch Categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ["admin", "categories"],
-    queryFn: async () => {
-      const response = await api.get("/Category");
-      return response.data;
-    },
+  const enrollments = enrollmentsResponse?.data || [];
+  const currentEnrollment = enrollments.find(
+    (e) => e.courseId === parseInt(id),
+  );
+  const isStudentEnrolled = !!currentEnrollment;
+  const isInstructor =
+    user?.role === "Instructor" && course?.instructorId === user?.id;
+  const hasAccess = isInstructor || isStudentEnrolled || user?.role === "Administrator";
+
+  const { data: progressResponse } = useQuery({
+    queryKey: ["progress", currentEnrollment?.enrollmentId],
+    queryFn: () =>
+      lessonProgressService.getProgress(currentEnrollment.enrollmentId),
+    enabled: !!currentEnrollment,
   });
 
-  // Fetch Payments
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ["admin", "payments"],
-    queryFn: async () => {
-      const response = await api.get("/Order");
-      return response.data;
-    },
+  const progressData = progressResponse?.data;
+
+  // Fetch Exams for this course
+  const { data: examsResponse } = useQuery({
+    queryKey: ["course-exams", id],
+    queryFn: () => examService.getByCourse(id),
+    enabled: hasCourseId && hasAccess,
   });
+  const courseExams = examsResponse?.data || [];
 
   // Mutations
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }) => {
-      return await api.patch(`/admin/users/${userId}/role`, { role });
-    },
+  const addReviewMutation = useMutation({
+    mutationFn: (newReview) => reviewService.create(newReview),
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin", "users"]);
-      toast.success("User role updated successfully");
+      queryClient.invalidateQueries(["reviews", id]);
+      toast({ title: "Review submitted successfully!" });
+      setIsReviewing(false);
+      setReview({ rating: 5, comment: "" });
     },
-    onError: () => toast.error("Failed to update user role"),
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to submit review",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId) => {
-      return await api.delete(`/admin/users/${userId}`);
-    },
+  const deleteReviewMutation = useMutation({
+    mutationFn: (studentId) => reviewService.delete(id, studentId),
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin", "users"]);
-      toast.success("User deleted successfully");
+      queryClient.invalidateQueries(["reviews", id]);
+      toast({ title: "Review deleted successfully!" });
     },
-    onError: () => toast.error("Failed to delete user"),
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to delete review",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
   });
 
-  const updateCourseStatusMutation = useMutation({
-    mutationFn: async ({ courseId, status }) => {
-      return await api.patch(`/Course/${courseId}/status`, { status });
-    },
+  const addSectionMutation = useMutation({
+    mutationFn: (sectionData) => sectionService.create(sectionData),
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin", "courses"]);
-      toast.success("Course status updated");
+      queryClient.invalidateQueries(["course", id]);
+      toast({ title: "Section added successfully!" });
+      setIsAddingSection(false);
+      setNewSection({ title: "" });
     },
-    onError: () => toast.error("Failed to update course status"),
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to add section",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
   });
 
-  const categoryMutation = useMutation({
-    mutationFn: async (data) => {
-      if (editingCategory) {
-        return await api.patch(`/Category/${editingCategory._id}`, data);
+  const updateSectionMutation = useMutation({
+    mutationFn: ({ sectionId, title }) =>
+      sectionService.update(sectionId, { title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["course", id]);
+      toast({ title: "Section updated successfully!" });
+      setIsAddingSection(false);
+      setIsEditingSection(false);
+      setSelectedSection(null);
+      setNewSection({ title: "" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to update section",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const deleteSectionMutation = useMutation({
+    mutationFn: (sectionId) => sectionService.delete(sectionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["course", id]);
+      toast({ title: "Section deleted successfully!" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to delete section",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const enrollMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) {
+        toast({
+          title: "Please login to continue",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
       }
-      return await api.post("/Category", data);
+
+      if (course.isFree) {
+        return enrollmentService.create({
+          courseId: parseInt(id),
+        });
+      }
+
+      return orderService.create({
+        courseId: parseInt(id),
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin", "categories"]);
-      toast.success(`Category ${editingCategory ? "updated" : "created"} successfully`);
-      setIsCategoryModalOpen(false);
-      setEditingCategory(null);
-      setCategoryData({ name: "", description: "" });
+      queryClient.invalidateQueries(["enrollments", "me"]);
+      queryClient.invalidateQueries(["my-orders"]);
+      toast({
+        title: course.isFree
+          ? "Enrolled successfully!"
+          : "Order created successfully! Wait for admin approval.",
+      });
     },
-    onError: (error) => toast.error(error.response?.data?.message || "Operation failed"),
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: course.isFree ? "Enrollment failed" : "Order creation failed",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
   });
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (id) => await api.delete(`/Category/${id}`),
+  const completeLessonMutation = useMutation({
+    mutationFn: (lessonId) =>
+      lessonProgressService.completeLesson({
+        enrollmentId: currentEnrollment.enrollmentId,
+        lessonId: lessonId,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin", "categories"]);
-      toast.success("Category deleted");
+      queryClient.invalidateQueries([
+        "progress",
+        currentEnrollment?.enrollmentId,
+      ]);
+      queryClient.invalidateQueries(["student-dashboard"]);
+      queryClient.invalidateQueries(["enrollments", "me"]);
+      toast({ title: "Lesson marked as completed!" });
+    },
+    onError: (error) => {
+      if (error.response?.data?.message !== "Lesson already completed") {
+        toast({
+          variant: "destructive",
+          title: "Failed to update progress",
+          description: error.response?.data?.message,
+        });
+      }
     },
   });
 
-  const isLoading = statsLoading || usersLoading || coursesLoading || categoriesLoading || paymentsLoading;
+  // Client Workaround for checking completion status
+  const isLessonCompleted = (lessonId) => {
+    if (!progressData) return false;
+    // Checks if backend supplies progress records nested within an array
+    if (Array.isArray(progressData.completedLessons)) {
+      return progressData.completedLessons.some((l) => l.lessonId === lessonId);
+    }
+    if (Array.isArray(progressData.lessonProgresses)) {
+      return progressData.lessonProgresses.some(
+        (l) => l.lessonId === lessonId && l.isCompleted,
+      );
+    }
+    return false;
+  };
+
+  // UI States
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [review, setReview] = useState({ rating: 5, comment: "" });
+
+  const [isAddingContent, setIsAddingContent] = useState(false);
+  const [isEditingLesson, setIsEditingLesson] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [newContent, setNewContent] = useState({
+    title: "",
+    videoFile: null,
+    sectionId: "",
+    duration: 10,
+  });
+
+  const [isAddingSection, setIsAddingSection] = useState(false);
+  const [isEditingSection, setIsEditingSection] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [newSection, setNewSection] = useState({ title: "" });
+
+  const handleSaveSection = async () => {
+    if (!newSection.title) return;
+    if (isEditingSection && selectedSection) {
+      updateSectionMutation.mutate({
+        sectionId: selectedSection.sectionId,
+        title: newSection.title,
+      });
+    } else {
+      addSectionMutation.mutate({
+        courseId: parseInt(id),
+        title: newSection.title,
+      });
+    }
+  };
+
+  const openEditSection = (section) => {
+    setSelectedSection(section);
+    setNewSection({ title: section.title });
+    setIsEditingSection(true);
+    setIsAddingSection(true);
+  };
+
+  const handleAddContent = async () => {
+    if (!newContent.title || !newContent.sectionId) return;
+    setIsUploading(true);
+    try {
+      const targetSection = sections.find(
+        (s) => String(s.sectionId || s.id) === String(newContent.sectionId),
+      );
+      const currentLessonsCount = targetSection?.lessons?.length || 0;
+      const nextOrder = currentLessonsCount + 1;
+
+      let finalOrder = nextOrder;
+      if (isEditingLesson && selectedLesson) {
+        finalOrder = selectedLesson.order || selectedLesson.Order || 1;
+      }
+      if (finalOrder < 1) finalOrder = 1;
+
+      const formData = new FormData();
+
+      formData.append("sectionId", newContent.sectionId);
+      formData.append("title", newContent.title.trim());
+
+      if (newContent.videoFile) {
+        formData.append("file", newContent.videoFile);
+      }
+
+      formData.append("lessonType", "Video");
+      formData.append("durationInMinutes", String(newContent.duration || 10));
+
+      formData.append("order", String(finalOrder));
+
+      if (isEditingLesson && selectedLesson) {
+        await lessonService.update(selectedLesson.lessonId, formData);
+        toast({ title: "Lesson updated successfully!" });
+      } else {
+        await lessonService.create(formData);
+        toast({ title: "Lesson added successfully!" });
+      }
+
+      queryClient.invalidateQueries(["course", id]);
+      setIsAddingContent(false);
+      setIsEditingLesson(false);
+      setSelectedLesson(null);
+      setNewContent({
+        title: "",
+        videoFile: null,
+        sectionId: "",
+        duration: 10,
+      });
+    } catch (error) {
+      console.error("Validation Error Details:", error.response?.data);
+      toast({
+        variant: "destructive",
+        title: isEditingLesson
+          ? "Failed to update lesson"
+          : "Failed to add lesson",
+        description:
+          error.response?.data?.errors?.Order?.[0] ||
+          error.response?.data?.title ||
+          "Validation Error",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId) => {
+    if (!window.confirm("Are you sure you want to delete this lesson?")) return;
+    try {
+      await lessonService.delete(lessonId);
+      queryClient.invalidateQueries(["course", id]);
+      toast({ title: "Lesson deleted successfully!" });
+      if (activeLesson?.lessonId === lessonId) setActiveLesson(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Failed to delete lesson" });
+    }
+  };
+
+  const openEditLesson = (lesson) => {
+    setSelectedLesson(lesson);
+    setNewContent({
+      title: lesson.title,
+      videoFile: null,
+      sectionId: String(lesson.sectionId),
+      duration: lesson.durationInMinutes || 10,
+    });
+    setIsEditingLesson(true);
+    setIsAddingContent(true);
+  };
+
+  const handleSubmitReview = () => {
+    if (!review.comment.trim()) {
+      toast({ title: "Please enter a comment", variant: "destructive" });
+      return;
+    }
+    addReviewMutation.mutate({
+      courseId: parseInt(id),
+      rating: review.rating,
+      comment: review.comment,
+    });
+  };
+
+  if (isCourseLoading || isUploading) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="animate-spin inline mr-2" />
+        Loading...
+      </div>
+    );
+  }
+
+  if (!course) {
+    return <div className="p-8 text-center">Course not found.</div>;
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Admin Control Panel
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage users, courses, and platform health
-          </p>
-        </div>
-      </div>
-
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <TabsList className="grid grid-cols-5 w-full lg:w-[600px]">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Users
-                    </p>
-                    {statsLoading ? (
-                      <Skeleton className="h-8 w-16 mt-1" />
-                    ) : (
-                      <p className="text-3xl font-bold mt-1">
-                        {stats?.totalUsers}
-                      </p>
-                    )}
-                  </div>
-                  <div className="p-3 bg-primary/10 rounded-xl">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Courses
-                    </p>
-                    {statsLoading ? (
-                      <Skeleton className="h-8 w-16 mt-1" />
-                    ) : (
-                      <p className="text-3xl font-bold mt-1">
-                        {stats?.totalCourses}
-                      </p>
-                    )}
-                  </div>
-                  <div className="p-3 bg-accent/10 rounded-xl">
-                    <BookOpen className="w-6 h-6 text-accent" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Revenue
-                    </p>
-                    {statsLoading ? (
-                      <Skeleton className="h-8 w-24 mt-1" />
-                    ) : (
-                      <p className="text-3xl font-bold mt-1">
-                        ${stats?.totalRevenue || 0}
-                      </p>
-                    )}
-                  </div>
-                  <div className="p-3 bg-success/10 rounded-xl">
-                    <DollarSign className="w-6 h-6 text-success" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      System Health
-                    </p>
-                    {statsLoading ? (
-                      <Skeleton className="h-8 w-24 mt-1" />
-                    ) : (
-                      <p className="text-lg font-bold mt-1 text-success">
-                        {stats?.systemHealth?.status}
-                      </p>
-                    )}
-                  </div>
-                  <div className="p-3 bg-warning/10 rounded-xl">
-                    <Activity className="w-6 h-6 text-warning" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+    <div className="mx-auto max-w-7xl space-y-8 animate-fade-in pb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-4">
+            <Badge variant="secondary" className="px-3 py-1">
+              {course.categoryName}
+            </Badge>
+            <h1 className="text-4xl font-bold tracking-tight">
+              {course.title}
+            </h1>
+            <div className="flex flex-wrap gap-6 pt-4 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                <span className="font-medium text-foreground">
+                  {course.instructorName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                <span>
+                  {sections.reduce(
+                    (acc, s) => acc + (s.lessons?.length || 0),
+                    0,
+                  )}{" "}
+                  lessons
+                </span>
+              </div>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>System Performance</CardTitle>
-              <CardDescription>
-                Real-time platform-wide analytics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {statsLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
+          <div className="aspect-video relative rounded-2xl overflow-hidden bg-black border shadow-sm">
+            {hasAccess && activeLesson ? (
+              <video
+                key={activeLesson.lessonId}
+                src={getFullUrl(activeLesson.contentUrl, "Lesson")}
+                controls
+                className="w-full h-full"
+                autoPlay
+                onEnded={() =>
+                  !isLessonCompleted(activeLesson.lessonId) &&
+                  completeLessonMutation.mutate(activeLesson.lessonId)
+                }
+              />
+            ) : (
+              <div className="relative w-full h-full">
+                {course.imgPath ? (
+                  <img
+                    src={getFullUrl(course.imgPath)}
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-900" />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <Play className="w-16 h-16 text-white/80" />
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <span className="font-medium text-muted-foreground">
-                      Server Uptime
-                    </span>
-                    <span className="font-mono">
-                      {Math.floor(stats?.systemHealth?.uptime / 3600)}h{" "}
-                      {Math.floor((stats?.systemHealth?.uptime % 3600) / 60)}m
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <span className="font-medium text-muted-foreground">
-                      Memory Usage
-                    </span>
-                    <span className="font-mono">
-                      {Math.round(
-                        stats?.systemHealth?.memoryUsage?.rss / 1024 / 1024,
-                      )}{" "}
-                      MB
-                    </span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Category Management</CardTitle>
-                <CardDescription>Organize courses into topics</CardDescription>
               </div>
-              <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setEditingCategory(null);
-                    setCategoryData({ name: "", description: "" });
-                  }}>
-                    <Plus className="w-4 h-4 mr-2" /> Add Category
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editingCategory ? "Edit" : "Create"} Category</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label>Name</Label>
-                      <Input 
-                        value={categoryData.name} 
-                        onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })}
-                        placeholder="e.g. Web Development"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Textarea 
-                        value={categoryData.description}
-                        onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })}
-                        placeholder="Brief overview of the category"
-                      />
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => categoryMutation.mutate(categoryData)}
-                      disabled={categoryMutation.isPending}
-                    >
-                      {categoryMutation.isPending ? "Saving..." : "Save Category"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {categoriesLoading ? (
-                <Skeleton className="h-40 w-full" />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {categories.map((cat) => (
-                      <TableRow key={cat._id}>
-                        <TableCell className="font-bold">{cat.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{cat.description}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setEditingCategory(cat);
-                                setCategoryData({ name: cat.name, description: cat.description });
-                                setIsCategoryModalOpen(true);
-                              }}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => {
-                                if (confirm("Delete this category?")) deleteCategoryMutation.mutate(cat._id);
-                              }}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </div>
 
-        <TabsContent value="payments">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-              <CardDescription>View all platform payments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {paymentsLoading ? (
-                <Skeleton className="h-40 w-full" />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payments.map((p) => (
-                      <TableRow key={p._id}>
-                        <TableCell>{p.studentId?.name || p.studentId?.username || "User"}</TableCell>
-                        <TableCell>{p.courseId?.title || "Course"}</TableCell>
-                        <TableCell className="font-bold">${p.amount}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{p.paymentMethod}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={p.status === "Success" ? "success" : "destructive"}>
-                            {p.status || "Success"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                Display all users and apply role-based access control
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+          <Card className="surface-glass">
+            {isStudentEnrolled && (
+              <div className="p-6 bg-primary/5 border-b space-y-3">
+                <div className="flex justify-between items-center font-bold">
+                  <span>Progress</span>
+                  <span>{currentEnrollment.progress}%</span>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((u) => (
-                      <TableRow key={u._id}>
-                        <TableCell className="font-medium">
-                          {u.username}
-                        </TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              u.role === "Administrator"
-                                ? "destructive"
-                                : u.role === "Instructor"
-                                  ? "warning"
-                                  : "secondary"
-                            }
+                <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${currentEnrollment.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <CardHeader className="border-b">
+              <CardTitle>Course Content</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {sections.length > 0 ? (
+                sections.map((section) => (
+                  <div
+                    key={section.sectionId}
+                    className="p-5 border-b last:border-0 group/section"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-lg">{section.title}</h3>
+                      {isInstructor && (
+                        <div className="flex gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-primary"
+                            onClick={() => openEditSection(section)}
                           >
-                            {u.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(u.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {u.role !== "Administrator" && (
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => {
+                              if (
+                                confirm("Delete section and all its lessons?")
+                              ) {
+                                deleteSectionMutation.mutate(section.sectionId);
+                              }
+                            }}
+                            disabled={deleteSectionMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {section.lessons?.map((lesson, idx) => (
+                        <div
+                          key={lesson.lessonId}
+                          className={`flex items-center justify-between p-3 rounded cursor-pointer transition-all ${activeLesson?.lessonId === lesson.lessonId ? "bg-primary/5 border-l-4 border-primary" : "hover:bg-accent/5"}`}
+                          onClick={() =>
+                            hasAccess &&
+                            lesson.lessonType === "Video" &&
+                            setActiveLesson(lesson)
+                          }
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isLessonCompleted(lesson.lessonId) ? "bg-green-500 text-white" : "bg-muted"}`}
+                            >
+                              {isLessonCompleted(lesson.lessonId) ? (
+                                <CheckCircle2 className="w-5 h-5" />
+                              ) : (
+                                idx + 1
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{lesson.title}</p>
+                              <Badge variant="outline" className="text-[10px]">
+                                {lesson.lessonType === "Video"
+                                  ? "Video"
+                                  : "File"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isInstructor && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditLesson(lesson);
+                                  }}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteLesson(lesson.lessonId);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                            {isStudentEnrolled && (
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateRoleMutation.mutate({
-                                    userId: u._id,
-                                    role: "Administrator",
-                                  })
+                                variant="ghost"
+                                disabled={
+                                  isLessonCompleted(lesson.lessonId) ||
+                                  completeLessonMutation.isPending
                                 }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  completeLessonMutation.mutate(
+                                    lesson.lessonId,
+                                  );
+                                }}
                               >
-                                Make Admin
+                                {isLessonCompleted(lesson.lessonId)
+                                  ? "Completed"
+                                  : "Mark Done"}
                               </Button>
                             )}
-                            {u.role === "Student" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateRoleMutation.mutate({
-                                    userId: u._id,
-                                    role: "Instructor",
-                                  })
-                                }
-                              >
-                                Make Instructor
-                              </Button>
-                            )}
-                            {u.role === "Instructor" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateRoleMutation.mutate({
-                                    userId: u._id,
-                                    role: "Student",
-                                  })
-                                }
-                              >
-                                Make Student
-                              </Button>
-                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  No content available for this course.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Reviews Section */}
+          <Card className="surface-glass">
+            <CardHeader className="border-b flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary" /> Student
+                Reviews
+              </CardTitle>
+              {isStudentEnrolled && !isInstructor && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReviewing(true)}
+                >
+                  Write a Review
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {reviews.length > 0 ? (
+                  reviews.map((r, i) => (
+                    <div
+                      key={i}
+                      className="flex gap-4 border-b last:border-0 pb-6 group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
+                        {r.studentName?.[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold">{r.studentName}</h4>
+                            <div className="flex items-center gap-1 my-1">
+                              {[...Array(5)].map((_, idx) => (
+                                <Star
+                                  key={idx}
+                                  className={`w-3 h-3 ${idx < r.rating ? "text-amber-500 fill-amber-500" : "text-muted"}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {(user?.id === r.studentId ||
+                            user?.role === "Administrator") && (
                             <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => {
-                                if (confirm("Are you sure you want to delete this user?")) {
-                                  deleteUserMutation.mutate(u._id);
-                                }
-                              }}
-                              disabled={deleteUserMutation.isPending}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() =>
+                                deleteReviewMutation.mutate(r.studentId)
+                              }
+                              disabled={deleteReviewMutation.isPending}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                          )}
+                        </div>
+                        <p className="text-sm italic text-muted-foreground mt-2">
+                          "{r.comment}"
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">
+                    No reviews yet. Be the first to review!
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="courses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Approvals</CardTitle>
-              <CardDescription>
-                Approve or reject courses and update course status
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {coursesLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+        {/* Sticky Action Sidebar */}
+        <div className="lg:col-span-1">
+          <Card className="surface-glass sticky top-24 border-2">
+            {!hasAccess ? (
+              <>
+                <div className="bg-primary/5 p-8 text-center border-b">
+                  <span className="text-4xl font-bold text-primary">
+                    ${course.price}
+                  </span>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Instructor</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {courses.map((course) => (
-                      <TableRow key={course._id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={course.thumbnail}
-                              className="w-10 h-7 rounded object-cover"
-                              alt=""
-                            />
-                            <span className="font-medium">{course.title}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {course.instructorId?.username || course.instructorId?.name || "Unknown"}
-                        </TableCell>
-                        <TableCell>${course.price}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              course.status === "Approved"
-                                ? "success"
-                                : course.status === "Rejected"
-                                  ? "destructive"
-                                  : "warning"
-                            }
-                          >
-                            {course.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {course.status !== "Approved" && (
-                              <Button
-                                size="sm"
-                                variant="success"
-                                className="gap-1"
-                                onClick={() =>
-                                  updateCourseStatusMutation.mutate({
-                                    courseId: course._id,
-                                    status: "Approved",
-                                  })
-                                }
-                              >
-                                <CheckCircle2 className="w-4 h-4" /> Approve
-                              </Button>
-                            )}
-                            {course.status !== "Rejected" && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="gap-1"
-                                onClick={() =>
-                                  updateCourseStatusMutation.mutate({
-                                    courseId: course._id,
-                                    status: "Rejected",
-                                  })
-                                }
-                              >
-                                <XCircle className="w-4 h-4" /> Reject
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                <CardContent className="p-8">
+                  <Button
+                    className="w-full py-6 text-lg font-bold"
+                    onClick={() => enrollMutation.mutate()}
+                    disabled={enrollMutation.isPending}
+                  >
+                    {enrollMutation.isPending
+                      ? "Processing..."
+                      : course.isFree
+                        ? "Enroll Now"
+                        : "Create Order"}
+                  </Button>
+                </CardContent>
+              </>
+            ) : isInstructor || user?.role === "Administrator" ? (
+              <CardContent className="p-8 space-y-4">
+                <h3 className="text-xl font-bold text-center">
+                  {user?.role === "Administrator" ? "Admin Management" : "Instructor Control"}
+                </h3>
+                <AIQuizDialog
+                  courseId={id}
+                  mode="instructor"
+                  buttonText="AI Course Builder"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsAddingSection(true)}
+                >
+                  Add Section
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsAddingContent(true)}
+                >
+                  Add Lesson
+                </Button>
+                <div className="pt-4 border-t space-y-3">
+                  <Button variant="secondary" className="w-full" asChild>
+                    <Link to={`/dashboard/create-exam?courseId=${id}`}>
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Create Final Exam
+                    </Link>
+                  </Button>
+                  {courseExams.length > 0 && (
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link to={`/dashboard/student-results/${id}`}>
+                        <ClipboardList className="w-4 h-4 mr-2" />
+                        View Exam Results
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            ) : (
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold">You're Enrolled!</h3>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/dashboard/my-courses")}
+                >
+                  My Courses
+                </Button>
+
+                {progressData?.canTakeExam && courseExams.length > 0 && (
+                  <div className="pt-4 border-t space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-primary" /> Course
+                      Completed!
+                    </p>
+                    {courseExams.map((exam) => (
+                      <Button
+                        key={exam.examId}
+                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 shadow-lg shadow-primary/20"
+                        asChild
+                      >
+                        <Link to={`/dashboard/exam/${exam.examId}?type=exam`}>
+                          <Play className="w-4 h-4 mr-2" />
+                          Take Final Exam: {exam.title}
+                        </Link>
+                      </Button>
                     ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
+                  </div>
+                )}
+              </CardContent>
+            )}
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
+
+      {/* Section Dialog */}
+      <Dialog
+        open={isAddingSection}
+        onOpenChange={(open) => {
+          setIsAddingSection(open);
+          if (!open) {
+            setIsEditingSection(false);
+            setSelectedSection(null);
+            setNewSection({ title: "" });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingSection ? "Edit Section" : "New Section"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Label>Title</Label>
+            <Input
+              value={newSection.title}
+              onChange={(e) => setNewSection({ title: e.target.value })}
+              placeholder="Section title..."
+            />
+            <Button
+              className="w-full"
+              onClick={handleSaveSection}
+              disabled={
+                addSectionMutation.isPending || updateSectionMutation.isPending
+              }
+            >
+              {addSectionMutation.isPending || updateSectionMutation.isPending
+                ? "Saving..."
+                : "Save Section"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lesson Dialog */}
+      <Dialog open={isAddingContent} onOpenChange={setIsAddingContent}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingLesson ? "Edit Lesson" : "New Lesson"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Label>Title</Label>
+            <Input
+              value={newContent.title}
+              onChange={(e) =>
+                setNewContent({ ...newContent, title: e.target.value })
+              }
+            />
+            <Label>Section</Label>
+            <select
+              className="w-full p-2 border rounded bg-background"
+              value={newContent.sectionId}
+              onChange={(e) =>
+                setNewContent({ ...newContent, sectionId: e.target.value })
+              }
+            >
+              <option value="">Select Section</option>
+              {sections.map((s) => (
+                <option key={s.sectionId} value={s.sectionId}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+            <Label>Video File</Label>
+            <Input
+              type="file"
+              accept="video/*"
+              onChange={(e) =>
+                setNewContent({ ...newContent, videoFile: e.target.files[0] })
+              }
+            />
+            <Button
+              className="w-full"
+              onClick={handleAddContent}
+              disabled={isUploading}
+            >
+              {isUploading ? "Uploading..." : "Save Lesson"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewing} onOpenChange={setIsReviewing}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Label>Rating</Label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((stars) => (
+                <button
+                  key={stars}
+                  type="button"
+                  onClick={() => setReview({ ...review, rating: stars })}
+                >
+                  <Star
+                    className={`w-6 h-6 ${stars <= review.rating ? "text-amber-500 fill-amber-500" : "text-muted"}`}
+                  />
+                </button>
+              ))}
+            </div>
+            <Label>Comment</Label>
+            <Textarea
+              value={review.comment}
+              onChange={(e) =>
+                setReview({ ...review, comment: e.target.value })
+              }
+              placeholder="Tell us what you think about this course..."
+            />
+            <Button
+              className="w-full"
+              onClick={handleSubmitReview}
+              disabled={addReviewMutation.isPending}
+            >
+              {addReviewMutation.isPending ? "Submitting..." : "Submit Review"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default CourseDetails;

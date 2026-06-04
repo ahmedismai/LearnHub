@@ -1,0 +1,31 @@
+
+> learnhub-frontend@0.0.0 dev
+> vite --host 127.0.0.1
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m3133[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m8080[22m/[39m
+[2m4:53:06 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Assignments.jsx[22m
+[2m4:53:15 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Assignments.jsx[22m
+[2m4:53:32 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
+[2m4:54:04 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
+[2m4:54:36 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
+[2m4:54:46 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
+[2m4:54:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
+[2m4:56:37 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/BrowseCourses.jsx, /src/index.css, /src/pages/CourseDetails.jsx, /src/pages/MyCourses.jsx, /src/pages/Payment.jsx, /src/pages/admin/AdminEnrollments.jsx, /src/pages/MyOrders.jsx, /src/pages/instructor/StudentManagement.jsx, /src/pages/SmartAssessments.jsx, /src/pages/instructor/StudentResults.jsx[22m
+[2m4:57:45 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
+[2m5:06:39 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+Re-optimizing dependencies because vite config has changed
+[2m5:06:57 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:09:11 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m5:09:11 PM[22m [36m[1m[vite][22m[39m server restarted.
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m8080[22m/[39m
+[2m5:09:16 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:20:25 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:20:26 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m5:22:24 PM[22m [36m[1m[vite][22m[39m server restarted.

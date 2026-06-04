@@ -449,7 +449,7 @@ router.put("/Account/UpdateProfile", protect, async (req, res) => {
 
     // Define allowed fields for everyone
     const allowedUpdates = ["name", "profileImage"];
-    
+
     // Define instructor-only fields
     if (user.role === ROLES.INSTRUCTOR) {
       allowedUpdates.push("bio", "signatureText");
@@ -466,7 +466,7 @@ router.put("/Account/UpdateProfile", protect, async (req, res) => {
     // Use user.set() with strict: false to allow fields from discriminators
     // when searching via the base model
     user.set(updates, { strict: false });
-    
+
     await user.save();
 
     res.json(buildUserResponse(user));

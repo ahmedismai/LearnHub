@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,29 +8,36 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   GraduationCap,
-  CreditCard,
-  Wallet,
-  Lock,
+  BadgeCheck,
+  Landmark,
+  WalletCards,
   ArrowLeft,
-  CheckCircle,
-  Shield,
+  ShieldCheck,
 } from "lucide-react";
-import { mockCourses } from "@/data/mockData";
+import { getFullUrl } from "@/lib/urlHelper";
 import api from "@/api/axios";
+import enrollmentService from "@/api/enrollment";
+import orderService from "@/api/order";
+
+const IllustrationFrame = lazy(() =>
+  import("@/components/illustrations/IllustrationFrame"),
+);
+const SecurePaymentIllustration = lazy(() =>
+  import("@/components/illustrations/SecurePaymentIllustration"),
+);
 
 const Payment = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState("visa");
+  const [paymentMethod, setPaymentMethod] = useState("admin-review");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [course, setCourse] = useState(null);
@@ -38,12 +45,13 @@ const Payment = () => {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await api.get(`/Course/${courseId}`);
+        const response = await api.get(`/api/Course/${courseId}`);
+        const data = response.data?.data || response.data;
         setCourse({
-          id: response.data._id,
-          ...response.data,
+          id: data.courseId || data._id || data.id,
+          ...data,
           instructorName:
-            response.data.instructorId?.username || "Unknown Instructor",
+            data.instructorName || data.instructorId?.name || "Unknown Instructor",
         });
       } catch (error) {
         console.error("Failed to load course:", error);
@@ -56,7 +64,7 @@ const Payment = () => {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, toast]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -81,18 +89,33 @@ const Payment = () => {
     setIsProcessing(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await api.post("/Enrollment", { courseId: course.id });
-      toast({
-        title: "Payment Successful!",
-        description: `You are now enrolled in ${course.title}`,
-      });
-      navigate("/dashboard/my-courses");
+      
+      if (course.isFree) {
+        await enrollmentService.create({ 
+          courseId: course.id,
+          studentId: user.id 
+        });
+        toast({
+          title: "Enrolled Successfully!",
+          description: `You are now enrolled in ${course.title}`,
+        });
+        navigate("/dashboard/my-courses");
+      } else {
+        await orderService.create({ 
+          courseId: course.id
+        });
+        toast({
+          title: "Order Submitted!",
+          description: "Your request has been sent for admin approval. You will gain access once verified.",
+        });
+        navigate("/dashboard/my-courses");
+      }
     } catch (error) {
       toast({
-        title: "Enrollment failed",
+        title: "Transaction failed",
         description:
           error.response?.data?.message ||
-          "Unable to complete enrollment right now.",
+          "Unable to complete the request right now.",
         variant: "destructive",
       });
     } finally {
@@ -101,28 +124,28 @@ const Payment = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-shell-bg min-h-screen">
       {/* Navigation */}
-      <nav className="border-b border-border bg-card">
+      <nav className="border-b border-white/60 bg-white/75 backdrop-blur-[10px]">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-primary-foreground" />
+                <GraduationCap size={24} className="text-primary-foreground" />
               </div>
               <span className="text-xl font-bold text-foreground">
                 LearnHub
               </span>
             </Link>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Lock className="w-4 h-4" />
+              <ShieldCheck size={18} className="text-primary" />
               Secure Checkout
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <Button variant="ghost" size="sm" asChild className="mb-6">
           <Link to={`/courses/${courseId}`}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -130,14 +153,20 @@ const Payment = () => {
           </Link>
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Payment Form */}
           <div className="lg:col-span-2 space-y-6">
+            <Suspense fallback={null}>
+              <IllustrationFrame className="max-h-[300px] overflow-hidden">
+                <SecurePaymentIllustration />
+              </IllustrationFrame>
+            </Suspense>
+
             <Card>
               <CardHeader>
                 <CardTitle>Payment Method</CardTitle>
                 <CardDescription>
-                  Select your preferred payment method
+                  Submit your order for admin review. Do not enter card details in this app.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -147,32 +176,32 @@ const Payment = () => {
                   className="space-y-4"
                 >
                   <div
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      paymentMethod === "visa"
+                    className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-all sm:items-center ${
+                      paymentMethod === "admin-review"
                         ? "border-primary bg-primary/5"
                         : "border-border"
                     }`}
-                    onClick={() => setPaymentMethod("visa")}
+                    onClick={() => setPaymentMethod("admin-review")}
                   >
-                    <RadioGroupItem value="visa" id="visa" />
+                    <RadioGroupItem value="admin-review" id="admin-review" />
                     <Label
-                      htmlFor="visa"
-                      className="flex items-center gap-3 cursor-pointer flex-1"
+                      htmlFor="admin-review"
+                      className="flex flex-1 cursor-pointer items-start gap-3 sm:items-center"
                     >
-                      <CreditCard className="w-6 h-6 text-primary" />
+                      <Landmark size={24} className="text-primary" />
                       <div>
                         <p className="font-semibold text-foreground">
-                          Credit/Debit Card
+                          Admin-reviewed order
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Visa, Mastercard, American Express
+                          Create an order and wait for verification before access is granted
                         </p>
                       </div>
                     </Label>
                   </div>
 
                   <div
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-all sm:items-center ${
                       paymentMethod === "e-wallet"
                         ? "border-primary bg-primary/5"
                         : "border-border"
@@ -182,9 +211,9 @@ const Payment = () => {
                     <RadioGroupItem value="e-wallet" id="e-wallet" />
                     <Label
                       htmlFor="e-wallet"
-                      className="flex items-center gap-3 cursor-pointer flex-1"
+                      className="flex flex-1 cursor-pointer items-start gap-3 sm:items-center"
                     >
-                      <Wallet className="w-6 h-6 text-accent" />
+                      <WalletCards size={24} className="text-accent" />
                       <div>
                         <p className="font-semibold text-foreground">
                           E-Wallet
@@ -199,30 +228,12 @@ const Payment = () => {
               </CardContent>
             </Card>
 
-            {paymentMethod === "visa" && (
+            {paymentMethod === "admin-review" && (
               <Card className="animate-fade-in">
-                <CardHeader>
-                  <CardTitle>Card Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">Name on Card</Label>
-                    <Input id="cardName" placeholder="John Doe" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiry">Expiry Date</Label>
-                      <Input id="expiry" placeholder="MM/YY" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input id="cvv" placeholder="123" type="password" />
-                    </div>
-                  </div>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground">
+                    Payment details are handled outside this checkout. This page only creates the order record used by admins to approve access.
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -230,7 +241,7 @@ const Payment = () => {
             {paymentMethod === "e-wallet" && (
               <Card className="animate-fade-in">
                 <CardContent className="p-8 text-center">
-                  <Wallet className="w-16 h-16 mx-auto text-primary mb-4" />
+                  <WalletCards size={64} className="mx-auto mb-4 text-primary" />
                   <p className="text-lg font-semibold text-foreground mb-2">
                     Pay with E-Wallet
                   </p>
@@ -245,14 +256,14 @@ const Payment = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-8">
+            <Card className="lg:sticky lg:top-8">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
                   <img
-                    src={course.thumbnail}
+                    src={getFullUrl(course.imgPath)}
                     alt={course.title}
                     className="w-20 h-14 rounded-lg object-cover"
                   />
@@ -294,11 +305,11 @@ const Payment = () => {
                   onClick={handlePayment}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? "Processing..." : `Pay $${course.price}`}
+                  {isProcessing ? "Processing..." : course.isFree ? "Enroll for Free" : `Create Order $${course.price}`}
                 </Button>
 
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="w-4 h-4" />
+                <div className="flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+                  <ShieldCheck size={18} className="text-primary" />
                   <span>30-day money-back guarantee</span>
                 </div>
 
@@ -317,7 +328,7 @@ const Payment = () => {
                         key={index}
                         className="flex items-center gap-2 text-sm text-muted-foreground"
                       >
-                        <CheckCircle className="w-4 h-4 text-success" />
+                        <BadgeCheck size={18} className="text-success" />
                         <span>{item}</span>
                       </div>
                     ))}
