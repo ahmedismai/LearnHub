@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
 
 const AuthContext = createContext({});
+let activeGooglePrompt = null;
 
 const loadGoogleIdentityScript = () =>
   new Promise((resolve, reject) => {
@@ -104,43 +105,101 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogleIdToken = signupWithGmail;
 
+  const renderGmailButton = async ({
+    container,
+    mode = "login",
+    role = "Student",
+    onSuccess,
+    onError,
+  }) => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error("VITE_GOOGLE_CLIENT_ID is not configured");
+    }
+    if (!container) return;
+
+    const google = await loadGoogleIdentityScript();
+    container.innerHTML = "";
+    google.accounts.id.initialize({
+      client_id: clientId,
+      use_fedcm_for_prompt: true,
+      callback: async (response) => {
+        try {
+          if (!response?.credential) {
+            throw new Error("Google did not return an ID token");
+          }
+
+          const userData =
+            mode === "signup"
+              ? await signupWithGmail(response.credential, role)
+              : await loginWithGmail(response.credential);
+          onSuccess?.(userData);
+        } catch (error) {
+          onError?.(error);
+        }
+      },
+    });
+
+    google.accounts.id.renderButton(container, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: mode === "signup" ? "signup_with" : "continue_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+      width: 320,
+    });
+  };
+
   const startGmailIdTokenFlow = async (mode = "login", role = "Student") => {
+    if (activeGooglePrompt) return activeGooglePrompt;
+
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new Error("VITE_GOOGLE_CLIENT_ID is not configured");
     }
 
-    const google = await loadGoogleIdentityScript();
+    activeGooglePrompt = (async () => {
+      const google = await loadGoogleIdentityScript();
 
-    return new Promise((resolve, reject) => {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response) => {
-          try {
-            if (!response?.credential) {
-              throw new Error("Google did not return an ID token");
+      return new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          reject(new Error("Google sign-in was not completed. Please try again."));
+        }, 60000);
+
+        google.accounts.id.cancel();
+        google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: true,
+          cancel_on_tap_outside: false,
+          callback: async (response) => {
+            try {
+              if (!response?.credential) {
+                throw new Error("Google did not return an ID token");
+              }
+
+              const userData =
+                mode === "signup"
+                  ? await signupWithGmail(response.credential, role)
+                  : await loginWithGmail(response.credential);
+              window.clearTimeout(timeout);
+              resolve(userData);
+            } catch (error) {
+              window.clearTimeout(timeout);
+              reject(error);
             }
+          },
+        });
 
-            const userData =
-              mode === "signup"
-                ? await signupWithGmail(response.credential, role)
-                : await loginWithGmail(response.credential);
-            resolve(userData);
-          } catch (error) {
-            reject(error);
-          }
-        },
+        google.accounts.id.prompt();
       });
+    })();
 
-      google.accounts.id.prompt((notification) => {
-        if (
-          notification.isNotDisplayed?.() ||
-          notification.isSkippedMoment?.()
-        ) {
-          reject(new Error("Google sign-in prompt was not displayed"));
-        }
-      });
-    });
+    try {
+      return await activeGooglePrompt;
+    } finally {
+      activeGooglePrompt = null;
+    }
   };
 
   const login = async (email, password) => {
@@ -243,6 +302,7 @@ export const AuthProvider = ({ children }) => {
         loginWithGoogleIdToken,
         signupWithGmail,
         loginWithGmail,
+        renderGmailButton,
         startGmailIdTokenFlow,
         refreshUser,
         register,
