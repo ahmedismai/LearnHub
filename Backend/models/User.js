@@ -13,6 +13,13 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
     profileImage: { type: String, default: "" },
+    googleId: { type: String, default: "" },
+    githubId: { type: String, default: "" },
+    authProvider: {
+      type: String,
+      enum: ["local", "google", "github"],
+      default: "local",
+    },
     emailConfirmed: { type: Boolean, default: false },
     confirmationToken: { type: String, default: "" },
     resetPasswordToken: { type: String, default: "" },

@@ -28,7 +28,7 @@ const sendConfirmationEmail = async (email, token, name) => {
     return;
   }
 
-  const confirmUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+  const confirmUrl = `${getFrontendUrl()}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
   await transporter.sendMail({
     from: process.env.EMAIL_FROM || smtpUser,
     to: email,
@@ -55,6 +55,26 @@ const createToken = (user, expiresIn = "1d") =>
     expiresIn,
   });
 
+const getFrontendUrl = () =>
+  (process.env.FRONTEND_URL || "http://localhost:8080").replace(/\/$/, "");
+
+const getBackendUrl = (req) =>
+  (process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`).replace(
+    /\/$/,
+    "",
+  );
+
+const getOAuthRedirectUri = (req, provider) =>
+  `${getBackendUrl(req)}/api/Account/oauth/${provider}/callback`;
+
+const createAuthPayload = async (user) => {
+  const accessToken = createToken(user);
+  const refreshToken = crypto.randomBytes(32).toString("hex");
+  user.refreshToken = refreshToken;
+  await user.save();
+  return { accessToken, refreshToken, user: buildUserResponse(user) };
+};
+
 const buildUserResponse = (user) => ({
   id: user.id,
   name: user.name,
@@ -69,6 +89,216 @@ const buildUserResponse = (user) => ({
     signatureText: user.signatureText,
   }),
   ...(user.role === ROLES.ADMINISTRATOR && { adminId: user.adminId }),
+});
+
+const redirectOAuthError = (res, message) => {
+  const url = new URL("/oauth/callback", getFrontendUrl());
+  url.searchParams.set("error", message);
+  return res.redirect(url.toString());
+};
+
+const redirectOAuthSuccess = (res, payload) => {
+  const url = new URL("/oauth/callback", getFrontendUrl());
+  url.searchParams.set("accessToken", payload.accessToken);
+  url.searchParams.set("refreshToken", payload.refreshToken);
+  url.searchParams.set("user", JSON.stringify(payload.user));
+  return res.redirect(url.toString());
+};
+
+const getOAuthRole = (role) =>
+  roleMap[String(role || "").toLowerCase()] || ROLES.STUDENT;
+
+const upsertOAuthUser = async ({
+  provider,
+  providerId,
+  email,
+  name,
+  profileImage,
+  role,
+}) => {
+  if (!email) {
+    throw new Error("No verified email was returned by the OAuth provider");
+  }
+
+  const providerField = provider === "google" ? "googleId" : "githubId";
+  const existingUser =
+    (providerId && (await User.findOne({ [providerField]: providerId }))) ||
+    (await User.findOne({ email }));
+
+  if (existingUser) {
+    existingUser[providerField] = providerId || existingUser[providerField];
+    existingUser.authProvider = existingUser.authProvider || provider;
+    existingUser.emailConfirmed = true;
+    existingUser.profileImage = existingUser.profileImage || profileImage || "";
+    await existingUser.save();
+    return existingUser;
+  }
+
+  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+  const userData = {
+    name: name || email.split("@")[0],
+    email,
+    passwordHash,
+    role: getOAuthRole(role),
+    profileImage: profileImage || "",
+    emailConfirmed: true,
+    confirmationToken: "",
+    authProvider: provider,
+    [providerField]: providerId || "",
+  };
+
+  if (userData.role === ROLES.INSTRUCTOR) {
+    return Instructor.create(userData);
+  }
+  return Student.create(userData);
+};
+
+const exchangeOAuthCode = async ({ tokenUrl, params }) => {
+  const response = await fetch(tokenUrl, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams(params),
+  });
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    throw new Error(data.error_description || data.error || "OAuth token exchange failed");
+  }
+  return data;
+};
+
+const fetchJson = async (url, accessToken) => {
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+      "User-Agent": "LearnHub",
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error_description || data.message || "OAuth profile request failed");
+  }
+  return data;
+};
+
+router.get("/oauth/google", (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ message: "GOOGLE_CLIENT_ID is not configured" });
+  }
+
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID);
+  url.searchParams.set("redirect_uri", getOAuthRedirectUri(req, "google"));
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("prompt", "select_account");
+  url.searchParams.set(
+    "state",
+    Buffer.from(JSON.stringify({ role: req.query.role || ROLES.STUDENT })).toString("base64url"),
+  );
+  return res.redirect(url.toString());
+});
+
+router.get("/oauth/google/callback", async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code) return redirectOAuthError(res, "Missing Google authorization code");
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return redirectOAuthError(res, "Google OAuth is not configured");
+    }
+
+    const tokenData = await exchangeOAuthCode({
+      tokenUrl: "https://oauth2.googleapis.com/token",
+      params: {
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: getOAuthRedirectUri(req, "google"),
+        grant_type: "authorization_code",
+      },
+    });
+    const profile = await fetchJson(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      tokenData.access_token,
+    );
+    const stateData = state
+      ? JSON.parse(Buffer.from(String(state), "base64url").toString("utf8"))
+      : {};
+    const user = await upsertOAuthUser({
+      provider: "google",
+      providerId: profile.sub,
+      email: profile.email,
+      name: profile.name,
+      profileImage: profile.picture,
+      role: stateData.role,
+    });
+    return redirectOAuthSuccess(res, await createAuthPayload(user));
+  } catch (error) {
+    console.error("Google OAuth error:", error);
+    return redirectOAuthError(res, error.message || "Google sign-in failed");
+  }
+});
+
+router.get("/oauth/github", (req, res) => {
+  if (!process.env.GITHUB_CLIENT_ID) {
+    return res.status(500).json({ message: "GITHUB_CLIENT_ID is not configured" });
+  }
+
+  const url = new URL("https://github.com/login/oauth/authorize");
+  url.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID);
+  url.searchParams.set("redirect_uri", getOAuthRedirectUri(req, "github"));
+  url.searchParams.set("scope", "read:user user:email");
+  url.searchParams.set(
+    "state",
+    Buffer.from(JSON.stringify({ role: req.query.role || ROLES.STUDENT })).toString("base64url"),
+  );
+  return res.redirect(url.toString());
+});
+
+router.get("/oauth/github/callback", async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code) return redirectOAuthError(res, "Missing GitHub authorization code");
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+      return redirectOAuthError(res, "GitHub OAuth is not configured");
+    }
+
+    const tokenData = await exchangeOAuthCode({
+      tokenUrl: "https://github.com/login/oauth/access_token",
+      params: {
+        code,
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        redirect_uri: getOAuthRedirectUri(req, "github"),
+      },
+    });
+    const profile = await fetchJson("https://api.github.com/user", tokenData.access_token);
+    const emails = await fetchJson(
+      "https://api.github.com/user/emails",
+      tokenData.access_token,
+    );
+    const primaryEmail =
+      emails.find((item) => item.primary && item.verified)?.email ||
+      emails.find((item) => item.verified)?.email;
+    const stateData = state
+      ? JSON.parse(Buffer.from(String(state), "base64url").toString("utf8"))
+      : {};
+    const user = await upsertOAuthUser({
+      provider: "github",
+      providerId: String(profile.id),
+      email: primaryEmail,
+      name: profile.name || profile.login,
+      profileImage: profile.avatar_url,
+      role: stateData.role,
+    });
+    return redirectOAuthSuccess(res, await createAuthPayload(user));
+  } catch (error) {
+    console.error("GitHub OAuth error:", error);
+    return redirectOAuthError(res, error.message || "GitHub sign-in failed");
+  }
 });
 
 // Register

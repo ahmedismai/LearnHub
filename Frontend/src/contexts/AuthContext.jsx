@@ -25,6 +25,37 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!user;
 
+  const normalizeAuthUser = (userData = {}) => {
+    const rawRole = userData.role || userData.roles?.[0] || "Student";
+    return {
+      ...userData,
+      id: userData.id || userData.userId || userData._id,
+      userId: userData.userId || userData.id || userData._id,
+      fullName: userData.fullName || userData.name,
+      emailConfirmed: userData.emailConfirmed,
+      role: rawRole,
+    };
+  };
+
+  const getApiBaseUrl = () => api.defaults.baseURL || "";
+
+  const startOAuthLogin = (provider, role = "Student") => {
+    const params = new URLSearchParams({ role });
+    window.location.href = `${getApiBaseUrl()}/api/Account/oauth/${provider}?${params}`;
+  };
+
+  const completeOAuthLogin = ({ accessToken, refreshToken, user: oauthUser }) => {
+    const userData =
+      typeof oauthUser === "string" ? JSON.parse(oauthUser) : oauthUser;
+    const normalizedUser = normalizeAuthUser(userData);
+
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
+    return normalizedUser;
+  };
+
   const login = async (email, password) => {
     const response = await api.post("/api/Account/Login", { email, password });
     const { accessToken, refreshToken, user: loginUser } = response.data;
@@ -35,16 +66,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const profileResponse = await api.get("/api/Account/Account/GetProfile");
       const userData = profileResponse.data?.data || profileResponse.data || loginUser;
-      const rawRole = userData.role || userData.roles?.[0] || "Student";
-
-      const userWithRole = {
-        ...userData,
-        id: userData.id || userData.userId || userData._id,
-        userId: userData.userId || userData.id || userData._id,
-        fullName: userData.fullName || userData.name,
-        emailConfirmed: userData.emailConfirmed,
-        role: rawRole,
-      };
+      const userWithRole = normalizeAuthUser(userData);
 
       localStorage.setItem("user", JSON.stringify(userWithRole));
       setUser(userWithRole);
@@ -59,16 +81,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const profileResponse = await api.get("/api/Account/Account/GetProfile");
       const userData = profileResponse.data?.data || profileResponse.data;
-      const rawRole = userData.role || userData.roles?.[0] || "Student";
-
-      const userWithRole = {
-        ...userData,
-        id: userData.id || userData.userId || userData._id,
-        userId: userData.userId || userData.id || userData._id,
-        fullName: userData.fullName || userData.name,
-        emailConfirmed: userData.emailConfirmed,
-        role: rawRole,
-      };
+      const userWithRole = normalizeAuthUser(userData);
 
       localStorage.setItem("user", JSON.stringify(userWithRole));
       setUser(userWithRole);
@@ -138,6 +151,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         login,
+        startOAuthLogin,
+        completeOAuthLogin,
         refreshUser,
         register,
         logout,

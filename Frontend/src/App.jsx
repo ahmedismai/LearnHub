@@ -48,6 +48,7 @@ import ExamFeedback from "./pages/ExamFeedback"; // New import
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import SmartAssessments from "./pages/SmartAssessments";
 import ConfirmReset from "./pages/confirmResetPassword";
+import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,7 @@ const App = () => (
             </Route>
 
             <Route path="/confirm-email" element={<ConfirmEmail />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
 
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
