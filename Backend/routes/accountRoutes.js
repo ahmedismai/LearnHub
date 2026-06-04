@@ -71,12 +71,11 @@ const getOAuthRedirectUri = (req, provider) =>
 const getGoogleOAuthClient = (req) =>
   new OAuth2Client(
     process.env.WEB_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
     getOAuthRedirectUri(req, "google"),
   );
 
 const getGoogleAudiences = () =>
-  (process.env.WEB_CLIENT_ID || process.env.WEB_CLIENT_ID || "")
+  (process.env.WEB_CLIENT_ID || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -84,7 +83,7 @@ const getGoogleAudiences = () =>
 const verifyGmailAccount = async (idToken) => {
   const audiences = getGoogleAudiences();
   if (!audiences.length) {
-    throw new Error("GOOGLE_CLIENT_ID or WEB_CLIENT_ID is not configured");
+    throw new Error("WEB_CLIENT_ID is not configured");
   }
 
   const client = new OAuth2Client();
