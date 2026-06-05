@@ -109,14 +109,18 @@ function InstallAppButton() {
   const [installMessage, setInstallMessage] = useState("");
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      window.navigator.standalone === true;
-    setIsInstalled(standalone);
-    setInstallPrompt(window.learnHubInstallPrompt || null);
+    const checkInstallation = () => {
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        window.navigator.standalone === true;
+      setIsInstalled(standalone);
+    };
+
+    checkInstallation();
+    setInstallPrompt(window.learnHubInstallPrompt);
 
     const handleInstallReady = () => {
-      setInstallPrompt(window.learnHubInstallPrompt || null);
+      setInstallPrompt(window.learnHubInstallPrompt);
       setInstallMessage("");
     };
 
@@ -130,12 +134,20 @@ function InstallAppButton() {
     window.addEventListener("appinstalled", handleInstalled);
     window.addEventListener("learnhub-installed", handleInstalled);
 
+    // Re-check periodically if not ready yet
+    const interval = setInterval(() => {
+      if (!installPrompt && window.learnHubInstallPrompt) {
+        setInstallPrompt(window.learnHubInstallPrompt);
+      }
+    }, 2000);
+
     return () => {
       window.removeEventListener("learnhub-install-ready", handleInstallReady);
       window.removeEventListener("appinstalled", handleInstalled);
       window.removeEventListener("learnhub-installed", handleInstalled);
+      clearInterval(interval);
     };
-  }, []);
+  }, [installPrompt]);
 
   const handleInstall = async () => {
     const prompt = installPrompt || window.learnHubInstallPrompt;
