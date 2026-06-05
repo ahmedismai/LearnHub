@@ -166,13 +166,13 @@ function InstallAppButton() {
         onClick={handleInstall}
       >
         <Download className="w-[18px] h-[18px]" />
-        Install App
+        تحميل التطبيق
       </Button>
       {showInstallHelp && !installPrompt && (
-        <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[260px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
+        <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[280px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
           {isIos
-            ? "On iPhone, tap Share, then Add to Home Screen."
-            : "Open your browser menu, then choose Install app or Add to Home screen."}
+            ? "على iPhone اضغط زر المشاركة، ثم اختار Add to Home Screen."
+            : "افتح قائمة المتصفح، ثم اختار Install app أو Add to Home screen."}
         </div>
       )}
     </div>
