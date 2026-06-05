@@ -106,52 +106,56 @@ const getInitials = (name = "User") =>
 function InstallAppButton() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [showInstallHelp, setShowInstallHelp] = useState(false);
-  const [isIos, setIsIos] = useState(false);
+  const [installMessage, setInstallMessage] = useState("");
 
   useEffect(() => {
     const standalone =
       window.matchMedia?.("(display-mode: standalone)")?.matches ||
       window.navigator.standalone === true;
     setIsInstalled(standalone);
+    setInstallPrompt(window.learnHubInstallPrompt || null);
 
-    const detectedIos =
-      /iphone|ipad|ipod/i.test(window.navigator.userAgent) && !standalone;
-    setIsIos(detectedIos);
-
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setInstallPrompt(event);
-      setShowInstallHelp(false);
+    const handleInstallReady = () => {
+      setInstallPrompt(window.learnHubInstallPrompt || null);
+      setInstallMessage("");
     };
 
     const handleInstalled = () => {
       setIsInstalled(true);
       setInstallPrompt(null);
-      setShowInstallHelp(false);
+      setInstallMessage("");
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("learnhub-install-ready", handleInstallReady);
     window.addEventListener("appinstalled", handleInstalled);
+    window.addEventListener("learnhub-installed", handleInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("learnhub-install-ready", handleInstallReady);
       window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener("learnhub-installed", handleInstalled);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (!installPrompt) {
-      setShowInstallHelp((current) => !current);
+    const prompt = installPrompt || window.learnHubInstallPrompt;
+    if (!prompt) {
+      setInstallMessage(
+        "Install is not ready yet. Refresh once after deployment, then tap Install App again in Chrome or Edge.",
+      );
       return;
     }
 
-    installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
+    prompt.prompt();
+    const choice = await prompt.userChoice;
     if (choice?.outcome === "accepted") {
+      window.learnHubInstallPrompt = null;
       setInstallPrompt(null);
-      setShowInstallHelp(false);
+      setInstallMessage("");
+      return;
     }
+
+    setInstallMessage("Install was cancelled. Tap Install App to try again.");
   };
 
   if (isInstalled) return null;
@@ -164,15 +168,18 @@ function InstallAppButton() {
         size="xl"
         className="bg-white/70 backdrop-blur-md border-primary/20"
         onClick={handleInstall}
+        title={
+          installPrompt
+            ? "Install LearnHub"
+            : "Install is not ready in this browser yet"
+        }
       >
         <Download className="w-[18px] h-[18px]" />
-        تحميل التطبيق
+        Install App
       </Button>
-      {showInstallHelp && !installPrompt && (
-        <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[280px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
-          {isIos
-            ? "على iPhone اضغط زر المشاركة، ثم اختار Add to Home Screen."
-            : "افتح قائمة المتصفح، ثم اختار Install app أو Add to Home screen."}
+      {installMessage && (
+        <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[300px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
+          {installMessage}
         </div>
       )}
     </div>

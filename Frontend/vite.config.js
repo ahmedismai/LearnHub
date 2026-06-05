@@ -44,16 +44,20 @@ export default defineConfig(({ mode }) => ({
         "icon-512.png",
       ],
       manifest: {
+        id: "/",
         name: "LearnHub",
         short_name: "LearnHub",
         description:
           "LearnHub mobile learning app for courses, assessments, certificates, and AI tutoring.",
         theme_color: "#0f766e",
         background_color: "#f8fafc",
+        lang: "en",
         display: "standalone",
+        display_override: ["standalone", "minimal-ui"],
         orientation: "portrait",
         scope: "/",
         start_url: "/",
+        prefer_related_applications: false,
         icons: [
           {
             src: "/icon-192.png",

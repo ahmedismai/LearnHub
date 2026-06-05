@@ -1,14 +1,17 @@
 {
+  "id": "/",
   "name": "LearnHub",
   "short_name": "LearnHub",
   "description": "LearnHub mobile learning app for courses, assessments, certificates, and AI tutoring.",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#f8fafc",
   "theme_color": "#0f766e",
   "lang": "en",
   "scope": "/",
   "orientation": "portrait",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
