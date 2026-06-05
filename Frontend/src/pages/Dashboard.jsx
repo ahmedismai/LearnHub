@@ -21,60 +21,20 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getFullUrl } from "@/lib/urlHelper";
 
-const FALLBACK_MY_COURSES = [
-  {
-    courseId: 1,
-    title: "React from Zero to Hero",
-    categoryName: "Web Development",
-    instructorName: "Mohamed Kamal",
-    progress: 72,
-    gradient: "linear-gradient(135deg, #99e4dd 0%, #14b8a6 100%)",
-  },
-  {
-    courseId: 2,
-    title: "Machine Learning Fundamentals",
-    categoryName: "AI & Data",
-    instructorName: "Dr. Lina Khaled",
-    progress: 38,
-    gradient: "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)",
-  },
-  {
-    courseId: 3,
-    title: "Python for Absolute Beginners",
-    categoryName: "Programming",
-    instructorName: "Ahmed Ismail",
-    progress: 91,
-    gradient: "linear-gradient(135deg, #ccf2ee 0%, #0f766e 100%)",
-  },
-];
-
-const FALLBACK_AVAILABLE_EXAMS = [
-  { examId: 1, title: "React Hooks - Final Quiz", courseTitle: "REACT FROM ZERO TO HERO" },
-  { examId: 2, title: "Linear Regression Project", courseTitle: "ML FUNDAMENTALS" },
-  { examId: 3, title: "CSS Grid Practical", courseTitle: "WEB FUNDAMENTALS", expired: true },
-];
-
-const FALLBACK_SUBMITTED_EXAMS = [
-  { examId: 11, examTitle: "JavaScript Fundamentals Exam", score: 92, startedAt: new Date().toISOString() },
-  { examId: 12, examTitle: "Git & GitHub Quiz", score: 88, startedAt: new Date().toISOString() },
-  { examId: 13, examTitle: "TypeScript Basics", score: 95, startedAt: new Date().toISOString() },
-];
-
 const pageMotion = {
   hidden: { opacity: 0, y: 18 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeInOut" } },
 };
 
 const WeeklyGoalCard = ({ completed = 0 }) => {
-  const days = [
-    { d: "MON", done: completed >= 1 },
-    { d: "TUE", done: completed >= 2 },
-    { d: "WED", done: completed >= 3 },
-    { d: "THU", done: completed >= 4, today: true },
-    { d: "FRI", done: completed >= 5 },
-    { d: "SAT", done: false },
-    { d: "SUN", done: false },
-  ];
+  const todayIndex = (new Date().getDay() + 6) % 7;
+  const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(
+    (day, index) => ({
+      d: day,
+      done: completed >= index + 1,
+      today: index === todayIndex,
+    }),
+  );
 
   return (
     <div className="ring-card col gap-4 relative">
@@ -125,7 +85,7 @@ const WeeklyGoalCard = ({ completed = 0 }) => {
 const Dashboard = () => {
   const { user } = useAuth();
 
-  const { data: dashboardData, isLoading } = useQuery({
+  const { data: dashboardData, isLoading, isError, error } = useQuery({
     queryKey: ["student-dashboard"],
     queryFn: async () => {
       const response = await api.get("/api/Dashboard/StudentDashboard");
@@ -134,22 +94,17 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  const hasDashboardData = Boolean(dashboardData);
-  const stats = dashboardData?.stats || { totalCourses: 12, totalExams: 48 };
-  const rawMyCourses = dashboardData?.myCourses || [];
-  const myCoursesFromApi = rawMyCourses.map((c) => ({
-    ...c,
-    progress: c.progress?.progressPercentage || 0,
-  }));
-  const myCourses = hasDashboardData && myCoursesFromApi.length > 0 ? myCoursesFromApi : FALLBACK_MY_COURSES;
-  const availableExams =
-    hasDashboardData && (dashboardData?.availableExams || []).length > 0
-      ? dashboardData.availableExams
-      : FALLBACK_AVAILABLE_EXAMS;
-  const submittedExams =
-    hasDashboardData && (dashboardData?.submittedExams || []).length > 0
-      ? dashboardData.submittedExams
-      : FALLBACK_SUBMITTED_EXAMS;
+  const stats = dashboardData?.stats || {
+    totalCourses: 0,
+    activeCourses: 0,
+    completedCourses: 0,
+    averageProgress: 0,
+    totalExams: 0,
+    certificatesEarned: 0,
+  };
+  const myCourses = dashboardData?.myCourses || [];
+  const availableExams = dashboardData?.availableExams || [];
+  const submittedExams = dashboardData?.submittedExams || [];
 
   const weeklyCompleted = Math.min(
     5,
@@ -160,6 +115,17 @@ const Dashboard = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="side-card">
+        <div className="side-card__row justify-center text-sm text-muted-foreground">
+          {error?.response?.data?.message ||
+            "Unable to load your dashboard data right now."}
+        </div>
       </div>
     );
   }
@@ -176,7 +142,17 @@ const Dashboard = () => {
             </span>
           </h1>
           <p className="page__subtitle">
-            You've got <strong style={{ color: "var(--fg-1)" }}>3 lessons</strong> to finish this week. Pick up where you left off.
+            You have{" "}
+            <strong style={{ color: "var(--fg-1)" }}>
+              {stats.activeCourses} active course
+              {stats.activeCourses === 1 ? "" : "s"}
+            </strong>{" "}
+            and{" "}
+            <strong style={{ color: "var(--fg-1)" }}>
+              {availableExams.length} available assessment
+              {availableExams.length === 1 ? "" : "s"}
+            </strong>
+            .
           </p>
         </div>
         <div className="row gap-2">
@@ -196,7 +172,7 @@ const Dashboard = () => {
               <LibraryBig size={20} />
             </div>
           </div>
-          <div className="stat__val">{stats.totalCourses}</div>
+          <div className="stat__val">{stats.activeCourses}</div>
           <div className="stat__label">Active courses</div>
         </div>
 
@@ -207,7 +183,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat__val">{stats.totalExams}</div>
-          <div className="stat__label">Lessons this month</div>
+          <div className="stat__label">Available exams</div>
         </div>
 
         <div className="stat">
@@ -216,8 +192,8 @@ const Dashboard = () => {
               <Zap size={20} />
             </div>
           </div>
-          <div className="stat__val">21</div>
-          <div className="stat__label">Day streak</div>
+          <div className="stat__val">{stats.averageProgress}%</div>
+          <div className="stat__label">Average progress</div>
         </div>
 
         <div className="stat">
@@ -226,7 +202,7 @@ const Dashboard = () => {
               <Trophy size={20} />
             </div>
           </div>
-          <div className="stat__val">4</div>
+          <div className="stat__val">{stats.certificatesEarned}</div>
           <div className="stat__label">Certificates earned</div>
         </div>
       </div>

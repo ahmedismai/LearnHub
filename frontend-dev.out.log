@@ -1,53 +1,11 @@
 
 > learnhub-frontend@0.0.0 dev
-> vite --host 127.0.0.1
+> vite
 
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m3133[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m2161[22m[2m[0m ms[22m
 
-  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m8080[22m/[39m
-[2m4:53:06 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Assignments.jsx[22m
-[2m4:53:15 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Assignments.jsx[22m
-[2m4:53:32 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
-[2m4:54:04 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
-[2m4:54:36 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
-[2m4:54:46 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/instructor/InstructorAssignments.jsx[22m
-[2m4:54:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
-[2m4:56:37 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/BrowseCourses.jsx, /src/index.css, /src/pages/CourseDetails.jsx, /src/pages/MyCourses.jsx, /src/pages/Payment.jsx, /src/pages/admin/AdminEnrollments.jsx, /src/pages/MyOrders.jsx, /src/pages/instructor/StudentManagement.jsx, /src/pages/SmartAssessments.jsx, /src/pages/instructor/StudentResults.jsx[22m
-[2m4:57:45 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/instructor/InstructorSubmissions.jsx, /src/index.css[22m
-[2m5:06:39 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
-Re-optimizing dependencies because vite config has changed
-[2m5:06:57 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:09:11 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
-[2m5:09:11 PM[22m [36m[1m[vite][22m[39m server restarted.
-
-  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m8080[22m/[39m
-[2m5:09:16 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:20:25 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:20:26 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
-[2m5:22:24 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
-[2m5:22:24 PM[22m [36m[1m[vite][22m[39m server restarted.
-[2m6:34:15 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m6:34:15 PM[22m [36m[1m[vite][22m[39m server restarted.
-[2m6:36:58 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m6:36:58 PM[22m [36m[1m[vite][22m[39m server restarted.
-[2m6:41:27 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m6:41:27 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m6:41:28 PM[22m [36m[1m[vite][22m[39m server restarted.
-[2m6:42:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/contexts/AuthContext.jsx, /src/index.css[22m
-[2m6:42:50 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/contexts/AuthContext.jsx[22m Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react-swc#consistent-components-exports
-[2m6:42:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx, /src/index.css, /src/pages/Register.jsx, /src/pages/Login.jsx, /src/pages/Payment.jsx, /src/components/DashboardLayout.jsx, /src/pages/BrowseCourses.jsx, /src/components/MainLayout.jsx, /src/pages/CreateCourse.jsx, /src/pages/MyCourses.jsx, /src/pages/Index.jsx, /src/pages/Grades.jsx, /src/pages/Exams.jsx, /src/pages/CreateExam.jsx, /src/pages/Profile.jsx, /src/pages/QuizPage.jsx, /src/pages/MyOrders.jsx, /src/pages/instructor/StudentManagement.jsx, /src/pages/Certificates.jsx, /src/components/RoleBasedDashboard.jsx, /src/pages/CourseDetails.jsx, /src/pages/OAuthCallback.jsx, /src/pages/instructor/StudentResults.jsx, /src/pages/ExamFeedback.jsx, /src/pages/SmartAssessments.jsx, /src/components/DashboardSidebar.jsx, /src/pages/instructor/InstructorOverview.jsx, /src/pages/Dashboard.jsx[22m
-[2m6:45:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/contexts/AuthContext.jsx, /src/index.css[22m
-[2m6:49:29 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/contexts/AuthContext.jsx, /src/index.css[22m
-[2m6:49:51 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login.jsx, /src/index.css[22m
-[2m6:50:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
-[2m6:51:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
-[2m6:52:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Register.jsx, /src/index.css[22m
-[2m7:16:10 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m7:16:11 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m7:16:11 PM[22m [36m[1m[vite][22m[39m server restarted.
-[2m7:42:30 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m7:42:30 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
-[2m7:42:31 PM[22m [36m[1m[vite][22m[39m server restarted.
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m8080[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.16:[1m8080[22m/[39m
+[2m3:50:10 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m3:50:10 PM[22m [36m[1m[vite][22m[39m server restarted.
