@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, Eye, FileText, Search, Users } from "lucide-react";
 import accountService from "@/api/account";
-import examService from "@/api/exam";
+import gradeService from "@/api/grade";
 
 const unwrapArray = (value) => {
   const data = value?.data?.data || value?.data || value;
@@ -54,6 +54,9 @@ const getResultId = (item) =>
   ]) ||
   pickValue(item?.examResult, ["examResultId", "ExamResultId", "id", "Id"]);
 
+const getGradeId = (item) =>
+  pickValue(item, ["gradeId", "GradeId", "gradeID", "GradeID"]);
+
 const getExamTitle = (item) =>
   pickValue(item, ["examTitle", "ExamTitle", "title", "Title"]) ||
   pickValue(item?.exam, ["examTitle", "ExamTitle", "title", "Title"]);
@@ -80,9 +83,9 @@ const AdminStudentResults = () => {
   } = useQuery({
     queryKey: ["admin", "student-results-all"],
     queryFn: async () => {
-      const [usersResponse, examsResponse] = await Promise.all([
+      const [usersResponse, gradesResponse] = await Promise.all([
         accountService.getAllUsers(),
-        examService.getAll(),
+        gradeService.getAdminGrades(),
       ]);
 
       const users = unwrapArray(usersResponse);
@@ -91,30 +94,12 @@ const AdminStudentResults = () => {
         return roles.length === 0 || roles.includes("Student");
       });
 
-      const exams = unwrapArray(examsResponse);
-      const resultsByExam = await Promise.all(
-        exams.map(async (exam) => {
-          const examId = getExamId(exam);
-          if (!examId) return [];
-
-          try {
-            const response = await examService.getResultsByExam(examId);
-            return unwrapArray(response).map((result) => ({
-              ...result,
-              examId: getExamId(result) || examId,
-              examTitle: getExamTitle(result) || getExamTitle(exam),
-              courseTitle: getCourseTitle(result) || getCourseTitle(exam),
-            }));
-          } catch (err) {
-            console.warn("Could not load results for exam:", examId, err);
-            return [];
-          }
-        }),
-      );
-
-      const resultRows = resultsByExam.flat().map((result) => ({
+      const grades = unwrapArray(gradesResponse);
+      const resultRows = grades.map((result) => ({
+        gradeId: getGradeId(result),
         studentId: getStudentId(result),
         studentName: getStudentName(result) || "Student",
+        email: result.email,
         examId: getExamId(result),
         resultId: getResultId(result),
         examTitle: getExamTitle(result) || "Assessment",
@@ -274,11 +259,11 @@ const AdminStudentResults = () => {
             </div>
               {filteredRows.length > 0 ? (
                 filteredRows.map((row, index) => {
-                  const targetId = row.resultId || row.examId;
-                  const lookup = row.resultId ? "result" : "exam";
+                  const targetId = row.gradeId || row.resultId || row.examId;
+                  const lookup = row.gradeId ? "grade" : row.resultId ? "result" : "exam";
                   return (
                     <div
-                      key={row.resultId || `${row.studentId}-${row.examId}-${index}`}
+                      key={row.gradeId || row.resultId || `${row.studentId}-${row.examId}-${index}`}
                       className="data-list__row grid-cols-[1.2fr,1.2fr,1.2fr,0.6fr,0.8fr,0.9fr]"
                     >
                       <div className="data-list__cell" data-label="Student">

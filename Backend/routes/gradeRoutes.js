@@ -14,6 +14,31 @@ const getAssessmentTitle = (grade) => {
   return assessment?.title || `${grade.type} Assessment`;
 };
 
+const mapGradeRow = (grade) => {
+  const assessment = grade.examId || grade.quizId || grade.assignmentId;
+  const percentage = Math.round(grade.percentage ?? 0);
+
+  return {
+    gradeId: String(grade._id),
+    id: String(grade._id),
+    type: grade.type,
+    studentId: String(grade.studentId?._id || grade.studentId),
+    studentName: grade.studentId?.name || "Student",
+    email: grade.studentId?.email || "",
+    courseId: String(grade.courseId?._id || grade.courseId),
+    courseTitle: grade.courseId?.title || "Course",
+    examId: grade.examId ? String(grade.examId?._id || grade.examId) : null,
+    examTitle: assessment?.title || `${grade.type} Assessment`,
+    score: percentage,
+    percentage,
+    rawScore: grade.score,
+    maxScore: grade.maxScore,
+    aiFeedback: grade.aiFeedback || "",
+    isReviewed: Boolean(grade.isReviewed),
+    startedAt: grade.createdAt,
+  };
+};
+
 const mapExamAnswers = (exam, answerRecords = []) => {
   const answersByQuestionId = new Map(
     answerRecords.map((answer) => [String(answer.questionId), answer]),
@@ -49,19 +74,47 @@ router.get(
     try {
       const courses = await Course.find({ instructorId: req.user.id });
       const courseIds = courses.map((c) => c._id);
-      const grades = await Grade.find({ courseId: { $in: courseIds } })
+      const filter = { courseId: { $in: courseIds } };
+      if (req.query.courseId) {
+        filter.courseId = { $in: courseIds.filter((id) => String(id) === String(req.query.courseId)) };
+      }
+
+      const grades = await Grade.find(filter)
         .populate("studentId", "name email")
         .populate("courseId", "title")
         .populate("quizId", "title")
         .populate("examId", "title")
         .populate("assignmentId", "title")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
-      res.json(grades);
+      res.json(grades.map(mapGradeRow));
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
+);
+
+router.get(
+  "/Admin/AllGrades",
+  protect,
+  authorize(ROLES.ADMINISTRATOR),
+  async (_req, res) => {
+    try {
+      const grades = await Grade.find({})
+        .populate("studentId", "name email")
+        .populate("courseId", "title")
+        .populate("quizId", "title")
+        .populate("examId", "title")
+        .populate("assignmentId", "title")
+        .sort({ createdAt: -1 })
+        .lean();
+
+      res.json(grades.map(mapGradeRow));
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
 );
 
 router.get(

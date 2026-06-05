@@ -106,7 +106,8 @@ const getInitials = (name = "User") =>
 function InstallAppButton() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [isIos, setIsIos] = useState(false);
 
   useEffect(() => {
     const standalone =
@@ -114,19 +115,20 @@ function InstallAppButton() {
       window.navigator.standalone === true;
     setIsInstalled(standalone);
 
-    const isIos =
+    const detectedIos =
       /iphone|ipad|ipod/i.test(window.navigator.userAgent) && !standalone;
-    setShowIosHint(isIos);
+    setIsIos(detectedIos);
 
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       setInstallPrompt(event);
+      setShowInstallHelp(false);
     };
 
     const handleInstalled = () => {
       setIsInstalled(true);
       setInstallPrompt(null);
-      setShowIosHint(false);
+      setShowInstallHelp(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -140,7 +142,7 @@ function InstallAppButton() {
 
   const handleInstall = async () => {
     if (!installPrompt) {
-      setShowIosHint(true);
+      setShowInstallHelp((current) => !current);
       return;
     }
 
@@ -148,10 +150,11 @@ function InstallAppButton() {
     const choice = await installPrompt.userChoice;
     if (choice?.outcome === "accepted") {
       setInstallPrompt(null);
+      setShowInstallHelp(false);
     }
   };
 
-  if (isInstalled || (!installPrompt && !showIosHint)) return null;
+  if (isInstalled) return null;
 
   return (
     <div className="relative">
@@ -165,9 +168,11 @@ function InstallAppButton() {
         <Download className="w-[18px] h-[18px]" />
         Install App
       </Button>
-      {showIosHint && !installPrompt && (
+      {showInstallHelp && !installPrompt && (
         <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[260px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
-          On iPhone, tap Share, then Add to Home Screen.
+          {isIos
+            ? "On iPhone, tap Share, then Add to Home Screen."
+            : "Open your browser menu, then choose Install app or Add to Home screen."}
         </div>
       )}
     </div>

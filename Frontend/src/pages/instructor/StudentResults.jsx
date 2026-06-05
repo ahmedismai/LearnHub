@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import examService from "@/api/exam";
 import courseService from "@/api/course";
 import enrollmentService from "@/api/enrollment";
+import gradeService from "@/api/grade";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +83,9 @@ const StudentResults = () => {
     ]) ||
     pickValue(item?.examResult, ["examResultId", "ExamResultId", "id", "Id"]);
 
+  const getGradeId = (item) =>
+    pickValue(item, ["gradeId", "GradeId", "gradeID", "GradeID"]);
+
   const getExamTitle = (item) =>
     pickValue(item, ["examTitle", "ExamTitle", "title", "Title"]) ||
     pickValue(item?.exam, ["examTitle", "ExamTitle", "title", "Title"]);
@@ -126,6 +129,7 @@ const StudentResults = () => {
 
     const resultRows = results.map((result) => ({
       ...result,
+      gradeId: getGradeId(result),
       courseId: getCourseId(result) || courseId,
       courseTitle: getCourseTitle(result) || courseTitle,
       studentId: getStudentId(result),
@@ -170,43 +174,21 @@ const StudentResults = () => {
     const courseId = getCourseId(course);
     if (!courseId) return [];
 
-    const [enrollmentsResponse, examsResponse] = await Promise.all([
+    const [enrollmentsResponse, gradesResponse] = await Promise.all([
       enrollmentService.getByCourse(courseId).catch((error) => {
         console.warn("Could not load enrollments for course:", courseId, error);
         return [];
       }),
-      examService.getByCourse(courseId).catch((error) => {
-        console.warn("Could not load exams for course:", courseId, error);
+      gradeService.getInstructorGrades(courseId).catch((error) => {
+        console.warn("Could not load grades for course:", courseId, error);
         return [];
       }),
     ]);
 
-    const exams = unwrapArray(examsResponse);
-    const resultsByExam = await Promise.all(
-      exams.map(async (exam) => {
-        const examId = getExamId(exam) || exam.id || exam.Id;
-        if (!examId) return [];
-
-        try {
-          const response = await examService.getResultsByExam(examId);
-          return unwrapArray(response).map((result) => ({
-            ...result,
-            courseId,
-            courseTitle: getCourseTitle(result) || getCourseTitle(course),
-            examId: getExamId(result) || examId,
-            examTitle: getExamTitle(result) || getExamTitle(exam),
-          }));
-        } catch (error) {
-          console.warn("Could not load results for exam:", examId, error);
-          return [];
-        }
-      }),
-    );
-
     return buildResultRows(
       course,
       unwrapArray(enrollmentsResponse),
-      resultsByExam.flat(),
+      unwrapArray(gradesResponse),
     );
   };
 
@@ -320,9 +302,10 @@ const StudentResults = () => {
               {filteredResults.length > 0 ? (
                 filteredResults.map((res, index) => {
                   const targetExamId = getExamId(res) || res.examId;
+                  const targetGradeId = getGradeId(res) || res.gradeId;
                   const targetResultId = getResultId(res) || res.resultId;
-                  const feedbackTargetId = targetResultId || targetExamId;
-                  const lookup = targetResultId ? "result" : "exam";
+                  const feedbackTargetId = targetGradeId || targetResultId || targetExamId;
+                  const lookup = targetGradeId ? "grade" : targetResultId ? "result" : "exam";
                   const scoreValue = getScore(res);
                   const hasResult =
                     res.hasResult !== false && scoreValue !== null;
@@ -331,6 +314,7 @@ const StudentResults = () => {
                     <div
                       key={
                         targetResultId ||
+                        targetGradeId ||
                         `${res.courseId}-${res.studentId}-${targetExamId}-${index}`
                       }
                       className="data-list__row grid-cols-[1.2fr,1.2fr,1.2fr,0.6fr,0.8fr,0.9fr]"
