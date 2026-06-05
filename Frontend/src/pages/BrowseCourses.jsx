@@ -23,27 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { getFullUrl } from "@/lib/urlHelper";
 
-const FALLBACK_CATEGORIES = [
-  { categoryId: "web", categoryName: "Web Development" },
-  { categoryId: "ai", categoryName: "AI & Data" },
-  { categoryId: "design", categoryName: "Design" },
-  { categoryId: "devops", categoryName: "DevOps" },
-  { categoryId: "mobile", categoryName: "Mobile" },
-  { categoryId: "programming", categoryName: "Programming" },
-];
-
-const FALLBACK_COURSES = [
-  { courseId: 1, title: "React from Zero to Hero", categoryName: "Web Development", level: "Intermediate", price: 49, rating: 4.9, averageRating: 4.9, enrolledCount: 412, instructorName: "Mohamed Kamal", gradient: "linear-gradient(135deg, #99e4dd 0%, #14b8a6 100%)", hot: true },
-  { courseId: 2, title: "Machine Learning Fundamentals", categoryName: "AI & Data", level: "Beginner", price: 79, rating: 4.8, averageRating: 4.8, enrolledCount: 218, instructorName: "Dr. Lina Khaled", gradient: "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)" },
-  { courseId: 3, title: "Python for Absolute Beginners", categoryName: "Programming", level: "Beginner", price: 39, rating: 4.7, averageRating: 4.7, enrolledCount: 521, instructorName: "Ahmed Ismail", gradient: "linear-gradient(135deg, #ccf2ee 0%, #0f766e 100%)" },
-  { courseId: 4, title: "UI/UX Design Foundations", categoryName: "Design", level: "All Levels", price: 59, rating: 4.6, averageRating: 4.6, enrolledCount: 184, instructorName: "Nour Rashad", gradient: "linear-gradient(135deg, #e9d5ff 0%, #8b5cf6 100%)", hot: true },
-  { courseId: 5, title: "Cloud Computing with AWS", categoryName: "DevOps", level: "Intermediate", price: 89, rating: 4.8, averageRating: 4.8, enrolledCount: 156, instructorName: "Yara Magdy", gradient: "linear-gradient(135deg, #99e4dd 0%, #115e58 100%)" },
-  { courseId: 6, title: "Build a SaaS with Next.js", categoryName: "Web Development", level: "Advanced", price: 99, rating: 4.9, averageRating: 4.9, enrolledCount: 263, instructorName: "Sara Ahmed", gradient: "linear-gradient(135deg, #ccf2ee 0%, #5fd1c7 100%)", hot: true },
-  { courseId: 7, title: "Advanced TypeScript Patterns", categoryName: "Web Development", level: "Advanced", price: 69, rating: 4.8, averageRating: 4.8, enrolledCount: 187, instructorName: "Karim Hassan", gradient: "linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)" },
-  { courseId: 8, title: "Deep Learning with PyTorch", categoryName: "AI & Data", level: "Advanced", price: 119, rating: 4.9, averageRating: 4.9, enrolledCount: 94, instructorName: "Dr. Omar Tarek", gradient: "linear-gradient(135deg, #c4b5fd 0%, #6d28d9 100%)", hot: true },
-  { courseId: 9, title: "Figma for Developers", categoryName: "Design", level: "Beginner", price: 0, isFree: true, rating: 4.7, averageRating: 4.7, enrolledCount: 312, instructorName: "Nour Rashad", gradient: "linear-gradient(135deg, #fdba74 0%, #ea580c 100%)" },
-];
-
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -270,12 +249,16 @@ const BrowseCourses = () => {
   const isEnrolled = (courseId) =>
     enrollments.some((e) => String(e.courseId) === String(courseId));
 
-  const apiCategories = categoriesResponse?.data || [];
-  const categories = apiCategories.length > 0 ? apiCategories : FALLBACK_CATEGORIES;
+  const apiCategories = (categoriesResponse?.data || []).map((category) => ({
+    ...category,
+    categoryId: category.categoryId || category.id || category._id,
+    categoryName: category.categoryName || category.name,
+  }));
+  const categories = apiCategories;
   const coursesData = coursesResponse?.data || coursesResponse || {};
   const apiCourses =
     coursesData.data || (Array.isArray(coursesData) ? coursesData : []);
-  const courses = apiCourses.length > 0 ? apiCourses : FALLBACK_COURSES;
+  const courses = apiCourses;
   const totalPages = coursesData.totalPages || 1;
 
   const selectedCategory = categories.find(
@@ -386,7 +369,7 @@ const BrowseCourses = () => {
               borderRadius: 9999,
             }}
           >
-            <Sparkles size={12} /> 500+ Courses
+              <Sparkles size={12} /> {courses.length} Courses
           </span>
         </div>
       </div>

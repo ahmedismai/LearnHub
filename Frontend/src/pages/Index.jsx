@@ -88,6 +88,21 @@ function DesignAvatar({ initials, color = "teal", size = 28, className }) {
   );
 }
 
+const formatMetric = (value) => {
+  const number = Number(value || 0);
+  if (number >= 1000) return `${Math.round(number / 100) / 10}K+`;
+  return String(number);
+};
+
+const getInitials = (name = "User") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "U";
+
 function InstallAppButton() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -466,18 +481,18 @@ function TrustStrip() {
 }
 
 /* ===================== STATS ===================== */
-function Stats() {
-  const stats = [
-    { v: "50K+", l: "Active Students" },
-    { v: "200+", l: "Expert Instructors" },
-    { v: "500+", l: "Quality Courses" },
-    { v: "95%", l: "Success Rate" },
+function Stats({ stats = {} }) {
+  const metricItems = [
+    { v: formatMetric(stats.totalStudents), l: "Active Students" },
+    { v: formatMetric(stats.totalInstructors), l: "Expert Instructors" },
+    { v: formatMetric(stats.totalCourses), l: "Quality Courses" },
+    { v: formatMetric(stats.totalCertificates), l: "Certificates Earned" },
   ];
   return (
     <section className="section section--tight">
       <div className="container-xl">
         <div className="grid-4">
-          {stats.map((s, i) => (
+          {metricItems.map((s, i) => (
             <div key={i} className="text-center">
               <div className="text-[clamp(36px,4.4vw,56px)] font-extrabold text-primary leading-none tracking-tighter font-outfit">
                 {s.v}
@@ -494,7 +509,7 @@ function Stats() {
 }
 
 /* ===================== CATEGORIES ===================== */
-const CATS = [
+const CATEGORY_STYLES = [
   {
     Icon: Code,
     title: "Web Development",
@@ -545,91 +560,7 @@ const CATS = [
   },
 ];
 
-const FALLBACK_COURSES = [
-  {
-    courseId: 1,
-    title: "React from Zero to Hero",
-    categoryName: "Web Development",
-    level: "Intermediate",
-    price: 49,
-    rating: 4.9,
-    reviews: 412,
-    instructorName: "Mohamed Kamal",
-    lessons: 64,
-    gradient: "linear-gradient(135deg, #99e4dd 0%, #14b8a6 100%)",
-    Icon: Code,
-    hot: true,
-  },
-  {
-    courseId: 2,
-    title: "Machine Learning Fundamentals",
-    categoryName: "AI & Data",
-    level: "Beginner",
-    price: 79,
-    rating: 4.8,
-    reviews: 218,
-    instructorName: "Dr. Lina Khaled",
-    lessons: 92,
-    gradient: "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)",
-    Icon: Brain,
-  },
-  {
-    courseId: 3,
-    title: "Python for Absolute Beginners",
-    categoryName: "Programming",
-    level: "Beginner",
-    price: 39,
-    rating: 4.7,
-    reviews: 521,
-    instructorName: "Ahmed Ismail",
-    lessons: 48,
-    gradient: "linear-gradient(135deg, #ccf2ee 0%, #0f766e 100%)",
-    Icon: BookOpen,
-  },
-  {
-    courseId: 4,
-    title: "UI/UX Design Foundations",
-    categoryName: "Design",
-    level: "All Levels",
-    price: 59,
-    rating: 4.6,
-    reviews: 184,
-    instructorName: "Nour Rashad",
-    lessons: 52,
-    gradient: "linear-gradient(135deg, #e9d5ff 0%, #8b5cf6 100%)",
-    Icon: Palette,
-    hot: true,
-  },
-  {
-    courseId: 5,
-    title: "Cloud Computing with AWS",
-    categoryName: "DevOps",
-    level: "Intermediate",
-    price: 89,
-    rating: 4.8,
-    reviews: 156,
-    instructorName: "Yara Magdy",
-    lessons: 78,
-    gradient: "linear-gradient(135deg, #99e4dd 0%, #115e58 100%)",
-    Icon: Layers,
-  },
-  {
-    courseId: 6,
-    title: "Build a SaaS with Next.js",
-    categoryName: "Web Development",
-    level: "Advanced",
-    price: 99,
-    rating: 4.9,
-    reviews: 263,
-    instructorName: "Sara Ahmed",
-    lessons: 104,
-    gradient: "linear-gradient(135deg, #ccf2ee 0%, #5fd1c7 100%)",
-    Icon: Zap,
-    hot: true,
-  },
-];
-
-function Categories() {
+function Categories({ categories = [] }) {
   const getIconTileClass = (variant) => {
     switch (variant) {
       case "violet":
@@ -664,26 +595,37 @@ function Categories() {
           </Link>
         </div>
         <div className="grid-4 mt-2">
-          {CATS.map((c, i) => (
+          {categories.length > 0 ? categories.map((category, i) => {
+            const style = CATEGORY_STYLES[i % CATEGORY_STYLES.length];
+            const Icon = style.Icon;
+
+            return (
             <Link
-              to="/courses"
-              key={i}
+              to={`/courses?category=${category.categoryId}`}
+              key={category.categoryId || category.categoryName}
               className="cat-card no-underline group shadow-sm hover:shadow-md"
             >
               <div
                 className={cn(
                   "transition-transform group-hover:scale-110 duration-300",
-                  getIconTileClass(c.variant),
+                  getIconTileClass(style.variant),
                 )}
               >
-                <c.Icon className="w-5.5 h-5.5" />
+                <Icon className="w-5.5 h-5.5" />
               </div>
-              <div className="cat-card__title mt-3.5 font-bold">{c.title}</div>
+              <div className="cat-card__title mt-3.5 font-bold">
+                {category.categoryName}
+              </div>
               <div className="cat-card__count text-[12px] text-muted-foreground font-medium">
-                {c.count}
+                {category.courseCount} course{category.courseCount === 1 ? "" : "s"}
               </div>
             </Link>
-          ))}
+            );
+          }) : (
+            <div className="col-span-full rounded-2xl border border-dashed bg-white p-8 text-center text-sm font-medium text-muted-foreground">
+              Categories will appear here after they are created in the admin dashboard.
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -754,11 +696,12 @@ function HowItWorks() {
 }
 
 /* ===================== FEATURED COURSES ===================== */
-function FeaturedCourses({ courses, isLoading }) {
+function FeaturedCourses({ courses, isLoading, categories = [] }) {
   const [filter, setFilter] = useState("All");
-  const filters = ["All", "Web Development", "AI & Data", "Design", "DevOps"];
-  const sourceCourses =
-    Array.isArray(courses) && courses.length > 0 ? courses : FALLBACK_COURSES;
+  const filters = ["All", ...categories.map((category) => category.categoryName)]
+    .filter(Boolean)
+    .slice(0, 6);
+  const sourceCourses = Array.isArray(courses) ? courses : [];
   const featuredCourses =
     filter === "All"
       ? sourceCourses
@@ -816,7 +759,7 @@ function FeaturedCourses({ courses, isLoading }) {
                   </CardContent>
                 </Card>
               ))
-            : featuredCourses.slice(0, 6).map((course) => {
+            : featuredCourses.length > 0 ? featuredCourses.slice(0, 6).map((course) => {
                 const Icon = course.Icon || BookOpen;
                 const isFallback = !course.imgPath;
                 const price = Number(course.price || 0);
@@ -895,7 +838,13 @@ function FeaturedCourses({ courses, isLoading }) {
                     </Card>
                   </Link>
                 );
-              })}
+              }) : (
+                <Card className="col-span-full border-dashed">
+                  <CardContent className="p-10 text-center text-sm font-medium text-muted-foreground">
+                    Approved courses will appear here after instructors publish content.
+                  </CardContent>
+                </Card>
+              )}
         </div>
       </div>
     </section>
@@ -1059,8 +1008,9 @@ function AITutorSection() {
 }
 
 /* ===================== INSTRUCTOR SPOTLIGHT ===================== */
-function InstructorSpotlight() {
-  const instructors = [
+function InstructorSpotlight({ instructors = [] }) {
+  const visibleInstructors = instructors;
+  /*
     {
       name: "Dr. Lina Khaled",
       title: "Lead AI Researcher · ex-Google Brain",
@@ -1094,7 +1044,7 @@ function InstructorSpotlight() {
       blurb:
         "Design fundamentals you can apply in Day 1 — even if you've never opened a design tool.",
     },
-  ];
+  */
   return (
     <section className="section section--alt">
       <div className="container-xl flex flex-col gap-8">
@@ -1124,9 +1074,9 @@ function InstructorSpotlight() {
           </Button>
         </div>
         <div className="grid-3">
-          {instructors.map((inst, i) => (
+          {visibleInstructors.map((inst, i) => (
             <Card
-              key={i}
+              key={inst.instructorId || i}
               className="inst-card overflow-hidden border-border/60 shadow-sm hover:shadow-xl transition-all duration-300"
             >
               <div
@@ -1140,7 +1090,7 @@ function InstructorSpotlight() {
               >
                 <div className="absolute left-6 -bottom-7">
                   <DesignAvatar
-                    initials={inst.initials}
+                    initials={getInitials(inst.name)}
                     size={64}
                     className="border-4 border-white shadow-md"
                   />
@@ -1150,26 +1100,19 @@ function InstructorSpotlight() {
                 <div>
                   <h3 className="h3 font-outfit">{inst.name}</h3>
                   <div className="text-[13px] text-muted-foreground mt-0.5 font-medium">
-                    {inst.title}
+                    Instructor
                   </div>
                 </div>
                 <p className="m-0 text-[14px] text-muted-foreground leading-relaxed font-medium">
-                  {inst.blurb}
+                  {inst.bio || "Creating practical courses for LearnHub students."}
                 </p>
                 <div className="flex justify-between mt-2 pt-4 border-t border-muted/20">
                   {[
-                    ["Students", inst.students],
-                    ["Courses", inst.courses],
-                    ["Rating", inst.rating],
+                    ["Students", formatMetric(inst.studentsCount)],
+                    ["Courses", inst.coursesCount],
                   ].map(([label, val]) => (
                     <div key={label} className="flex flex-col">
                       <span className="font-extrabold text-[16px] flex items-center gap-1 font-outfit">
-                        {label === "Rating" && (
-                          <Star
-                            className="w-3.5 h-3.5 text-amber-500"
-                            fill="currentColor"
-                          />
-                        )}
                         {val}
                       </span>
                       <span className="text-[11px] text-muted-foreground font-bold tracking-wider uppercase">
@@ -1188,8 +1131,9 @@ function InstructorSpotlight() {
 }
 
 /* ===================== TESTIMONIALS ===================== */
-function Testimonials() {
-  const items = [
+function Testimonials({ testimonials = [] }) {
+  const items = testimonials;
+  /*
     {
       quote:
         "I went from changing my major to landing a junior dev role at a YC startup in 8 months. LearnHub's React track was my whole curriculum.",
@@ -1214,7 +1158,7 @@ function Testimonials() {
       initials: "NS",
       color: "violet",
     },
-  ];
+  */
   return (
     <section className="section">
       <div className="container-xl flex flex-col gap-8">
@@ -1230,7 +1174,7 @@ function Testimonials() {
           </h2>
         </div>
         <div className="grid-3">
-          {items.map((t, i) => (
+          {items.length > 0 ? items.map((t, i) => (
             <Card
               key={i}
               className="p-7 flex flex-col gap-4 border-border/60 shadow-sm hover:shadow-xl transition-all duration-300"
@@ -1241,19 +1185,25 @@ function Testimonials() {
                 ))}
               </div>
               <p className="text-base leading-relaxed text-foreground m-0 font-medium italic">
-                "{t.quote}"
+                "{t.comment}"
               </p>
               <div className="flex items-center gap-3 mt-auto pt-4 border-t border-muted/20">
-                <DesignAvatar initials={t.initials} color={t.color} size={36} />
+                <DesignAvatar initials={getInitials(t.studentName)} color="teal" size={36} />
                 <div>
-                  <div className="font-bold text-sm">{t.name}</div>
+                  <div className="font-bold text-sm">{t.studentName}</div>
                   <div className="text-[12px] text-muted-foreground font-medium">
-                    {t.role}
+                    {t.courseTitle}
                   </div>
                 </div>
               </div>
             </Card>
-          ))}
+          )) : (
+            <Card className="col-span-full border-dashed">
+              <CardContent className="p-10 text-center text-sm font-medium text-muted-foreground">
+                Student reviews will appear here after learners review courses.
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </section>
@@ -1578,6 +1528,14 @@ const Index = () => {
     },
   });
 
+  const { data: publicData = {} } = useQuery({
+    queryKey: ["public-dashboard"],
+    queryFn: async () => {
+      const response = await api.get("/api/Dashboard/Public");
+      return response.data;
+    },
+  });
+
   const rawCourses = Array.isArray(response?.data)
     ? response.data
     : Array.isArray(response?.data?.data)
@@ -1592,13 +1550,17 @@ const Index = () => {
       <Nav isAuthenticated={isAuthenticated} />
       <Hero isAuthenticated={isAuthenticated} />
       <TrustStrip />
-      <Stats />
-      <Categories />
+      <Stats stats={publicData.stats} />
+      <Categories categories={publicData.categories || []} />
       <HowItWorks />
-      <FeaturedCourses courses={courses} isLoading={isLoading} />
+      <FeaturedCourses
+        courses={courses}
+        categories={publicData.categories || []}
+        isLoading={isLoading}
+      />
       <AITutorSection />
-      <InstructorSpotlight />
-      <Testimonials />
+      <InstructorSpotlight instructors={publicData.instructors || []} />
+      <Testimonials testimonials={publicData.testimonials || []} />
       <Pricing isAuthenticated={isAuthenticated} />
       <FAQ />
       <CTABanner isAuthenticated={isAuthenticated} />

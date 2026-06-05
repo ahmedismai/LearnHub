@@ -1,16 +1,141 @@
 import express from "express";
 import mongoose from "mongoose";
 import { Course } from "../models/Course.js";
+import { Category } from "../models/Category.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Certificate } from "../models/Certificate.js";
 import { Exam } from "../models/Exam.js";
 import { ExamResult } from "../models/ExamResult.js";
 import { Grade } from "../models/Grade.js";
+import { Review } from "../models/Review.js";
 import { User } from "../models/User.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
+
+router.get("/Public", async (_req, res) => {
+  try {
+    const [
+      totalStudents,
+      totalInstructors,
+      totalCourses,
+      totalEnrollments,
+      totalCertificates,
+      categories,
+      instructors,
+      reviews,
+    ] = await Promise.all([
+      User.countDocuments({ role: ROLES.STUDENT }),
+      User.countDocuments({ role: ROLES.INSTRUCTOR }),
+      Course.countDocuments({ status: "Approved" }),
+      Enrollment.countDocuments(),
+      Certificate.countDocuments(),
+      Category.aggregate([
+        {
+          $lookup: {
+            from: "courses",
+            let: { categoryId: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$categoryId", "$$categoryId"] },
+                  status: "Approved",
+                },
+              },
+            ],
+            as: "courses",
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            courseCount: { $size: "$courses" },
+          },
+        },
+        { $sort: { courseCount: -1, name: 1 } },
+      ]),
+      User.aggregate([
+        { $match: { role: ROLES.INSTRUCTOR } },
+        {
+          $lookup: {
+            from: "courses",
+            let: { instructorId: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$instructorId", "$$instructorId"] },
+                  status: "Approved",
+                },
+              },
+            ],
+            as: "courses",
+          },
+        },
+        {
+          $lookup: {
+            from: "enrollments",
+            localField: "courses._id",
+            foreignField: "courseId",
+            as: "enrollments",
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            bio: 1,
+            profileImage: 1,
+            coursesCount: { $size: "$courses" },
+            studentsCount: { $size: "$enrollments" },
+          },
+        },
+        { $sort: { studentsCount: -1, coursesCount: -1, name: 1 } },
+        { $limit: 3 },
+      ]),
+      Review.find()
+        .populate("studentId", "name profileImage")
+        .populate("courseId", "title")
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .lean(),
+    ]);
+
+    res.json({
+      stats: {
+        totalStudents,
+        totalInstructors,
+        totalCourses,
+        totalEnrollments,
+        totalCertificates,
+      },
+      categories: categories.map((category) => ({
+        categoryId: String(category._id),
+        categoryName: category.name,
+        description: category.description,
+        courseCount: category.courseCount,
+      })),
+      instructors: instructors.map((instructor) => ({
+        instructorId: String(instructor._id),
+        name: instructor.name,
+        bio: instructor.bio || "",
+        profileImage: instructor.profileImage || "",
+        coursesCount: instructor.coursesCount,
+        studentsCount: instructor.studentsCount,
+      })),
+      testimonials: reviews.map((review) => ({
+        reviewId: String(review._id),
+        rating: review.rating,
+        comment: review.comment,
+        studentName: review.studentId?.name || "Student",
+        studentImage: review.studentId?.profileImage || "",
+        courseTitle: review.courseId?.title || "Course",
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 router.get(
   "/AdminDashboard",
