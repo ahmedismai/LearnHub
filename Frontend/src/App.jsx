@@ -39,6 +39,8 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminExams from "./pages/admin/AdminExams";
 import AdminStudentResults from "./pages/admin/AdminStudentResults";
 import MyOrders from "./pages/MyOrders";
+import Cart from "./pages/Cart";
+import Wishlist from "./pages/Wishlist";
 import Certificates from "./pages/Certificates";
 import Settings from "./pages/Settings";
 import StudentManagement from "./pages/instructor/StudentManagement";
@@ -142,6 +144,8 @@ const App = () => (
                 <Route path="exam/:id" element={<QuizPage />} />
 
                 <Route path="exam-result/:id" element={<ExamFeedback />} />
+                <Route path="cart" element={<Cart />} />
+                <Route path="wishlist" element={<Wishlist />} />
                 <Route path="my-orders" element={<MyOrders />} />
                 <Route path="certificates" element={<Certificates />} />
 

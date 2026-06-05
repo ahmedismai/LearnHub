@@ -34,6 +34,8 @@ import {
   GraduationCap,
   LogOut,
   BrainCircuit,
+  Heart,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -97,6 +99,8 @@ const DashboardSidebar = () => {
     },
     { title: "Grades", url: "/dashboard/grades", icon: ChartNoAxesCombined },
     { title: "Certificates", url: "/dashboard/certificates", icon: Trophy },
+    { title: "Wishlist", url: "/dashboard/wishlist", icon: Heart },
+    { title: "Cart", url: "/dashboard/cart", icon: ShoppingCart },
     { title: "My Orders", url: "/dashboard/my-orders", icon: ReceiptText },
   ];
 

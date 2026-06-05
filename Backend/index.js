@@ -23,6 +23,8 @@ import lessonRoutes from "./routes/lessonRoutes.js";
 import examRoutes from "./routes/examRoutes.js";
 import examResultRoutes from "./routes/examResultRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 import aiAssessmentRoutes from "./routes/aiAssessmentRoutes.js";
 import examLifecycleRoutes from "./routes/examLifecycleRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -64,6 +66,8 @@ app.use("/api/Lesson", lessonRoutes);
 app.use("/api/Exam", examRoutes);
 app.use("/api/ExamResult", examResultRoutes);
 app.use("/api/Order", orderRoutes);
+app.use("/api/Wishlist", wishlistRoutes);
+app.use("/api/Cart", cartRoutes);
 app.use("/api/AI-Assessment", aiAssessmentRoutes);
 app.use("/api/Exam-Lifecycle", examLifecycleRoutes);
 

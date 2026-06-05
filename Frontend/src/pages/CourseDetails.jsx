@@ -21,6 +21,7 @@ import {
   BookOpen,
   Zap,
   Heart,
+  ShoppingCart as CartIcon,
 } from "lucide-react";
 
 // Import shadcn/ui components
@@ -46,6 +47,8 @@ import enrollmentService from "@/api/enrollment";
 import examService from "@/api/exam";
 import lessonProgressService from "@/api/lessonProgress";
 import orderService from "@/api/order";
+import wishlistService from "@/api/wishlist";
+import cartService from "@/api/cart";
 import lessonService from "@/api/lesson";
 import sectionService from "@/api/section";
 import AIQuizDialog from "@/components/AIQuizDialog";
@@ -235,6 +238,36 @@ const CourseDetails = () => {
       toast({
         variant: "destructive",
         title: course.isFree ? "Enrollment failed" : "Order creation failed",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const addToWishlistMutation = useMutation({
+    mutationFn: () => wishlistService.add(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["wishlist"]);
+      toast({ title: "Saved to wishlist" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Could not save course",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: () => cartService.add(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cart"]);
+      toast({ title: "Added to cart" });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Could not add to cart",
         description: error.response?.data?.message || "Something went wrong",
       });
     },
@@ -1017,7 +1050,24 @@ const CourseDetails = () => {
                         ? "Enroll Now"
                         : "Purchase Course"}
                   </Button>
-                  <Button variant="outline" size="lg" className="mt-3 w-full">
+                  {!course.isFree && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="mt-3 w-full"
+                      onClick={() => addToCartMutation.mutate()}
+                      disabled={addToCartMutation.isPending}
+                    >
+                      <CartIcon className="h-4 w-4" /> Add to cart
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="mt-3 w-full"
+                    onClick={() => addToWishlistMutation.mutate()}
+                    disabled={addToWishlistMutation.isPending}
+                  >
                     <Heart className="h-4 w-4" /> Save for later
                   </Button>
                   <p className="text-center text-[10px] text-muted-foreground mt-4 px-4 leading-tight">
