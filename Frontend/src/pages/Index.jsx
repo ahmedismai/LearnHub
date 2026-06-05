@@ -104,97 +104,54 @@ const getInitials = (name = "User") =>
     .slice(0, 2) || "U";
 
 function InstallAppButton() {
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [installMessage, setInstallMessage] = useState("");
+  const [canInstall, setCanInstall] = useState(!!window.learnHubInstallPrompt);
+  const [isInstalled, setIsInstalled] = useState(
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    window.navigator.standalone === true
+  );
 
   useEffect(() => {
-    const checkInstallation = () => {
-      const standalone =
+    const handleStatusChange = () => {
+      setCanInstall(!!window.learnHubInstallPrompt);
+      setIsInstalled(
         window.matchMedia?.("(display-mode: standalone)")?.matches ||
-        window.navigator.standalone === true;
-      setIsInstalled(standalone);
+        window.navigator.standalone === true
+      );
     };
 
-    checkInstallation();
-    setInstallPrompt(window.learnHubInstallPrompt);
-
-    const handleInstallReady = () => {
-      setInstallPrompt(window.learnHubInstallPrompt);
-      setInstallMessage("");
-    };
-
-    const handleInstalled = () => {
-      setIsInstalled(true);
-      setInstallPrompt(null);
-      setInstallMessage("");
-    };
-
-    window.addEventListener("learnhub-install-ready", handleInstallReady);
-    window.addEventListener("appinstalled", handleInstalled);
-    window.addEventListener("learnhub-installed", handleInstalled);
-
-    // Re-check periodically if not ready yet
-    const interval = setInterval(() => {
-      if (!installPrompt && window.learnHubInstallPrompt) {
-        setInstallPrompt(window.learnHubInstallPrompt);
-      }
-    }, 2000);
+    window.addEventListener("learnhub-install-status-changed", handleStatusChange);
+    window.addEventListener("learnhub-install-ready", handleStatusChange);
+    window.addEventListener("learnhub-installed", handleStatusChange);
+    window.addEventListener("appinstalled", handleStatusChange);
 
     return () => {
-      window.removeEventListener("learnhub-install-ready", handleInstallReady);
-      window.removeEventListener("appinstalled", handleInstalled);
-      window.removeEventListener("learnhub-installed", handleInstalled);
-      clearInterval(interval);
+      window.removeEventListener("learnhub-install-status-changed", handleStatusChange);
+      window.removeEventListener("learnhub-install-ready", handleStatusChange);
+      window.removeEventListener("learnhub-installed", handleStatusChange);
+      window.removeEventListener("appinstalled", handleStatusChange);
     };
-  }, [installPrompt]);
+  }, []);
 
   const handleInstall = async () => {
-    const prompt = installPrompt || window.learnHubInstallPrompt;
-    if (!prompt) {
-      setInstallMessage(
-        "Install is not ready yet. Refresh once after deployment, then tap Install App again in Chrome or Edge.",
-      );
-      return;
+    const result = await window.installApp();
+    if (result.success) {
+      console.log("App installed successfully");
     }
-
-    prompt.prompt();
-    const choice = await prompt.userChoice;
-    if (choice?.outcome === "accepted") {
-      window.learnHubInstallPrompt = null;
-      setInstallPrompt(null);
-      setInstallMessage("");
-      return;
-    }
-
-    setInstallMessage("Install was cancelled. Tap Install App to try again.");
   };
 
-  if (isInstalled) return null;
+  if (isInstalled || !canInstall) return null;
 
   return (
-    <div className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="xl"
-        className="bg-white/70 backdrop-blur-md border-primary/20"
-        onClick={handleInstall}
-        title={
-          installPrompt
-            ? "Install LearnHub"
-            : "Install is not ready in this browser yet"
-        }
-      >
-        <Download className="w-[18px] h-[18px]" />
-        Install App
-      </Button>
-      {installMessage && (
-        <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[300px] rounded-xl border border-primary/15 bg-white p-3 text-xs font-semibold leading-5 text-slate-700 shadow-xl">
-          {installMessage}
-        </div>
-      )}
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="xl"
+      className="bg-white/70 backdrop-blur-md border-primary/20"
+      onClick={handleInstall}
+    >
+      <Download className="w-[18px] h-[18px]" />
+      Install App
+    </Button>
   );
 }
 

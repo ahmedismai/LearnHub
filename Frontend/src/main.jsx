@@ -6,24 +6,48 @@ import "./index.css";
 registerSW({ immediate: true });
 
 // Robust PWA Install handling
-window.learnHubInstallPrompt = null;
+let deferredPrompt = null;
 
-const handleInstallPrompt = (event) => {
-  // Prevent the default browser mini-infobar from appearing
-  event.preventDefault();
-  // Stash the event so it can be triggered later.
-  window.learnHubInstallPrompt = event;
-  // Notify the app that installation is ready
-  window.dispatchEvent(new Event("learnhub-install-ready"));
-  console.log("LearnHub: PWA Install prompt is ready");
+// Global install function accessible from anywhere
+window.installApp = async () => {
+  if (!deferredPrompt) {
+    return { success: false };
+  }
+
+  try {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null; // Clear after use
+    window.dispatchEvent(new Event("learnhub-install-status-changed"));
+    
+    if (outcome === "accepted") {
+      console.log("LearnHub: User accepted the install prompt");
+      return { success: true };
+    } else {
+      console.log("LearnHub: User dismissed the install prompt");
+      return { success: false };
+    }
+  } catch (err) {
+    console.error("LearnHub: Installation error", err);
+    return { success: false, error: err };
+  }
 };
 
-window.addEventListener("beforeinstallprompt", handleInstallPrompt);
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+  window.learnHubInstallPrompt = event; // Keep for compatibility if needed
+  window.dispatchEvent(new Event("learnhub-install-ready"));
+  window.dispatchEvent(new Event("learnhub-install-status-changed"));
+  console.log("LearnHub: PWA Install prompt is captured and ready");
+});
 
 window.addEventListener("appinstalled", () => {
+  deferredPrompt = null;
   window.learnHubInstallPrompt = null;
   window.dispatchEvent(new Event("learnhub-installed"));
-  console.log("LearnHub: PWA was installed");
+  window.dispatchEvent(new Event("learnhub-install-status-changed"));
+  console.log("LearnHub: PWA was successfully installed");
 });
 
 createRoot(document.getElementById("root")).render(<App />);
