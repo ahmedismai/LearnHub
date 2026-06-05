@@ -494,6 +494,7 @@ const Dashboard = () => {
             </div>
             {submittedExams.length > 0 ? (
               submittedExams.map((result) => {
+                const gradeId = result.gradeId;
                 const recentResultId = result.examResultId || result.resultId;
                 const examId =
                   result.examId ||
@@ -501,8 +502,8 @@ const Dashboard = () => {
                   result.exam?.examId ||
                   result.exam?.id ||
                   result.id;
-                const targetId = examId || recentResultId;
-                const lookup = examId ? "exam" : "result";
+                const targetId = gradeId || recentResultId || examId;
+                const lookup = gradeId ? "grade" : recentResultId ? "result" : "exam";
                 const score = result.score ?? result.examResult?.score ?? 0;
 
                 return (
@@ -519,7 +520,7 @@ const Dashboard = () => {
                       <Link
                         to={
                           targetId
-                            ? `/dashboard/exam-result/${targetId}`
+                            ? `/dashboard/exam-result/${targetId}?lookup=${lookup}`
                             : "/dashboard/exams"
                         }
                         state={{ lookup, examId }}

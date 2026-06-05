@@ -40,3 +40,47 @@ Mongo connection failed: MongooseServerSelectionError: Could not connect to any 
     logicalSessionTimeoutMinutes: null
   }
 }
+(node:7100) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:16808) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Mongo connection failed: MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (D:\academy-weave-way\LearnHub\LearnHub\Backend\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (D:\academy-weave-way\LearnHub\LearnHub\Backend\node_modules\mongoose\lib\connection.js:1100:11) {
+  errorLabelSet: Set(0) {},
+  reason: TopologyDescription {
+    type: 'ReplicaSetNoPrimary',
+    servers: Map(3) {
+      'ac-8kitkme-shard-00-02.s5cnums.mongodb.net:27017' => [ServerDescription],
+      'ac-8kitkme-shard-00-00.s5cnums.mongodb.net:27017' => [ServerDescription],
+      'ac-8kitkme-shard-00-01.s5cnums.mongodb.net:27017' => [ServerDescription]
+    },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: 'atlas-hio3rz-shard-0',
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  },
+  code: undefined,
+  cause: TopologyDescription {
+    type: 'ReplicaSetNoPrimary',
+    servers: Map(3) {
+      'ac-8kitkme-shard-00-02.s5cnums.mongodb.net:27017' => [ServerDescription],
+      'ac-8kitkme-shard-00-00.s5cnums.mongodb.net:27017' => [ServerDescription],
+      'ac-8kitkme-shard-00-01.s5cnums.mongodb.net:27017' => [ServerDescription]
+    },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: 'atlas-hio3rz-shard-0',
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  }
+}

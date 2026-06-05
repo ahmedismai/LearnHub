@@ -35,6 +35,9 @@ const getExamId = (item) =>
   pickValue(item, ["examId", "ExamId", "examID", "ExamID"]) ||
   pickValue(item?.exam, ["examId", "ExamId", "examID", "ExamID", "id", "Id"]);
 
+const getGradeId = (item) =>
+  pickValue(item, ["gradeId", "GradeId", "gradeID", "GradeID"]);
+
 const getResultId = (item) =>
   pickValue(item, [
     "examResultId",
@@ -348,10 +351,11 @@ const Grades = () => {
             </div>
                 {grades.length > 0 ? (
                   grades.map((grade) => {
+                    const gradeId = getGradeId(grade);
                     const resultId = getResultId(grade);
                     const examId = getExamId(grade);
-                    const targetId = resultId || examId;
-                    const lookup = resultId ? "result" : "exam";
+                    const targetId = gradeId || resultId || examId;
+                    const lookup = gradeId ? "grade" : resultId ? "result" : "exam";
                     const score = getScore(grade);
 
                     return (

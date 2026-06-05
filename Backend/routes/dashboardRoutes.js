@@ -5,6 +5,7 @@ import { Enrollment } from "../models/Enrollment.js";
 import { Certificate } from "../models/Certificate.js";
 import { Exam } from "../models/Exam.js";
 import { ExamResult } from "../models/ExamResult.js";
+import { Grade } from "../models/Grade.js";
 import { User } from "../models/User.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { ROLES } from "../constants/roles.js";
@@ -121,7 +122,7 @@ router.get(
         .map((item) => item.courseId?._id || item.courseId)
         .filter(Boolean);
 
-      const [publishedExams, submittedResults, certificatesEarned] =
+      const [publishedExams, submittedResults, submittedGrades, certificatesEarned] =
         await Promise.all([
           courseIds.length
             ? Exam.find({ courseId: { $in: courseIds }, status: "Published" })
@@ -132,6 +133,15 @@ router.get(
           courseIds.length
             ? ExamResult.find({ studentId, courseId: { $in: courseIds } })
                 .populate("examId", "title")
+                .populate("courseId", "title")
+                .sort({ createdAt: -1 })
+                .lean()
+            : [],
+          courseIds.length
+            ? Grade.find({ studentId, courseId: { $in: courseIds } })
+                .populate("examId", "title")
+                .populate("quizId", "title")
+                .populate("assignmentId", "title")
                 .populate("courseId", "title")
                 .sort({ createdAt: -1 })
                 .lean()
@@ -157,18 +167,32 @@ router.get(
         courseTitle: exam.courseId?.title || "Course",
       }));
 
-      const submittedExams = submittedResults.map((result) => {
-        const percentage = Math.round(result.percentage || 0);
+      const examResultsByExamId = submittedResults.reduce((map, result) => {
+        map.set(String(result.examId?._id || result.examId), result);
+        return map;
+      }, new Map());
+
+      const submittedExams = submittedGrades.map((grade) => {
+        const score = Math.round(grade.percentage ?? grade.score ?? 0);
+        const assessment =
+          grade.examId || grade.quizId || grade.assignmentId || {};
+        const examResult = grade.examId
+          ? examResultsByExamId.get(String(grade.examId?._id || grade.examId))
+          : null;
 
         return {
-          examResultId: String(result._id),
-          examId: String(result.examId?._id || result.examId),
-          examTitle: result.examId?.title || "Assessment",
-          courseId: String(result.courseId?._id || result.courseId),
-          courseTitle: result.courseId?.title || "Course",
-          score: percentage,
-          percentage,
-          startedAt: result.createdAt,
+          gradeId: String(grade._id),
+          examResultId: examResult ? String(examResult._id) : null,
+          examId: grade.examId ? String(grade.examId?._id || grade.examId) : null,
+          courseId: String(grade.courseId?._id || grade.courseId),
+          type: grade.type,
+          examTitle: assessment.title || `${grade.type} Assessment`,
+          courseTitle: grade.courseId?.title || "Course",
+          score,
+          percentage: score,
+          aiFeedback: grade.aiFeedback || "",
+          isReviewed: Boolean(grade.isReviewed),
+          startedAt: grade.createdAt,
         };
       });
 

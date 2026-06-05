@@ -6,6 +6,7 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router-dom";
+import api from "@/api/axios";
 import examService from "@/api/exam";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,11 @@ const ExamFeedback = () => {
     queryFn: async () => {
       if (!resultId || resultId === "undefined" || resultId === "null")
         return null;
+
+      if (lookupMode === "grade") {
+        const response = await api.get(`/api/Grade/${resultId}/feedback`);
+        return response.data;
+      }
 
       if (lookupMode === "exam") {
         const results = await examService.getResultsByExam(resultId);
@@ -157,6 +163,12 @@ const ExamFeedback = () => {
   const examTitle =
     targetData.examTitle || targetData.examResult?.examTitle || "Assessment";
   const startedAt = targetData.startedAt || targetData.examResult?.startedAt;
+  const feedback =
+    targetData.aiFeedback ||
+    targetData.feedback ||
+    targetData.examResult?.aiFeedback ||
+    targetData.examResult?.feedback ||
+    "";
 
   // 🚀 الحل القاتل: استخراج المصفوفة أياً كان مكانها أو مسماها
   const answers =
@@ -262,6 +274,31 @@ const ExamFeedback = () => {
       </header>
 
       <section className="space-y-6">
+        <div className="fb-card overflow-hidden">
+          <div className="fb-card__head">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Feedback</h2>
+              {targetData.isReviewed && (
+                <Badge variant="secondary" className="ml-auto">
+                  Reviewed
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="fb-card__body">
+            {feedback ? (
+              <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">
+                {feedback}
+              </p>
+            ) : (
+              <p className="text-sm font-medium text-muted-foreground">
+                No written feedback is available for this result yet.
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 border-b pb-4">
           <BookOpen className="w-6 h-6 text-primary" />
           <h2 className="text-2xl font-bold">Review Answers</h2>
