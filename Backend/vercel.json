@@ -10,6 +10,22 @@
     {
       "src": "/api/(.*)",
       "dest": "index.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "index.js"
+    },
+    {
+      "src": "/Images/(.*)",
+      "dest": "index.js"
+    },
+    {
+      "src": "/Files/(.*)",
+      "dest": "index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "index.js"
     }
   ]
 }

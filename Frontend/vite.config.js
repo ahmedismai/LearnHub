@@ -81,13 +81,25 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallback: "/index.html",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,json,webmanifest}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/learn-hub-rho-ashen\.vercel\.app\/api\//,
+            urlPattern: /^https:\/\/.*\.vercel\.app\/api\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "learnhub-api",
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: /\/api\//,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "learnhub-api-relative",
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 80,
