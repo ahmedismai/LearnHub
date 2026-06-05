@@ -133,21 +133,33 @@ function InstallAppButton() {
   }, []);
 
   const handleInstall = async () => {
+    if (!canInstall) {
+      // If clicked before ready, we just wait for the browser to trigger it
+      // or show a subtle message if needed, but per requirements we don't show "not ready"
+      return;
+    }
     const result = await window.installApp();
     if (result.success) {
       console.log("App installed successfully");
     }
   };
 
-  if (isInstalled || !canInstall) return null;
+  // Only hide if already installed. 
+  // We keep it visible so users know it's an option, 
+  // but it will only trigger when the browser allows it.
+  if (isInstalled) return null;
 
   return (
     <Button
       type="button"
       variant="outline"
       size="xl"
-      className="bg-white/70 backdrop-blur-md border-primary/20"
+      className={cn(
+        "bg-white/70 backdrop-blur-md border-primary/20 transition-all duration-300",
+        !canInstall && "opacity-50 cursor-not-allowed"
+      )}
       onClick={handleInstall}
+      title={!canInstall ? "Waiting for browser to be ready..." : "Install LearnHub"}
     >
       <Download className="w-[18px] h-[18px]" />
       Install App

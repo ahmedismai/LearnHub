@@ -6,18 +6,21 @@ import "./index.css";
 registerSW({ immediate: true });
 
 // Robust PWA Install handling
+window.learnHubInstallPrompt = null;
 let deferredPrompt = null;
 
 // Global install function accessible from anywhere
 window.installApp = async () => {
-  if (!deferredPrompt) {
+  const prompt = deferredPrompt || window.learnHubInstallPrompt;
+  if (!prompt) {
     return { success: false };
   }
 
   try {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null; // Clear after use
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    deferredPrompt = null;
+    window.learnHubInstallPrompt = null;
     window.dispatchEvent(new Event("learnhub-install-status-changed"));
     
     if (outcome === "accepted") {
