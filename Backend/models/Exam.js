@@ -25,6 +25,12 @@ const examSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     duration: { type: String, default: "30m" },
+    examDate: { type: Date, required: true, default: Date.now },
+    endDate: {
+      type: Date,
+      required: true,
+      default: () => new Date(Date.now() + 30 * 60 * 1000),
+    },
     status: {
       type: String,
       enum: ["Draft", "Published"],

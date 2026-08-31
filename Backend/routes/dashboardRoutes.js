@@ -288,6 +288,11 @@ router.get(
       const availableExams = publishedExams.map((exam) => ({
         examId: String(exam._id),
         title: exam.title,
+        description: exam.description,
+        duration: exam.duration,
+        totalMarks: exam.totalMarks,
+        examDate: exam.examDate,
+        endDate: exam.endDate,
         courseId: String(exam.courseId?._id || exam.courseId),
         courseTitle: exam.courseId?.title || "Course",
       }));

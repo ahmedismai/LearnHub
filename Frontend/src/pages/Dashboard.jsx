@@ -419,6 +419,8 @@ const Dashboard = () => {
                 const isSubmitted = submittedExams.some(
                   (s) => (s.examId || s.id) === (exam.examId || exam.id),
                 );
+                const isNotStarted =
+                  exam.examDate && new Date() < new Date(exam.examDate);
                 const isExpired =
                   exam.expired || (exam.endDate && new Date() > new Date(exam.endDate));
                 return (
@@ -440,7 +442,7 @@ const Dashboard = () => {
                       </div>
                       <div className="overline">{exam.courseTitle}</div>
                     </div>
-                    {isSubmitted || isExpired ? (
+                    {isSubmitted || isExpired || isNotStarted ? (
                       <span
                         style={{
                           fontSize: 10,
@@ -456,7 +458,11 @@ const Dashboard = () => {
                           flexShrink: 0,
                         }}
                       >
-                        {isSubmitted ? "DONE" : "EXPIRED"}
+                        {isSubmitted
+                          ? "DONE"
+                          : isExpired
+                            ? "EXPIRED"
+                            : "SOON"}
                       </span>
                     ) : (
                       <Button

@@ -42,6 +42,8 @@ router.post(
         title,
         description,
         duration,
+        examDate,
+        endDate,
         status,
         totalMarks,
         questions,
@@ -65,12 +67,32 @@ router.post(
           .json({ message: "Not authorized to create exam for this course" });
       }
 
+      const startDate = examDate ? new Date(examDate) : new Date();
+      const finishDate = endDate
+        ? new Date(endDate)
+        : new Date(startDate.getTime() + Number(duration || 30) * 60 * 1000);
+
+      if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(finishDate.getTime())
+      ) {
+        return res.status(400).json({ message: "Invalid exam date range" });
+      }
+
+      if (finishDate <= startDate) {
+        return res
+          .status(400)
+          .json({ message: "End date must be after start date" });
+      }
+
       const exam = new Exam({
         courseId,
         instructorId: req.user.id,
         title,
         description,
         duration,
+        examDate: startDate,
+        endDate: finishDate,
         status: status || "Draft",
         totalMarks: totalMarks || 100,
         questions,
@@ -147,6 +169,14 @@ router.post(
           .json({ message: "Exam not found or not published" });
       }
 
+      const now = new Date();
+      if (exam.examDate && now < exam.examDate) {
+        return res.status(403).json({ message: "Exam has not started yet" });
+      }
+      if (exam.endDate && now > exam.endDate) {
+        return res.status(403).json({ message: "Exam has expired" });
+      }
+
       // Check if already submitted - Specific to this Exam ID
       const { Submission } = await import("../models/Submission.js");
       const existingSubmission = await Submission.findOne({
@@ -200,10 +230,37 @@ router.patch(
       exam.title = req.body.title || exam.title;
       exam.description = req.body.description || exam.description;
       exam.duration = req.body.duration || exam.duration;
+      if (req.body.examDate || req.body.endDate) {
+        const startDate = req.body.examDate
+          ? new Date(req.body.examDate)
+          : exam.examDate;
+        const finishDate = req.body.endDate
+          ? new Date(req.body.endDate)
+          : exam.endDate;
+
+        if (
+          Number.isNaN(startDate?.getTime()) ||
+          Number.isNaN(finishDate?.getTime()) ||
+          finishDate <= startDate
+        ) {
+          return res.status(400).json({ message: "Invalid exam date range" });
+        }
+
+        exam.examDate = startDate;
+        exam.endDate = finishDate;
+      }
       exam.status = req.body.status || exam.status;
       exam.totalMarks = req.body.totalMarks || exam.totalMarks;
       if (req.body.questions) {
         exam.questions = req.body.questions;
+      }
+      if (!exam.examDate) {
+        exam.examDate = exam.createdAt || new Date();
+      }
+      if (!exam.endDate) {
+        exam.endDate = new Date(
+          exam.examDate.getTime() + Number(exam.duration || 30) * 60 * 1000,
+        );
       }
       await exam.save();
       res.json(exam);

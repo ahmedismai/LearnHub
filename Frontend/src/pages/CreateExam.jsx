@@ -59,7 +59,10 @@ const getLocalDateTimeInputValue = (date = new Date()) => {
 
 const dateTimeInputValueToApiValue = (value) => {
   const selectedValue = value || getLocalDateTimeInputValue();
-  return selectedValue.length === 16 ? `${selectedValue}:00` : selectedValue;
+  const date = new Date(selectedValue);
+  return Number.isNaN(date.getTime())
+    ? new Date().toISOString()
+    : date.toISOString();
 };
 
 const apiDateValueToInputValue = (value, fallbackDate = new Date()) => {
@@ -347,6 +350,8 @@ const CreateExam = () => {
         title: values.title?.trim() || "Ai exam",
         courseId: values.courseId,
         duration: Number(values.durationInMinutes),
+        examDate: dateTimeInputValueToApiValue(values.examDate),
+        endDate: dateTimeInputValueToApiValue(values.endDate),
         totalMarks: Number(values.totalMarks),
         status: "Published",
 

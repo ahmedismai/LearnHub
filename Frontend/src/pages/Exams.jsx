@@ -63,13 +63,16 @@ const Exams = ({ isSubComponent = false }) => {
           return availableExams.map((exam) => {
             const examId = exam.examId || exam.id;
             const now = new Date();
+            const examDate = exam.examDate ? new Date(exam.examDate) : null;
             const endDate = exam.endDate ? new Date(exam.endDate) : null;
+            const isNotStarted = examDate ? now < examDate : false;
             const isExpired = endDate ? now > endDate : false;
             const isSubmitted = submittedExamIds.has(examId);
 
             return {
               ...exam,
               examId,
+              isNotStarted,
               isExpired,
               isSubmitted,
             };
@@ -217,7 +220,8 @@ const Exams = ({ isSubComponent = false }) => {
         {exams.length > 0 ? (
           exams.map((exam) => {
             const isLocked =
-              user?.role === "Student" && (exam.isSubmitted || exam.isExpired);
+              user?.role === "Student" &&
+              (exam.isSubmitted || exam.isExpired || exam.isNotStarted);
             const statusClass = exam.isSubmitted
               ? "due-pill--done"
               : exam.isExpired
@@ -241,6 +245,8 @@ const Exams = ({ isSubComponent = false }) => {
                         ? "Completed"
                         : exam.isExpired
                           ? "Expired"
+                          : exam.isNotStarted
+                            ? "Not Started"
                           : "Available"}
                     </span>
                   </div>
@@ -273,7 +279,11 @@ const Exams = ({ isSubComponent = false }) => {
                 <div className="col min-w-[140px] gap-2">
                   {isLocked ? (
                     <Button className="w-full" variant="secondary" disabled>
-                      {exam.isSubmitted ? "Completed" : "Exam Expired"}
+                      {exam.isSubmitted
+                        ? "Completed"
+                        : exam.isExpired
+                          ? "Exam Expired"
+                          : "Not Started"}
                     </Button>
                   ) : (
                     <Button asChild className="w-full">
