@@ -17,6 +17,7 @@ import { Loader2, AlertTriangle, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import examService from "@/api/exam";
+import { unwrapResponse } from "@/lib/response";
 
 const QuizPage = () => {
   const { id } = useParams();
@@ -55,8 +56,6 @@ const QuizPage = () => {
     }
     return null;
   };
-
-  const unwrapResponse = (value) => value?.data?.data || value?.data || value || {};
 
   const getSubmitResultId = (response, body) => {
     const explicitId = getResultId(body) || getResultId(response);
@@ -138,7 +137,7 @@ const QuizPage = () => {
     retry: false, // Don't retry on failure to start exam
   });
 
-  const quizData = data;
+  const quizData = unwrapResponse(data);
   const questions = quizData?.questions || [];
 
   // ================= TIMER =================
